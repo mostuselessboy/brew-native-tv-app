@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -19,12 +18,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -59,7 +60,6 @@ fun MoviesRow(
     startPadding: Dp = rememberChildPadding().start,
     endPadding: Dp = rememberChildPadding().end,
     title: String? = null,
-    subheading: String? = null,
     titleStyle: TextStyle = MaterialTheme.typography.titleLarge,
     showItemTitle: Boolean = true,
     showIndexOverImage: Boolean = false,
@@ -67,22 +67,19 @@ fun MoviesRow(
     firstItemFocusRequester: FocusRequester? = null,
     upFocusRequester: FocusRequester? = null,
     leftFocusRequester: FocusRequester? = null,
-    restoreFocusMovieId: String? = null,
-    onRestoreFocusComplete: () -> Unit = {},
-    onFirstItemFocused: (() -> Unit)? = null,
-    focusEnabled: Boolean = true,
+    deferCardMount: Boolean = false,
+    deferCardMountDelayMs: Long = 280,
 ) {
     val (lazyRow, defaultFirstItem) = remember { FocusRequester.createRefs() }
     val firstItem = firstItemFocusRequester ?: defaultFirstItem
-    val restoreFocusRequester = remember { FocusRequester() }
     val cardHeight = BrewLandscapeCardWidth * 9f / 16f
-
-    LaunchedEffect(restoreFocusMovieId, movieList) {
-        val targetId = restoreFocusMovieId ?: return@LaunchedEffect
-        if (movieList.none { it.id == targetId }) return@LaunchedEffect
-        delay(160)
-        if (runCatching { restoreFocusRequester.requestFocus() }.isSuccess) {
-            onRestoreFocusComplete()
+    var cardsReady by remember(movieList, deferCardMount) {
+        mutableStateOf(!deferCardMount)
+    }
+    LaunchedEffect(movieList, deferCardMount, deferCardMountDelayMs) {
+        if (deferCardMount) {
+            delay(deferCardMountDelayMs)
+            cardsReady = true
         }
     }
 
@@ -94,33 +91,21 @@ fun MoviesRow(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(
                     start = startPadding,
-                    top = 0.dp,
-                    bottom = 4.dp,
+                    top = 2.dp,
+                    bottom = 8.dp,
                 ),
             )
         }
 
         Box(modifier = Modifier.fillMaxWidth()) {
             LazyRow(
-                contentPadding = PaddingValues(
-                    start = startPadding + if (showIndexOverImage) RankedRowExtraStartPadding else 0.dp,
-                    end = endPadding,
-                    top = 2.dp,
-                    bottom = 2.dp,
-                ),
+                contentPadding = PaddingValues(start = startPadding, end = endPadding),
                 horizontalArrangement = Arrangement.spacedBy(
-                    if (showIndexOverImage) RankedCardSpacing else 10.dp,
+                    if (showIndexOverImage) 8.dp else 10.dp,
                 ),
                 modifier = Modifier
-                    .graphicsLayer { clip = false }
                     .focusRequester(lazyRow)
-                    .then(
-                        if (focusEnabled) {
-                            Modifier.focusRestorer { firstItem }
-                        } else {
-                            Modifier.focusProperties { canFocus = false }
-                        },
-                    ),
+                    .focusRestorer { firstItem },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 itemsIndexed(
@@ -128,13 +113,10 @@ fun MoviesRow(
                     key = { _, movie -> movie.id },
                     contentType = { _, _ -> "movie_card" },
                 ) { index, movie ->
-                    val itemModifier = when {
-                        restoreFocusMovieId == movie.id ->
-                            Modifier.focusRequester(restoreFocusRequester)
-                        index == 0 ->
-                            Modifier.focusRequester(firstItem)
-                        else ->
-                            Modifier
+                    val itemModifier = if (index == 0) {
+                        Modifier.focusRequester(firstItem)
+                    } else {
+                        Modifier
                     }
                     val focusModifier = itemModifier.focusProperties {
                         left = when {
@@ -142,24 +124,22 @@ fun MoviesRow(
                             leftFocusRequester != null -> leftFocusRequester
                             else -> FocusRequester.Cancel
                         }
-                        if (upFocusRequester != null) {
+                        if (index == 0 && upFocusRequester != null) {
                             up = upFocusRequester
                         }
                     }
 
-                    if (showIndexOverImage) {
+                    if (!cardsReady) {
+                        TrayCardPlaceholder(modifier = focusModifier)
+                    } else if (showIndexOverImage) {
                         RankedMovieItem(
                             rank = index + 1,
                             movie = movie,
                             cardHeight = cardHeight,
                             showTitle = showItemTitle,
-                            focusEnabled = focusEnabled,
                             onClick = {
-                                runCatching { lazyRow.saveFocusedChild() }
+                                lazyRow.saveFocusedChild()
                                 onMovieSelected(movie)
-                            },
-                            onFocused = {
-                                if (index == 0) onFirstItemFocused?.invoke()
                             },
                             modifier = focusModifier,
                         )
@@ -167,12 +147,8 @@ fun MoviesRow(
                         BrewLandscapeMovieCard(
                             movie = movie,
                             showTitle = showItemTitle,
-                            focusEnabled = focusEnabled,
-                            onFocused = {
-                                if (index == 0) onFirstItemFocused?.invoke()
-                            },
                             onClick = {
-                                runCatching { lazyRow.saveFocusedChild() }
+                                lazyRow.saveFocusedChild()
                                 onMovieSelected(movie)
                             },
                             modifier = focusModifier,
@@ -213,9 +189,6 @@ fun MoviesRow(
     }
 }
 
-private val RankedRowExtraStartPadding = 24.dp
-private val RankedCardSpacing = 22.dp
-private val RankedNumberLeadingInset = (-14).dp
 private val TrayCardShape = RoundedCornerShape(9.dp)
 private val TrayPlaceholderColor = Color(0xFF141414)
 
@@ -241,46 +214,41 @@ private fun RankedMovieItem(
     movie: Movie,
     cardHeight: Dp,
     showTitle: Boolean,
-    focusEnabled: Boolean,
     onClick: () -> Unit,
-    onFocused: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val isDoubleDigit = rank > 9
-    val numberWidth = if (isDoubleDigit) 72.dp else 54.dp
+    val numberWidth = if (isDoubleDigit) 58.dp else 42.dp
 
     Box(
-        modifier = Modifier
-            .height(cardHeight + 8.dp)
-            .padding(start = if (isDoubleDigit) 16.dp else 10.dp),
+        modifier = modifier
+            .height(cardHeight)
+            .padding(start = if (isDoubleDigit) 20.dp else 14.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(
             text = rank.toString(),
-            color = Color.White.copy(alpha = if (rank == 1) 0.96f else 0.68f),
+            color = Color.White.copy(alpha = 0.92f),
             fontFamily = BrewTitle,
             fontWeight = FontWeight.Bold,
-            fontSize = if (isDoubleDigit) 88.sp else 96.sp,
-            letterSpacing = (-4).sp,
-            lineHeight = if (isDoubleDigit) 88.sp else 96.sp,
+            fontSize = if (isDoubleDigit) 68.sp else 80.sp,
+            letterSpacing = (-3).sp,
+            lineHeight = if (isDoubleDigit) 68.sp else 80.sp,
             maxLines = 1,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(x = RankedNumberLeadingInset)
+                .offset(x = (-6).dp)
                 .widthIn(min = numberWidth)
                 .zIndex(0f),
         )
         BrewLandscapeMovieCard(
             movie = movie,
             showTitle = showTitle,
-            focusEnabled = focusEnabled,
-            onFocused = onFocused,
             onClick = onClick,
             modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = numberWidth * 0.48f)
-                .zIndex(1f)
-                .then(modifier),
+                .align(Alignment.CenterEnd)
+                .padding(start = numberWidth * 0.55f)
+                .zIndex(1f),
         )
     }
 }

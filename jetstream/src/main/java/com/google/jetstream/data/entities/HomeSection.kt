@@ -5,7 +5,6 @@ data class HomeSection(
     val title: String,
     val type: HomeSectionType,
     val movies: MovieList,
-    val subheading: String? = null,
     /** Prime/Brew "Most Watched" style — large rank numerals beside cards. */
     val showRanking: Boolean = false,
 )

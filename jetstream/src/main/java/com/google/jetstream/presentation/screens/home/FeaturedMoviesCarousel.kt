@@ -3,6 +3,9 @@ package com.google.jetstream.presentation.screens.home
 import android.os.SystemClock
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -41,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -49,11 +53,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -97,6 +99,7 @@ private val ShowcaseButtonWidth = 168.dp
 private val ShowcaseButtonShape = RoundedCornerShape(8.dp)
 private val ShowcaseButtonHeight = 36.dp
 private val ShowcaseButtonPadding = PaddingValues(horizontal = 14.dp, vertical = 5.dp)
+private const val ShowcaseButtonFocusedScale = 1.10f
 private const val HorizontalKeyGraceMs = 320L
 
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalComposeUiApi::class)
@@ -111,8 +114,6 @@ fun FeaturedMoviesCarousel(
     secondaryFocusRequester: FocusRequester? = null,
     downFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
-    focusEnabled: Boolean = true,
-    onShowcaseFocused: () -> Unit = {},
 ) {
     if (movies.isEmpty()) return
 
@@ -131,25 +132,18 @@ fun FeaturedMoviesCarousel(
     val unusedPlayerNav = goToVideoPlayer
 
     var lastFocusedSlide by remember { mutableIntStateOf(slideIndex) }
-    LaunchedEffect(slideIndex, focusEnabled) {
-        if (!focusEnabled) return@LaunchedEffect
+    LaunchedEffect(slideIndex) {
         if (lastFocusedSlide != slideIndex) {
-            runCatching { primaryFocus.requestFocus() }
+            primaryFocus.requestFocus()
             lastFocusedSlide = slideIndex
         }
     }
 
-    Box(
-        modifier = modifier
-            .focusGroup()
-            .focusProperties {
-                canFocus = false
-            },
-    ) {
+    Box(modifier = modifier.focusGroup()) {
         AnimatedContent(
             targetState = slideIndex,
             transitionSpec = {
-                fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                fadeIn(tween(160)).togetherWith(fadeOut(tween(120)))
             },
             label = "showcaseBackdrop",
             modifier = Modifier.fillMaxSize(),
@@ -172,7 +166,7 @@ fun FeaturedMoviesCarousel(
             AnimatedContent(
                 targetState = slideIndex,
                 transitionSpec = {
-                    fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                    fadeIn(tween(120)).togetherWith(fadeOut(tween(80)))
                 },
                 label = "showcaseCopy",
             ) { index ->
@@ -189,7 +183,6 @@ fun FeaturedMoviesCarousel(
                 sidebarFocusRequester = sidebarFocusRequester,
                 showBrewPlus = activeMovie.showBrewPlus,
                 onOpen = { openFeatured(activeMovie) },
-                onShowcaseFocused = onShowcaseFocused,
             )
         }
 
@@ -353,7 +346,6 @@ private fun ShowcaseActionButtons(
     sidebarFocusRequester: FocusRequester?,
     showBrewPlus: Boolean,
     onOpen: () -> Unit,
-    onShowcaseFocused: () -> Unit,
 ) {
     var focusEnteredAt by remember { mutableLongStateOf(0L) }
     val primaryLabel = if (showBrewPlus) {
@@ -375,10 +367,7 @@ private fun ShowcaseActionButtons(
                 .fillMaxWidth()
                 .focusRequester(primaryFocusRequester)
                 .onFocusChanged {
-                    if (it.isFocused) {
-                        focusEnteredAt = SystemClock.uptimeMillis()
-                        onShowcaseFocused()
-                    }
+                    if (it.isFocused) focusEnteredAt = SystemClock.uptimeMillis()
                 }
                 .blockHorizontalKeysAfterFocusEntry(focusEnteredAt)
                 .focusProperties {
@@ -414,10 +403,7 @@ private fun ShowcaseActionButtons(
                 .fillMaxWidth()
                 .focusRequester(secondaryFocusRequester)
                 .onFocusChanged {
-                    if (it.isFocused) {
-                        focusEnteredAt = SystemClock.uptimeMillis()
-                        onShowcaseFocused()
-                    }
+                    if (it.isFocused) focusEnteredAt = SystemClock.uptimeMillis()
                 }
                 .blockHorizontalKeysAfterFocusEntry(focusEnteredAt)
                 .focusProperties {
@@ -469,12 +455,28 @@ private fun ShowcaseFocusButton(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) ShowcaseButtonFocusedScale else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.78f,
+            stiffness = 340f,
+        ),
+        label = "showcaseBtnScale",
+    )
+
     Button(
         onClick = onClick,
-        modifier = modifier.height(ShowcaseButtonHeight),
+        modifier = modifier
+            .height(ShowcaseButtonHeight)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .onFocusChanged { focused = it.isFocused },
         contentPadding = ShowcaseButtonPadding,
         shape = ButtonDefaults.shape(shape = ShowcaseButtonShape),
-        scale = ButtonDefaults.scale(focusedScale = 1.06f),
+        scale = ButtonDefaults.scale(focusedScale = 1f),
         colors = colors,
         content = content,
     )
@@ -590,8 +592,16 @@ private fun BoxScope.PrimeCarouselIndicator(
 
 @Composable
 private fun AnimatedCarouselDot(isActive: Boolean) {
-    val width = if (isActive) 16.dp else 4.dp
-    val alpha = if (isActive) 1f else 0.35f
+    val width by animateDpAsState(
+        targetValue = if (isActive) 16.dp else 4.dp,
+        animationSpec = tween(260),
+        label = "dotWidth",
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0.35f,
+        animationSpec = tween(260),
+        label = "dotAlpha",
+    )
     Box(
         modifier = Modifier
             .height(4.dp)

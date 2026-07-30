@@ -1,6 +1,7 @@
 package com.google.jetstream.presentation.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -212,8 +213,8 @@ fun CommerceChromeRow(
 ) {
     if (!showStore && !showBrewPlus) return
 
-    val storeSize = if (compact) 22.dp else 26.dp
-    val storeIcon = if (compact) 11.dp else 12.dp
+    val storeSize = if (compact) 18.dp else 26.dp
+    val storeIcon = if (compact) 8.dp else 12.dp
     val plusHeight = if (compact) 20.dp else 28.dp
     val plusWordmarkHeight = if (compact) 10.dp else 14.dp
     val plusWordmarkWidth = if (compact) 44.dp else 58.dp
@@ -228,7 +229,8 @@ fun CommerceChromeRow(
             Box(
                 modifier = Modifier
                     .size(storeSize)
-                    .background(Color.Black, CircleShape),
+                    .background(Color.Black.copy(alpha = 0.7f), CircleShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

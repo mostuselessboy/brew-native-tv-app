@@ -21,12 +21,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.imageLoader
 import coil.request.ImageRequest
-import com.google.jetstream.data.remote.BrewPages
-import com.google.jetstream.data.repositories.AuthRepository
-import com.google.jetstream.data.repositories.LibraryRepository
-import com.google.jetstream.data.repositories.MovieRepository
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.HomeSectionType
+import com.google.jetstream.data.repositories.MovieRepository
 import com.google.jetstream.data.util.BrewImageUrl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,7 +35,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
@@ -49,8 +45,6 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class HomeScreeViewModel @Inject constructor(
     private val movieRepository: MovieRepository,
-    private val libraryRepository: LibraryRepository,
-    private val authRepository: AuthRepository,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -65,10 +59,8 @@ class HomeScreeViewModel @Inject constructor(
         page.value = pageKey
     }
 
-    val uiState: StateFlow<HomeScreenUiState> = combine(
-        page.filterNotNull(),
-        authRepository.isLoggedIn,
-    ) { pageKey, _ -> pageKey }
+    val uiState: StateFlow<HomeScreenUiState> = page
+        .filterNotNull()
         .flatMapLatest { pageKey ->
             flow {
                 val cached = movieRepository.peekHomeSections(pageKey)
@@ -78,10 +70,9 @@ class HomeScreeViewModel @Inject constructor(
                     emit(HomeScreenUiState.Ready(cached))
                 }
                 movieRepository.getHomeSections(pageKey).collect { sections ->
-                    val merged = mergeContinueWatching(pageKey, sections)
                     emit(
-                        if (merged.isEmpty()) HomeScreenUiState.Error
-                        else HomeScreenUiState.Ready(merged)
+                        if (sections.isEmpty()) HomeScreenUiState.Error
+                        else HomeScreenUiState.Ready(sections)
                     )
                 }
             }
@@ -97,29 +88,6 @@ class HomeScreeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = HomeScreenUiState.Loading,
         )
-
-    private suspend fun mergeContinueWatching(
-        pageKey: String,
-        sections: List<HomeSection>,
-    ): List<HomeSection> {
-        if (pageKey != BrewPages.HOME || !authRepository.isLoggedIn.value) return sections
-        val userId = authRepository.currentUser.value?.id ?: return sections
-        val continueWatching = runCatching {
-            libraryRepository.getContinueWatching(userId)
-        }.getOrDefault(emptyList())
-        if (continueWatching.isEmpty()) return sections
-
-        val tray = HomeSection(
-            id = "continue-watching",
-            title = "Continue Watching",
-            subheading = "Pick up where you left off",
-            type = HomeSectionType.Row,
-            movies = continueWatching,
-        )
-        val showcaseIndex = sections.indexOfFirst { it.type == HomeSectionType.Showcase }
-        val insertAt = if (showcaseIndex >= 0) showcaseIndex + 1 else 0
-        return sections.toMutableList().apply { add(insertAt, tray) }
-    }
 
     private fun prefetchImages(sections: List<HomeSection>) {
         viewModelScope.launch(Dispatchers.IO) {

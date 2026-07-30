@@ -1,5 +1,6 @@
 package com.google.jetstream.presentation.screens.movies
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -26,14 +28,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.R
 import com.google.jetstream.data.entities.MovieCast
 import com.google.jetstream.data.util.BrewImageUrl
-import com.google.jetstream.presentation.common.BrewFocusedCardFrame
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 
@@ -62,7 +66,9 @@ fun CastAndCrewList(castAndCrew: List<MovieCast>) {
             modifier = Modifier.padding(start = childPadding.start),
         )
         LazyRow(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier
+                .padding(top = 14.dp)
+                .focusRestorer(),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
@@ -79,16 +85,27 @@ fun CastAndCrewList(castAndCrew: List<MovieCast>) {
 @Composable
 private fun CastAndCrewItem(castMember: MovieCast) {
     val context = LocalContext.current
-    BrewFocusedCardFrame(
+    Surface(
         onClick = {},
-        shape = CastShape,
+        shape = ClickableSurfaceDefaults.shape(CastShape),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.04f)),
+                shape = CastShape,
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
+                shape = CastShape,
+            ),
+        ),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color(0xFF111111),
+            focusedContainerColor = Color(0xFF111111),
+        ),
         modifier = Modifier.width(CastCardWidth),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF111111), CastShape),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

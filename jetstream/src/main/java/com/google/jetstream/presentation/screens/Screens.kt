@@ -43,9 +43,7 @@ enum class Screens(
     Favourites(isTabItem = true, tabIcon = Icons.Outlined.BookmarkBorder),
     CategoryMovieList(listOf(CategoryMovieListScreen.CategoryIdBundleKey)),
     MovieDetails(listOf(MovieDetailsScreen.MovieIdBundleKey)),
-    MovieDetailsOverlay(listOf(MovieDetailsScreen.MovieIdBundleKey)),
     Dashboard,
-    Auth,
     VideoPlayer(listOf(VideoPlayerScreen.MovieIdBundleKey));
 
     operator fun invoke(): String {

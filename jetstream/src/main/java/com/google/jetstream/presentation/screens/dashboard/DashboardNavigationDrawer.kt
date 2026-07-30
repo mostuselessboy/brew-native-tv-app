@@ -1,5 +1,9 @@
 package com.google.jetstream.presentation.screens.dashboard
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
@@ -20,12 +24,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -45,9 +49,6 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import com.google.jetstream.R
 import com.google.jetstream.presentation.screens.Screens
-import com.google.jetstream.presentation.common.BrewFocusMotion
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /** Side rail — pure black, white pill when focused/selected. */
 private val RailBg = Color(0xFF000000)
@@ -85,8 +86,8 @@ fun DashboardNavigationDrawer(
     modifier: Modifier = Modifier,
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
-    railFocusEnabled: Boolean = true,
     onRailPrefetch: (Screens) -> Unit = {},
+    onRailPreview: (Screens) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     Row(
@@ -131,8 +132,8 @@ fun DashboardNavigationDrawer(
                         iconSize = if (entry.compactIcon) StoreIconSize else IconSize,
                         onClick = { onNavigateTo(entry.screen) },
                         onRailPrefetch = onRailPrefetch,
+                        onRailPreview = onRailPreview,
                         contentFocusRequester = contentFocusRequester,
-                        railFocusEnabled = railFocusEnabled,
                         sidebarFocusRequester = if (selectedRoute == entry.screen()) {
                             sidebarFocusRequester
                         } else {
@@ -149,8 +150,8 @@ fun DashboardNavigationDrawer(
                 iconRes = R.drawable.ic_lucide_profile,
                 onClick = { onNavigateTo(Screens.Profile) },
                 onRailPrefetch = onRailPrefetch,
+                onRailPreview = onRailPreview,
                 contentFocusRequester = contentFocusRequester,
-                railFocusEnabled = railFocusEnabled,
                 sidebarFocusRequester = if (selectedRoute == Screens.Profile()) {
                     sidebarFocusRequester
                 } else {
@@ -181,31 +182,49 @@ private fun BrewRailItem(
     iconRes: Int,
     iconSize: Dp = IconSize,
     onRailPrefetch: (Screens) -> Unit = {},
+    onRailPreview: (Screens) -> Unit = {},
     contentFocusRequester: FocusRequester? = null,
-    railFocusEnabled: Boolean = true,
     sidebarFocusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val pillColor = when {
-        focused -> Color.White
-        selected -> RailSelectedPill
-        else -> Color.Transparent
-    }
-    val tint = when {
-        focused -> Color.Black
-        selected -> Color.White.copy(alpha = 0.92f)
-        else -> Color.White.copy(alpha = 0.5f)
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.14f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.68f,
+            stiffness = 420f,
+        ),
+        label = "railScale",
+    )
+    val pillColor by animateColorAsState(
+        targetValue = when {
+            focused -> Color.White
+            selected -> RailSelectedPill
+            else -> Color.Transparent
+        },
+        animationSpec = tween(120),
+        label = "railPill",
+    )
+    val tint by animateColorAsState(
+        targetValue = when {
+            focused -> Color.Black
+            selected -> Color.White.copy(alpha = 0.92f)
+            else -> Color.White.copy(alpha = 0.5f)
+        },
+        animationSpec = tween(120),
+        label = "railTint",
+    )
+
+    LaunchedEffect(focused, screen, selected) {
+        if (!focused) return@LaunchedEffect
+        onRailPrefetch(screen)
+        if (!selected) onRailPreview(screen)
     }
 
-    LaunchedEffect(focused, screen) {
-        if (focused) onRailPrefetch(screen)
-    }
-
-    Surface(
+    Box(modifier = Modifier.scale(scale)) {
+        Surface(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(RailItemShape),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = BrewFocusMotion.RailScale),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = pillColor,
             focusedContainerColor = pillColor,
@@ -216,7 +235,6 @@ private fun BrewRailItem(
         ),
         modifier = Modifier
             .size(RailItemSize)
-            .focusProperties { canFocus = railFocusEnabled }
             .onFocusChanged { focused = it.isFocused }
             .then(
                 if (sidebarFocusRequester != null) {
@@ -234,14 +252,7 @@ private fun BrewRailItem(
                                 event.key == Key.NavigateNext
                             if (!isRight) return@onPreviewKeyEvent false
                             if (event.type == KeyEventType.KeyDown) {
-                                scope.launch {
-                                    repeat(5) { attempt ->
-                                        if (runCatching { contentFocusRequester.requestFocus() }.isSuccess) {
-                                            return@launch
-                                        }
-                                        if (attempt < 4) delay(40)
-                                    }
-                                }
+                                contentFocusRequester.requestFocus()
                             }
                             true
                         }
@@ -257,6 +268,7 @@ private fun BrewRailItem(
                 tint = tint,
                 modifier = Modifier.size(iconSize),
             )
+        }
         }
     }
 }

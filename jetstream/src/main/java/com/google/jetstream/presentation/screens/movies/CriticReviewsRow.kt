@@ -1,5 +1,6 @@
 package com.google.jetstream.presentation.screens.movies
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -26,13 +28,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.data.entities.MovieCriticReview
 import com.google.jetstream.data.util.BrewImageUrl
-import com.google.jetstream.presentation.common.BrewFocusedCardFrame
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 
@@ -63,7 +67,9 @@ fun CriticReviewsRow(
             modifier = Modifier.padding(start = childPadding.start),
         )
         LazyRow(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier
+                .padding(top = 14.dp)
+                .focusRestorer(),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
@@ -80,15 +86,29 @@ fun CriticReviewsRow(
 @Composable
 private fun CriticReviewCard(review: MovieCriticReview) {
     val context = LocalContext.current
-    BrewFocusedCardFrame(
+    Surface(
         onClick = {},
-        shape = CardShape,
+        shape = ClickableSurfaceDefaults.shape(CardShape),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
+                shape = CardShape,
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.85f)),
+                shape = CardShape,
+            ),
+        ),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = CardBg,
+            focusedContainerColor = CardBg,
+        ),
         modifier = Modifier.width(CardWidth),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(CardBg, CardShape)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

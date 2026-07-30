@@ -1,3 +1,19 @@
+/*
+ * Copyright 2023 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.jetstream.presentation.screens.search
 
 import androidx.lifecycle.ViewModel
@@ -6,86 +22,36 @@ import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.repositories.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-private const val SEARCH_DEBOUNCE_MS = 450L
-private const val MIN_QUERY_LENGTH = 2
-
-data class SearchUiState(
-    val query: String = "",
-    val debouncedQuery: String = "",
-    val results: MovieList = emptyList(),
-    val suggestions: MovieList = emptyList(),
-    val isFetching: Boolean = false,
-)
-
-@OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchScreenViewModel @Inject constructor(
-    private val movieRepository: MovieRepository,
+    private val movieRepository: MovieRepository
 ) : ViewModel() {
 
-    private val query = MutableStateFlow("")
-    private val suggestions = MutableStateFlow<MovieList>(emptyList())
-    private val results = MutableStateFlow<MovieList>(emptyList())
-    private val isFetching = MutableStateFlow(false)
-    private val debouncedQuery = MutableStateFlow("")
+    private val internalSearchState = MutableSharedFlow<SearchState>()
 
-    init {
-        viewModelScope.launch {
-            movieRepository.getFeaturedMovies().collect { featured ->
-                suggestions.value = featured.take(42)
-            }
-        }
-        viewModelScope.launch {
-            query
-                .debounce(SEARCH_DEBOUNCE_MS)
-                .distinctUntilChanged()
-                .collect { text ->
-                    val trimmed = text.trim()
-                    debouncedQuery.value = trimmed
-                    if (trimmed.length < MIN_QUERY_LENGTH) {
-                        results.value = emptyList()
-                        isFetching.value = false
-                        return@collect
-                    }
-                    isFetching.value = true
-                    results.value = runCatching {
-                        movieRepository.searchMovies(trimmed)
-                    }.getOrDefault(emptyList())
-                    isFetching.value = false
-                }
-        }
+    fun query(queryString: String) {
+        viewModelScope.launch { postQuery(queryString) }
     }
 
-    fun setQuery(text: String) {
-        query.value = text
+    private suspend fun postQuery(queryString: String) {
+        internalSearchState.emit(SearchState.Searching)
+        val result = movieRepository.searchMovies(query = queryString)
+        internalSearchState.emit(SearchState.Done(result))
     }
 
-    val uiState = combine(
-        query,
-        debouncedQuery,
-        results,
-        suggestions,
-        isFetching,
-    ) { q, debounced, res, reco, fetching ->
-        SearchUiState(
-            query = q,
-            debouncedQuery = debounced,
-            results = res,
-            suggestions = reco,
-            isFetching = fetching || (q.trim().length >= MIN_QUERY_LENGTH && debounced != q.trim()),
-        )
-    }.stateIn(
+    val searchState = internalSearchState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = SearchUiState(isFetching = true),
+        initialValue = SearchState.Done(emptyList())
     )
+}
+
+sealed interface SearchState {
+    data object Searching : SearchState
+    data class Done(val movieList: MovieList) : SearchState
 }

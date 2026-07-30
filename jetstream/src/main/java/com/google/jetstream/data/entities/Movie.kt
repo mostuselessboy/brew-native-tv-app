@@ -20,8 +20,6 @@ data class Movie(
     val showStore: Boolean = false,
     val showBrewPlus: Boolean = false,
     val leavingSoon: Boolean = false,
-    /** Landscape backdrop for detail related rails — mobile-viewer `backdropImage`. */
-    val backdropUri: String? = null,
 )
 
 fun MoviesResponseItem.toMovie(thumbnailType: ThumbnailType = ThumbnailType.Standard): Movie {

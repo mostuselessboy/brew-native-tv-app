@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import com.google.jetstream.presentation.utils.handleDPadKeyEvents
@@ -46,13 +45,12 @@ fun RowScope.VideoPlayerControllerIndicator(
     progress: Float,
     onSeek: (seekProgress: Float) -> Unit,
     onShowControls: () -> Unit = {},
-    activeColor: Color? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     var isSelected by remember { mutableStateOf(false) }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val color by rememberUpdatedState(
-        newValue = activeColor ?: if (isSelected) MaterialTheme.colorScheme.primary
+        newValue = if (isSelected) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.onSurface
     )
     val animatedIndicatorHeight by animateDpAsState(

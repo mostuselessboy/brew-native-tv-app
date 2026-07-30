@@ -13,10 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,9 +28,9 @@ import androidx.tv.material3.Text
 import com.google.jetstream.R
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MovieList
-import com.google.jetstream.presentation.common.dice.BrewDicePickerDialog
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
+import kotlin.random.Random
 
 private val PickerTitleStyle = TextStyle(
     fontFamily = BrewTitle,
@@ -47,12 +43,11 @@ private val PickerTitleStyle = TextStyle(
 @Composable
 fun RandomMoviePickerSection(
     movies: MovieList,
-    onWatchNow: (Movie) -> Unit,
+    onSurpriseMe: (Movie) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (movies.isEmpty()) return
 
-    var showDiceDialog by remember { mutableStateOf(false) }
     val childPadding = rememberChildPadding()
 
     Row(
@@ -77,7 +72,9 @@ fun RandomMoviePickerSection(
         )
 
         Button(
-            onClick = { showDiceDialog = true },
+            onClick = {
+                onSurpriseMe(movies[Random.nextInt(movies.size)])
+            },
             modifier = Modifier
                 .height(44.dp)
                 .padding(start = 16.dp),
@@ -110,14 +107,4 @@ fun RandomMoviePickerSection(
             }
         }
     }
-
-    BrewDicePickerDialog(
-        visible = showDiceDialog,
-        movies = movies,
-        onDismiss = { showDiceDialog = false },
-        onWatchNow = { movie ->
-            showDiceDialog = false
-            onWatchNow(movie)
-        },
-    )
 }

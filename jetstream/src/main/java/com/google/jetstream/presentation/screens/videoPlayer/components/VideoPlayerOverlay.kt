@@ -90,8 +90,8 @@ fun VideoPlayerOverlay(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(horizontal = 48.dp)
-                        .padding(bottom = 28.dp, top = 8.dp)
+                        .padding(horizontal = 56.dp)
+                        .padding(bottom = 32.dp, top = 8.dp)
                 ) {
                     controls()
                 }
@@ -107,11 +107,10 @@ fun CinematicBackground(modifier: Modifier = Modifier) {
         modifier.background(
             Brush.verticalGradient(
                 listOf(
-                    Color.Transparent,
-                    Color.Black.copy(alpha = 0.35f),
-                    Color.Black.copy(alpha = 0.92f),
-                ),
-            ),
+                    Color.Black.copy(alpha = 0.1f),
+                    Color.Black.copy(alpha = 0.8f)
+                )
+            )
         )
     )
 }

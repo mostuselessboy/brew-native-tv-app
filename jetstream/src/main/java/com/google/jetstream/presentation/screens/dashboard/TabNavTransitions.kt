@@ -2,6 +2,7 @@ package com.google.jetstream.presentation.screens.dashboard
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -49,13 +50,13 @@ fun AnimatedContentTransitionScope<TabNavTarget>.dashboardTabTransition(): Conte
     val step = targetState.slideDirection
     return (
         slideInHorizontally(
-            animationSpec = tween(80),
+            animationSpec = tween(160, easing = FastOutSlowInEasing),
             initialOffsetX = { width -> (width * TabSlideFraction * step).toInt() },
-        ) + fadeIn(tween(60))
+        ) + fadeIn(tween(120, easing = FastOutSlowInEasing))
         ) togetherWith (
         slideOutHorizontally(
-            animationSpec = tween(80),
+            animationSpec = tween(160, easing = FastOutSlowInEasing),
             targetOffsetX = { width -> (-width * TabSlideFraction * step).toInt() },
-        ) + fadeOut(tween(50))
+        ) + fadeOut(tween(100, easing = FastOutSlowInEasing))
         )
 }

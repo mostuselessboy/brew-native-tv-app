@@ -8,45 +8,33 @@ import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.repositories.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class MovieDetailsScreenViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val repository: MovieRepository,
+    repository: MovieRepository,
 ) : ViewModel() {
-
-    private val movieId: String? = savedStateHandle.get<String>(MovieDetailsScreen.MovieIdBundleKey)
-        ?.let { Uri.decode(it) }
-        ?.takeIf { it.isNotBlank() }
-
-    val uiState = flow {
-        val id = movieId
-        if (id == null) {
-            emit(MovieDetailsScreenUiState.Error)
-            return@flow
-        }
-        emit(MovieDetailsScreenUiState.Loading)
-        repeat(3) { attempt ->
-            if (attempt > 0) delay(350L * attempt)
-            val result = runCatching { repository.getMovieDetails(movieId = id) }
-            result.onSuccess {
-                emit(MovieDetailsScreenUiState.Done(movieDetails = it))
-                return@flow
+    val uiState = savedStateHandle
+        .getStateFlow<String?>(MovieDetailsScreen.MovieIdBundleKey, null)
+        .map { rawId ->
+            val id = rawId?.let { Uri.decode(it) }
+            if (id.isNullOrBlank()) {
+                MovieDetailsScreenUiState.Error
+            } else {
+                runCatching {
+                    repository.getMovieDetails(movieId = id)
+                }.fold(
+                    onSuccess = { MovieDetailsScreenUiState.Done(movieDetails = it) },
+                    onFailure = { MovieDetailsScreenUiState.Error },
+                )
             }
-        }
-        emit(MovieDetailsScreenUiState.Error)
-    }
-        .flowOn(Dispatchers.IO)
-        .stateIn(
+        }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = MovieDetailsScreenUiState.Loading,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = MovieDetailsScreenUiState.Loading
         )
 }
 

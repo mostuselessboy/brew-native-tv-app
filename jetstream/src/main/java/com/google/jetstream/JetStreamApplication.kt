@@ -22,10 +22,6 @@ import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import coil.request.CachePolicy
-import com.google.jetstream.data.repositories.AuthRepository
-import com.google.jetstream.data.repositories.AuthRepositoryImpl
-import com.google.jetstream.data.repositories.LibraryRepository
-import com.google.jetstream.data.repositories.LibraryRepositoryImpl
 import com.google.jetstream.data.repositories.MovieRepository
 import com.google.jetstream.data.repositories.MovieRepositoryImpl
 import dagger.Binds
@@ -91,14 +87,4 @@ abstract class MovieRepositoryModule {
     abstract fun bindMovieRepository(
         movieRepositoryImpl: MovieRepositoryImpl
     ): MovieRepository
-
-    @Binds
-    abstract fun bindAuthRepository(
-        authRepositoryImpl: AuthRepositoryImpl
-    ): AuthRepository
-
-    @Binds
-    abstract fun bindLibraryRepository(
-        libraryRepositoryImpl: LibraryRepositoryImpl
-    ): LibraryRepository
 }

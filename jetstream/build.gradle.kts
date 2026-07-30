@@ -84,8 +84,6 @@ dependencies {
 
     // Material components optimized for TV apps
     implementation(libs.androidx.tv.material)
-    implementation(libs.androidx.tv.foundation)
-    implementation(libs.androidx.compose.material3)
 
     // ViewModel in Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -104,7 +102,6 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
-    implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.0")
 
     // Media3 (HLS + Widevine DRM for Bunny Stream)
     implementation(libs.androidx.media3.exoplayer)
@@ -121,9 +118,6 @@ dependencies {
 
     // Baseline profile installer
     implementation(libs.androidx.profileinstaller)
-
-    // QR login
-    implementation("com.google.zxing:core:3.5.3")
 
     // Compose Previews
     debugImplementation(libs.androidx.compose.ui.tooling)

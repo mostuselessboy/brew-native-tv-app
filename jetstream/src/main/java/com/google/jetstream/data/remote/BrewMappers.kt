@@ -25,8 +25,6 @@ import com.google.jetstream.data.entities.MovieCategory
 import com.google.jetstream.data.entities.MovieCriticReview
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.MovieList
-import com.google.jetstream.data.entities.PurchaseCta
-import com.google.jetstream.data.entities.PurchaseCtaSlot
 import com.google.jetstream.data.entities.ThumbnailType
 import com.google.jetstream.data.util.BrewArtworkUrls
 import com.google.jetstream.data.util.BrewDateUtils
@@ -111,15 +109,13 @@ object BrewMappers {
             title = name,
             type = sectionType,
             movies = movies,
-            subheading = subheading?.takeIf { it.isNotBlank() },
             showRanking = showRanking,
         )
     }
 
     fun BrewCampaignData.toMovieDetails(
         requestedId: String,
-        alsoWatchedMovies: MovieList = emptyList(),
-        relatedMovies: MovieList = emptyList(),
+        similarMovies: MovieList = emptyList(),
     ): MovieDetails {
         val title = projectTitle ?: title ?: project?.projectTitle ?: "Untitled"
         val synopsis = projectSynopsis
@@ -221,11 +217,15 @@ object BrewMappers {
             ?.fullName
             .orEmpty()
 
+        // Prefer caller-resolved slug-backed similar movies. Never fall back to bare
+        // numeric campaign ids — get-campaign/{id} 404s and details "open nothing".
+        val related = similarMovies
+            .filter { it.id.isNotBlank() && it.id.toIntOrNull() == null }
+            .take(12)
+
         val metaDate = listOfNotNull(year, countrySuffix.takeIf { it.isNotBlank() })
             .joinToString(" • ")
             .ifBlank { release }
-
-        val purchaseCta = purchaseCta?.toPurchaseCta()
 
         return MovieDetails(
             id = preferredSlug ?: requestedId,
@@ -248,27 +248,8 @@ object BrewMappers {
             originalLanguage = vodPrimaryLanguage?.name ?: "—",
             budget = "—",
             revenue = rating?.let { String.format("%.1f ★ (%d)", it, ratingCount ?: 0) } ?: "—",
-            alsoWatchedMovies = alsoWatchedMovies,
-            relatedMovies = relatedMovies,
-            purchaseCta = purchaseCta,
+            similarMovies = related,
             reviewsAndRatings = emptyList(),
-        )
-    }
-
-    private fun BrewPurchaseCtaDto.toPurchaseCta(): PurchaseCta? {
-        if (slots.isEmpty()) return null
-        return PurchaseCta(
-            scenario = scenario.orEmpty(),
-            slots = slots.mapNotNull { slot ->
-                val kind = slot.kind?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                PurchaseCtaSlot(
-                    kind = kind,
-                    color = slot.color?.takeIf { it.isNotBlank() } ?: "white",
-                    isContinueWatching = slot.isContinueWatching == true,
-                    percentageWatched = slot.percentageWatched ?: 0f,
-                    isFree = slot.free == true,
-                )
-            },
         )
     }
 

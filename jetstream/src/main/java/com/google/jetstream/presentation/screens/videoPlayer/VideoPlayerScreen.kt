@@ -171,11 +171,7 @@ private fun Modifier.dPadEvents(
     onUp = { videoPlayerState.showControls() },
     onDown = { videoPlayerState.showControls() },
     onEnter = {
-        if (exoPlayer.isPlaying) {
-            exoPlayer.pause()
-        } else {
-            exoPlayer.play()
-        }
+        exoPlayer.pause()
         videoPlayerState.showControls()
     }
 )

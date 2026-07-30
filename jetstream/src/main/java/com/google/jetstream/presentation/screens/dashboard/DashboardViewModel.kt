@@ -7,31 +7,25 @@ import com.google.jetstream.data.repositories.MovieRepository
 import com.google.jetstream.presentation.screens.Screens
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+private val PrefetchCatalogPages = listOf(
+    BrewPages.HOME,
+    BrewPages.BREW_PLUS,
+    BrewPages.SHORTS,
+    BrewPages.STORE,
+)
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val movieRepository: MovieRepository,
 ) : ViewModel() {
 
-    private val _restoreFocusMovieId = MutableStateFlow<String?>(null)
-    val restoreFocusMovieId: StateFlow<String?> = _restoreFocusMovieId.asStateFlow()
-
-    fun rememberMovieFocus(movieId: String) {
-        _restoreFocusMovieId.value = movieId
-    }
-
-    fun clearRestoreFocusMovieId() {
-        _restoreFocusMovieId.value = null
-    }
-
     init {
-        // Only warm Home on launch — other catalog tabs prefetch on rail focus.
         viewModelScope.launch {
-            runCatching { movieRepository.prefetchHomePage(BrewPages.HOME) }
+            PrefetchCatalogPages.forEach { page ->
+                runCatching { movieRepository.prefetchHomePage(page) }
+            }
         }
     }
 

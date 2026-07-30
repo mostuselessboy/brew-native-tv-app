@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -18,11 +17,12 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +40,6 @@ import com.google.jetstream.presentation.utils.bringIntoViewIfChildrenAreFocused
 import kotlinx.coroutines.launch
 
 private val ScreenBlack = Color(0xFF000000)
-private val CatalogSectionSpacing = 20.dp
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -51,116 +50,100 @@ internal fun Catalog(
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
-    restoreFocusMovieId: String? = null,
-    onRestoreFocusComplete: () -> Unit = {},
-    isTabVisible: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val childPadding = rememberChildPadding()
-    val coroutineScope = rememberCoroutineScope()
     val localFirstRowFocus = remember { FocusRequester() }
     val localShowcasePrimaryFocus = remember { FocusRequester() }
     val showcaseSecondaryFocus = remember { FocusRequester() }
     val firstRowFocus = firstRowFocusRequester ?: localFirstRowFocus
     val showcasePrimaryFocus = showcaseFocusRequester ?: localShowcasePrimaryFocus
-
-    val showcaseSection = remember(sections) {
-        sections.firstOrNull { it.type == HomeSectionType.Showcase }
-    }
-    val scrollSections = remember(sections) {
-        sections.filter { it.type != HomeSectionType.Showcase }
-    }
-
     val listState = rememberLazyListState()
-    val hasShowcase = showcaseSection != null
-    val showcaseListOffset = if (hasShowcase) 1 else 0
-
-    val firstContentRowIndex = remember(scrollSections) {
-        scrollSections.indexOfFirst {
-            it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
-        }.coerceAtLeast(0)
-    }
-
-    val scrollToTop: () -> Unit = {
-        coroutineScope.launch {
-            listState.scrollToItem(0)
-        }
-    }
-
-    LaunchedEffect(isTabVisible, restoreFocusMovieId, scrollSections) {
-        if (!isTabVisible || restoreFocusMovieId == null) return@LaunchedEffect
-        val sectionIndex = scrollSections.indexOfFirst { section ->
-            section.movies.any { it.id == restoreFocusMovieId }
-        }
-        if (sectionIndex >= 0) {
-            listState.scrollToItem(showcaseListOffset + sectionIndex)
-        }
-    }
-
+    val scope = rememberCoroutineScope()
     val showTopScrim by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0 ||
-                listState.firstVisibleItemScrollOffset > 8
+                listState.firstVisibleItemScrollOffset > 12
+        }
+    }
+    val firstContentRowIndex = remember(sections) {
+        sections.indexOfFirst {
+            it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
+        }.coerceAtLeast(0)
+    }
+    val rowOrdinalByIndex = remember(sections) {
+        var ordinal = 0
+        buildMap {
+            sections.forEachIndexed { index, section ->
+                if (section.type == HomeSectionType.Row ||
+                    section.type == HomeSectionType.Immersive
+                ) {
+                    put(index, ordinal)
+                    ordinal++
+                }
+            }
         }
     }
 
     Box(modifier = modifier.background(ScreenBlack)) {
         LazyColumn(
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(CatalogSectionSpacing),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 56.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .focusProperties { canFocus = isTabVisible },
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(top = 0.dp, bottom = 56.dp),
+            modifier = Modifier.fillMaxSize(),
         ) {
-            if (showcaseSection != null) {
-                item(key = "showcase") {
-                    FeaturedMoviesCarousel(
-                        movies = showcaseSection.movies,
-                        padding = childPadding,
-                        onMovieClick = onMovieClick,
-                        goToVideoPlayer = goToVideoPlayer,
-                        primaryFocusRequester = if (isTabVisible) showcasePrimaryFocus else null,
-                        secondaryFocusRequester = if (isTabVisible) showcaseSecondaryFocus else null,
-                        downFocusRequester = if (isTabVisible) firstRowFocus else null,
-                        sidebarFocusRequester = if (isTabVisible) sidebarFocusRequester else null,
-                        focusEnabled = isTabVisible,
-                        onShowcaseFocused = scrollToTop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(ShowcaseHeight)
-                            .focusGroup(),
-                    )
-                }
-            }
-
             itemsIndexed(
-                items = scrollSections,
+                items = sections,
                 key = { _, section -> section.id },
                 contentType = { _, section -> section.type.name },
             ) { index, section ->
                 when (section.type) {
+                    HomeSectionType.Showcase -> {
+                        FeaturedMoviesCarousel(
+                            movies = section.movies,
+                            padding = childPadding,
+                            onMovieClick = onMovieClick,
+                            goToVideoPlayer = goToVideoPlayer,
+                            primaryFocusRequester = showcasePrimaryFocus,
+                            secondaryFocusRequester = showcaseSecondaryFocus,
+                            downFocusRequester = firstRowFocus,
+                            sidebarFocusRequester = sidebarFocusRequester,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(ShowcaseHeight)
+                                .focusGroup()
+                                .bringIntoViewIfChildrenAreFocused()
+                                .onFocusChanged { state ->
+                                    if (!state.hasFocus) return@onFocusChanged
+                                    scope.launch {
+                                        if (listState.firstVisibleItemIndex == 0 &&
+                                            listState.firstVisibleItemScrollOffset > 0
+                                        ) {
+                                            listState.scrollToItem(0, scrollOffset = 0)
+                                        }
+                                    }
+                                },
+                        )
+                    }
+
                     HomeSectionType.RandomMoviePicker -> {
                         RandomMoviePickerSection(
                             movies = section.movies,
-                            onWatchNow = onMovieClick,
+                            onSurpriseMe = onMovieClick,
                             modifier = Modifier.focusGroup(),
                         )
                     }
 
                     HomeSectionType.Immersive,
                     HomeSectionType.Row -> {
+                        val rowOrdinal = rowOrdinalByIndex[index] ?: 0
                         val isFirstContentRow = index == firstContentRowIndex
+                        val deferCards = rowOrdinal >= 2
+                        val deferDelayMs = 200L + ((rowOrdinal - 2).coerceAtLeast(0) * 90L)
                         MoviesRow(
-                            modifier = Modifier
-                                .focusGroup()
-                                .bringIntoViewIfChildrenAreFocused(
-                                    PaddingValues(top = 64.dp, bottom = 48.dp),
-                                )
-                                .padding(bottom = 4.dp),
+                            modifier = Modifier.focusGroup(),
                             movieList = section.movies,
                             title = section.title,
-                            subheading = section.subheading,
                             titleStyle = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -170,39 +153,25 @@ internal fun Catalog(
                             showIndexOverImage = section.showRanking ||
                                 section.type == HomeSectionType.Immersive,
                             onMovieSelected = onMovieClick,
-                            firstItemFocusRequester = if (isFirstContentRow && isTabVisible) {
+                            deferCardMount = deferCards,
+                            deferCardMountDelayMs = deferDelayMs,
+                            firstItemFocusRequester = if (isFirstContentRow) {
                                 firstRowFocus
                             } else {
                                 null
                             },
-                            upFocusRequester = if (isFirstContentRow && isTabVisible) {
+                            upFocusRequester = if (isFirstContentRow) {
                                 showcaseSecondaryFocus
                             } else {
                                 null
                             },
-                            leftFocusRequester = if (isFirstContentRow && isTabVisible) {
+                            leftFocusRequester = if (isFirstContentRow) {
                                 sidebarFocusRequester
                             } else {
                                 null
                             },
-                            restoreFocusMovieId = restoreFocusMovieId,
-                            onRestoreFocusComplete = onRestoreFocusComplete,
-                            onFirstItemFocused = if (isFirstContentRow && isTabVisible) {
-                                {
-                                    coroutineScope.launch {
-                                        listState.scrollToItem(
-                                            showcaseListOffset + firstContentRowIndex,
-                                        )
-                                    }
-                                }
-                            } else {
-                                null
-                            },
-                            focusEnabled = isTabVisible,
                         )
                     }
-
-                    HomeSectionType.Showcase -> Unit
                 }
             }
         }

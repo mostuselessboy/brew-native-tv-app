@@ -1,6 +1,5 @@
 package com.google.jetstream.presentation.screens.movies
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,10 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -29,19 +26,15 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.data.entities.MovieAward
 import com.google.jetstream.data.util.BrewImageUrl
-import com.google.jetstream.presentation.common.BrewFocusedCardFrame
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 
 private const val WreathFallback =
     "https://createstir.b-cdn.net/stir-static/wreath.png"
 
-private val AwardCardShape = RoundedCornerShape(12.dp)
-
 /**
  * Awards strip — vod-frontend Awards & Festivals style with wreath fallback.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun AwardsFestivalsRow(
     awards: List<MovieAward>,
@@ -51,6 +44,7 @@ fun AwardsFestivalsRow(
     val childPadding = rememberChildPadding()
     val context = LocalContext.current
 
+    // Group by festival name like web (one card per festival, join categories).
     val grouped = awards
         .groupBy { it.name }
         .entries
@@ -85,50 +79,41 @@ fun AwardsFestivalsRow(
             horizontalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             items(grouped, key = { it.first }) { (name, detail, logo) ->
-                BrewFocusedCardFrame(
-                    onClick = {},
-                    shape = AwardCardShape,
+                Column(
                     modifier = Modifier.width(148.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Column(
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(BrewImageUrl.withDimensions(logo, 96, 96))
+                            .size(96, 96)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = name,
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF111111), AwardCardShape)
-                            .padding(horizontal = 12.dp, vertical = 14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(BrewImageUrl.withDimensions(logo, 96, 96))
-                                    .size(96, 96)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = name,
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .height(56.dp)
-                                    .fillMaxWidth(),
-                            )
-                            Text(
-                                text = name,
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelLarge,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 10.dp),
-                            )
-                            if (detail.isNotBlank()) {
-                                Text(
-                                    text = detail,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.6f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
+                            .height(56.dp)
+                            .fillMaxWidth(),
+                    )
+                    Text(
+                        text = name,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                    if (detail.isNotBlank()) {
+                        Text(
+                            text = detail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.6f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
                     }
                 }
             }

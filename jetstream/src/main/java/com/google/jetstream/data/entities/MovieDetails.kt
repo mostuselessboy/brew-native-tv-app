@@ -39,8 +39,6 @@ data class MovieDetails(
     val originalLanguage: String,
     val budget: String,
     val revenue: String,
-    val alsoWatchedMovies: MovieList = emptyList(),
-    val relatedMovies: MovieList = emptyList(),
-    val purchaseCta: PurchaseCta? = null,
+    val similarMovies: MovieList,
     val reviewsAndRatings: List<MovieReviewsAndRatings> = emptyList(),
 )

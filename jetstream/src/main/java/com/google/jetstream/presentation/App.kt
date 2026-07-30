@@ -16,27 +16,18 @@
 
 package com.google.jetstream.presentation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.google.jetstream.presentation.common.BrewCinematicBackground
 import com.google.jetstream.presentation.screens.Screens
 import com.google.jetstream.presentation.screens.categories.CategoryMovieListScreen
-import com.google.jetstream.presentation.screens.auth.AuthScreen
 import com.google.jetstream.presentation.screens.dashboard.DashboardScreen
 import com.google.jetstream.presentation.screens.movies.MovieDetailsScreen
 import com.google.jetstream.presentation.screens.videoPlayer.VideoPlayerScreen
@@ -82,76 +73,27 @@ fun App(
                     }
                 )
             ) {
-                BrewCinematicBackground {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black),
-                    ) {
-                        MovieDetailsScreen(
-                            goToMoviePlayer = { movieId ->
-                                navController.navigate(
-                                    Screens.VideoPlayer.withArgs(movieId)
-                                )
-                            },
-                            refreshScreenWithNewMovie = { movie ->
-                                navController.navigate(
-                                    Screens.MovieDetails.withArgs(movie.id)
-                                ) {
-                                    popUpTo(Screens.MovieDetails()) { inclusive = true }
-                                }
-                            },
-                            openAuth = {
-                                navController.navigate(Screens.Auth())
-                            },
-                            onBackPressed = {
-                                if (navController.navigateUp()) {
-                                    isComingBackFromDifferentScreen = true
-                                }
-                            },
+                MovieDetailsScreen(
+                    goToMoviePlayer = { movieId ->
+                        navController.navigate(
+                            Screens.VideoPlayer.withArgs(movieId)
                         )
+                    },
+                    refreshScreenWithNewMovie = { movie ->
+                        navController.navigate(
+                            Screens.MovieDetails.withArgs(movie.id)
+                        ) {
+                            popUpTo(Screens.MovieDetails()) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    onBackPressed = {
+                        if (navController.navigateUp()) {
+                            isComingBackFromDifferentScreen = true
+                        }
                     }
-                }
-            }
-            dialog(
-                route = Screens.MovieDetailsOverlay(),
-                arguments = listOf(
-                    navArgument(MovieDetailsScreen.MovieIdBundleKey) {
-                        type = NavType.StringType
-                    }
-                ),
-                dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
-            ) {
-                BrewCinematicBackground {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.88f)),
-                    ) {
-                        MovieDetailsScreen(
-                            goToMoviePlayer = { movieId ->
-                                navController.navigate(
-                                    Screens.VideoPlayer.withArgs(movieId)
-                                )
-                            },
-                            refreshScreenWithNewMovie = { movie ->
-                                navController.navigate(
-                                    Screens.MovieDetailsOverlay.withArgs(movie.id)
-                                ) {
-                                    popUpTo(Screens.MovieDetailsOverlay()) { inclusive = true }
-                                }
-                            },
-                            openAuth = {
-                                navController.navigate(Screens.Auth())
-                            },
-                            onBackPressed = {
-                                if (navController.navigateUp()) {
-                                    isComingBackFromDifferentScreen = true
-                                }
-                            },
-                        )
-                    }
-                }
+                )
             }
             composable(route = Screens.Dashboard()) {
                 DashboardScreen(
@@ -162,7 +104,7 @@ fun App(
                     },
                     openMovieDetailsScreen = { movieId ->
                         navController.navigate(
-                            Screens.MovieDetailsOverlay.withArgs(movieId)
+                            Screens.MovieDetails.withArgs(movieId)
                         )
                     },
                     openVideoPlayer = { movie ->
@@ -170,29 +112,12 @@ fun App(
                             Screens.VideoPlayer.withArgs(movie.id)
                         )
                     },
-                    openAuth = {
-                        navController.navigate(Screens.Auth())
-                    },
                     onBackPressed = onBackPressed,
                     isComingBackFromDifferentScreen = isComingBackFromDifferentScreen,
                     resetIsComingBackFromDifferentScreen = {
                         isComingBackFromDifferentScreen = false
                     }
                 )
-            }
-            composable(route = Screens.Auth()) {
-                BrewCinematicBackground {
-                    AuthScreen(
-                        onLoggedIn = {
-                            if (!navController.navigateUp()) {
-                                navController.navigate(Screens.Dashboard()) {
-                                    popUpTo(Screens.Dashboard()) { inclusive = true }
-                                }
-                            }
-                        },
-                        onBackPressed = { navController.navigateUp() },
-                    )
-                }
             }
             composable(
                 route = Screens.VideoPlayer(),

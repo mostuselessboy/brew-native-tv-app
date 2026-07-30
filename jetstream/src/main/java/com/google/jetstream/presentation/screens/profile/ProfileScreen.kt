@@ -66,8 +66,6 @@ import androidx.tv.material3.ListItem
 import androidx.tv.material3.ListItemDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.jetstream.R
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.JetStreamTheme
@@ -75,10 +73,8 @@ import com.google.jetstream.presentation.theme.JetStreamTheme
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ProfileScreen(
-    openAuth: () -> Unit = {},
     @FloatRange(from = 0.0, to = 1.0)
-    sidebarWidthFraction: Float = 0.32f,
-    profileAuthViewModel: ProfileAuthViewModel = hiltViewModel(),
+    sidebarWidthFraction: Float = 0.32f
 ) {
     val childPadding = rememberChildPadding()
     val profileNavController = rememberNavController()
@@ -186,12 +182,7 @@ fun ProfileScreen(
             startDestination = ProfileScreens.Accounts(),
             builder = {
                 composable(ProfileScreens.Accounts()) {
-                    AccountsSection(
-                        openAuth = openAuth,
-                        onLogout = profileAuthViewModel::logout,
-                        isLoggedIn = profileAuthViewModel.isLoggedIn,
-                        currentUser = profileAuthViewModel.currentUser,
-                    )
+                    AccountsSection()
                 }
                 composable(ProfileScreens.About()) {
                     AboutSection()

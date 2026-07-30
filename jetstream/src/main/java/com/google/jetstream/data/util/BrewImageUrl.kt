@@ -10,25 +10,17 @@ import android.os.Build
  */
 object BrewImageUrl {
 
-    /** Tray cards — ~180dp wide @ ~1.5× density (Netflix-style: request only what we draw). */
-    const val CARD_WIDTH = 270
-    const val CARD_HEIGHT = 152
+    /** Tray cards — ~220dp wide @ 1.5× density. */
+    const val CARD_WIDTH = 330
+    const val CARD_HEIGHT = 186
 
-    /** Home showcase hero — capped for TV memory/bandwidth. */
-    const val SHOWCASE_WIDTH = 854
-    const val SHOWCASE_HEIGHT = 432
+    /** Home showcase hero — ~380dp tall @ 1.5× density. */
+    const val SHOWCASE_WIDTH = 1024
+    const val SHOWCASE_HEIGHT = 576
 
-    /** Details backdrop hero. */
-    const val DETAIL_WIDTH = 640
-    const val DETAIL_HEIGHT = 360
-
-    /** Dice deck portrait — vod-frontend `portraitCard` preset, scaled down for TV. */
-    const val DICE_CARD_WIDTH = 128
-    const val DICE_CARD_HEIGHT = 192
-
-    /** Detail page poster thumbnail. */
-    const val DETAIL_POSTER_WIDTH = 256
-    const val DETAIL_POSTER_HEIGHT = 384
+    /** Details backdrop. */
+    const val DETAIL_WIDTH = 854
+    const val DETAIL_HEIGHT = 480
 
     const val CAST_WIDTH = 200
     const val CAST_HEIGHT = 267
@@ -53,11 +45,6 @@ object BrewImageUrl {
     fun forShowcase(url: String): String = withDimensions(url, SHOWCASE_WIDTH, SHOWCASE_HEIGHT)
 
     fun forDetail(url: String): String = withDimensions(url, DETAIL_WIDTH, DETAIL_HEIGHT)
-
-    fun forDiceCard(url: String): String = withDimensions(url, DICE_CARD_WIDTH, DICE_CARD_HEIGHT)
-
-    fun forDetailPoster(url: String): String =
-        withDimensions(url, DETAIL_POSTER_WIDTH, DETAIL_POSTER_HEIGHT)
 
     fun forCast(url: String): String = withDimensions(url, CAST_WIDTH, CAST_HEIGHT)
 

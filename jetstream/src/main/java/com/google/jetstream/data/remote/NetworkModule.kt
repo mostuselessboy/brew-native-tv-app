@@ -23,9 +23,6 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
-import java.net.CookieManager
-import java.net.CookiePolicy
-import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -49,21 +46,14 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideBrewSessionStore(): BrewSessionStore = BrewSessionStore()
-
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(sessionStore: BrewSessionStore): OkHttpClient {
-        val cookieManager = CookieManager(null, CookiePolicy.ACCEPT_ALL)
+    fun provideOkHttpClient(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.NONE
         }
         return OkHttpClient.Builder()
-            .cookieJar(JavaNetCookieJar(cookieManager))
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
-            .addInterceptor(BrewAuthInterceptor(sessionStore))
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .writeTimeout(12, TimeUnit.SECONDS)
             .addInterceptor(logging)
             .build()
     }

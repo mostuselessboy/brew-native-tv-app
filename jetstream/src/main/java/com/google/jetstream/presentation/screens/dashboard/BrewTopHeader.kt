@@ -1,5 +1,7 @@
 package com.google.jetstream.presentation.screens.dashboard
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -165,14 +167,22 @@ private fun BrewNavPill(
     downFocusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val container = when {
-        focused || selected -> Color.White
-        else -> Color.Transparent
-    }
-    val content = when {
-        focused || selected -> Color.Black
-        else -> Color.White.copy(alpha = 0.82f)
-    }
+    val container by animateColorAsState(
+        targetValue = when {
+            focused || selected -> Color.White
+            else -> Color.Transparent
+        },
+        animationSpec = tween(140),
+        label = "pillBg",
+    )
+    val content by animateColorAsState(
+        targetValue = when {
+            focused || selected -> Color.Black
+            else -> Color.White.copy(alpha = 0.82f)
+        },
+        animationSpec = tween(140),
+        label = "pillFg",
+    )
 
     Surface(
         onClick = onClick,
@@ -236,12 +246,20 @@ private fun BrewNavIconButton(
     icon: @Composable () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val container = when {
-        focused -> Color.White.copy(alpha = 0.18f)
-        selected -> Color.White.copy(alpha = 0.1f)
-        else -> PillTrack
-    }
-    val tint = if (focused || selected) Color.White else Color.White.copy(alpha = 0.72f)
+    val container by animateColorAsState(
+        targetValue = when {
+            focused -> Color.White.copy(alpha = 0.18f)
+            selected -> Color.White.copy(alpha = 0.1f)
+            else -> PillTrack
+        },
+        animationSpec = tween(140),
+        label = "iconBg",
+    )
+    val tint by animateColorAsState(
+        targetValue = if (focused || selected) Color.White else Color.White.copy(alpha = 0.72f),
+        animationSpec = tween(140),
+        label = "iconTint",
+    )
 
     Surface(
         onClick = onClick,

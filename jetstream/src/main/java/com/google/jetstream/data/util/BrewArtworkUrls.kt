@@ -1,6 +1,5 @@
 package com.google.jetstream.data.util
 
-import com.google.jetstream.data.remote.BrewRelatedAppearanceDto
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -18,12 +17,11 @@ object BrewArtworkUrls {
 
     fun asUrl(element: JsonElement?): String? {
         if (element == null) return null
-        val raw = when (element) {
+        return when (element) {
             is JsonPrimitive -> element.contentOrNull?.takeIf { it.isNotBlank() }
             is JsonObject -> element["url"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
             else -> null
         }
-        return raw?.takeIf { it.startsWith("http", ignoreCase = true) }
     }
 
     fun firstUrl(element: JsonElement?): String? {
@@ -44,14 +42,6 @@ object BrewArtworkUrls {
             ?: asUrl(appearance["poster"])
             ?: asUrl(appearance["vertical_background_art"])
             ?: firstUrl(appearance["vertical_thumbnails"])
-    }
-
-    fun landscapeFromRelated(appearance: BrewRelatedAppearanceDto?): String? {
-        if (appearance == null) return null
-        return firstUrl(appearance.horizontalThumbnails)
-            ?: asUrl(appearance.backgroundArt)
-            ?: asUrl(appearance.poster)
-            ?: asUrl(appearance.verticalBackgroundArt)
     }
 
     fun anyFromAppearance(appearance: JsonObject?): String? =

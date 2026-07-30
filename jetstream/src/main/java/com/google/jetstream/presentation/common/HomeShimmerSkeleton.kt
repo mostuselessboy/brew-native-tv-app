@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,23 +20,10 @@ import androidx.compose.ui.unit.dp
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.screens.home.ShowcaseHeight
 
-private val SkeletonBase = Color(0xFF1A1A1A)
-private val SkeletonMuted = Color(0xFF242424)
-private val CardShape = RoundedCornerShape(9.dp)
+private val Bone = Color(0xFF141414)
+private val CardShape = RoundedCornerShape(6.dp)
 
-@Composable
-private fun SkeletonBlock(
-    modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = CardShape,
-    color: Color = SkeletonBase,
-) {
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(color),
-    )
-}
-
+/** Static home skeleton — no animated shimmer (lighter on TV). */
 @Composable
 fun HomeShimmerSkeleton(modifier: Modifier = Modifier) {
     val padding = rememberChildPadding()
@@ -46,18 +32,19 @@ fun HomeShimmerSkeleton(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
-            .padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(28.dp),
+            .padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        SkeletonBlock(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(ShowcaseHeight)
-                .padding(horizontal = padding.start),
-            shape = RoundedCornerShape(10.dp),
+                .padding(horizontal = padding.start)
+                .clip(RoundedCornerShape(6.dp))
+                .background(Bone),
         )
 
-        repeat(3) {
+        repeat(2) {
             SkeletonTrayRow(startPadding = padding.start)
         }
     }
@@ -69,37 +56,38 @@ private fun SkeletonTrayRow(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SkeletonBlock(
+        Box(
             modifier = Modifier
                 .padding(start = startPadding)
-                .width(160.dp)
-                .height(16.dp),
-            shape = RoundedCornerShape(5.dp),
+                .width(140.dp)
+                .height(14.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Bone),
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = startPadding),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             repeat(4) {
-                SkeletonBlock(
+                Box(
                     modifier = Modifier
                         .width(BrewLandscapeCardWidth)
-                        .aspectRatio(16f / 9f),
+                        .aspectRatio(16f / 9f)
+                        .clip(CardShape)
+                        .background(Bone),
                 )
             }
         }
     }
 }
 
-/** Static placeholder matching the movie-details hero layout — no shimmer overlap. */
 @Composable
 fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
     val padding = rememberChildPadding()
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -108,105 +96,32 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(520.dp)
-                .background(SkeletonMuted),
+                .height(440.dp)
+                .background(Bone),
         )
-
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = padding.start)
-                .padding(top = 36.dp, bottom = 48.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            modifier = Modifier.padding(top = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            SkeletonBlock(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.48f)
-                    .height(38.dp),
-                shape = RoundedCornerShape(6.dp),
+                    .padding(start = padding.start)
+                    .width(200.dp)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Bone),
             )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                SkeletonBlock(
-                    modifier = Modifier
-                        .width(52.dp)
-                        .height(14.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    color = SkeletonMuted,
-                )
-                SkeletonBlock(
-                    modifier = Modifier
-                        .width(96.dp)
-                        .height(14.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    color = SkeletonMuted,
-                )
-                SkeletonBlock(
-                    modifier = Modifier
-                        .width(72.dp)
-                        .height(14.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    color = SkeletonMuted,
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SkeletonBlock(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(13.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    color = SkeletonMuted,
-                )
-                SkeletonBlock(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(13.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    color = SkeletonMuted,
-                )
-                SkeletonBlock(
-                    modifier = Modifier
-                        .fillMaxWidth(0.72f)
-                        .height(13.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    color = SkeletonMuted,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                SkeletonBlock(
-                    modifier = Modifier
-                        .width(176.dp)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(8.dp),
-                )
-                SkeletonBlock(
-                    modifier = Modifier
-                        .width(128.dp)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = SkeletonMuted,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SkeletonBlock(
-                modifier = Modifier
-                    .width(168.dp)
-                    .height(20.dp),
-                shape = RoundedCornerShape(5.dp),
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                repeat(4) {
-                    SkeletonBlock(
+            Row(
+                modifier = Modifier.padding(start = padding.start),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                repeat(5) {
+                    Box(
                         modifier = Modifier
-                            .width(108.dp)
-                            .aspectRatio(2f / 3f),
+                            .width(132.dp)
+                            .aspectRatio(3f / 4f)
+                            .clip(CardShape)
+                            .background(Bone),
                     )
                 }
             }
