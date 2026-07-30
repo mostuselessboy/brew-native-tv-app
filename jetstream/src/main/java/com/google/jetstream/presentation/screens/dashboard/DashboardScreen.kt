@@ -99,8 +99,9 @@ fun DashboardScreen(
         DashboardNavigationDrawer(
             selectedRoute = tabRoute,
             onNavigateTo = ::navigateToTab,
-            onRailPrefetch = dashboardViewModel::prefetchCatalog,
-            onRailPreview = ::navigateToTab,
+            onRailFocus = { screen, selected ->
+                dashboardViewModel.onRailItemFocused(screen, selected, ::navigateToTab)
+            },
             contentFocusRequester = if (isCatalogDestination(tabRoute)) {
                 homeShowcaseFocusRequester
             } else {
@@ -198,6 +199,7 @@ private fun Body(
                         firstRowFocusRequester = homeFirstTrayFocusRequester,
                         sidebarFocusRequester = sidebarFocusRequester,
                         isTabVisible = visible,
+                        requestInitialShowcaseFocus = visible && catalogRoute == Screens.Home(),
                     )
                 }
             }

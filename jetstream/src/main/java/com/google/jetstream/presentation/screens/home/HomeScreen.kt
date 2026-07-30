@@ -26,6 +26,7 @@ fun HomeScreen(
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
     isTabVisible: Boolean = true,
+    requestInitialShowcaseFocus: Boolean = false,
 ) {
     SideEffect { homeScreeViewModel.setPage(page) }
 
@@ -35,17 +36,28 @@ fun HomeScreen(
 
     when (val s = uiState) {
         is HomeScreenUiState.Ready -> {
-            Catalog(
-                sections = s.sections,
-                onMovieClick = onMovieClick,
-                goToVideoPlayer = goToVideoPlayer,
-                showcaseFocusRequester = if (isTabVisible) showcaseFocusRequester else null,
-                firstRowFocusRequester = if (isTabVisible) firstRowFocusRequester else null,
-                sidebarFocusRequester = if (isTabVisible) sidebarFocusRequester else null,
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (isTabVisible) {
+                Catalog(
+                    sections = s.sections,
+                    onMovieClick = onMovieClick,
+                    goToVideoPlayer = goToVideoPlayer,
+                    showcaseFocusRequester = showcaseFocusRequester,
+                    firstRowFocusRequester = firstRowFocusRequester,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                    requestInitialShowcaseFocus = requestInitialShowcaseFocus,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
-        is HomeScreenUiState.Loading -> HomeShimmerSkeleton(modifier = Modifier.fillMaxSize())
-        is HomeScreenUiState.Error -> Error(modifier = Modifier.fillMaxSize())
+        is HomeScreenUiState.Loading -> {
+            if (isTabVisible) {
+                HomeShimmerSkeleton(modifier = Modifier.fillMaxSize())
+            }
+        }
+        is HomeScreenUiState.Error -> {
+            if (isTabVisible) {
+                Error(modifier = Modifier.fillMaxSize())
+            }
+        }
     }
 }

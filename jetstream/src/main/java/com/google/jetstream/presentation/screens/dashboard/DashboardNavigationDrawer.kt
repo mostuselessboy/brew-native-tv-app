@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,8 +85,7 @@ fun DashboardNavigationDrawer(
     modifier: Modifier = Modifier,
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
-    onRailPrefetch: (Screens) -> Unit = {},
-    onRailPreview: (Screens) -> Unit = {},
+    onRailFocus: (Screens, Boolean) -> Unit = { _, _ -> },
     content: @Composable () -> Unit,
 ) {
     Row(
@@ -131,8 +129,7 @@ fun DashboardNavigationDrawer(
                         iconRes = entry.iconRes,
                         iconSize = if (entry.compactIcon) StoreIconSize else IconSize,
                         onClick = { onNavigateTo(entry.screen) },
-                        onRailPrefetch = onRailPrefetch,
-                        onRailPreview = onRailPreview,
+                        onRailFocus = onRailFocus,
                         contentFocusRequester = contentFocusRequester,
                         sidebarFocusRequester = if (selectedRoute == entry.screen()) {
                             sidebarFocusRequester
@@ -149,8 +146,7 @@ fun DashboardNavigationDrawer(
                 selected = selectedRoute == Screens.Profile(),
                 iconRes = R.drawable.ic_lucide_profile,
                 onClick = { onNavigateTo(Screens.Profile) },
-                onRailPrefetch = onRailPrefetch,
-                onRailPreview = onRailPreview,
+                onRailFocus = onRailFocus,
                 contentFocusRequester = contentFocusRequester,
                 sidebarFocusRequester = if (selectedRoute == Screens.Profile()) {
                     sidebarFocusRequester
@@ -181,8 +177,7 @@ private fun BrewRailItem(
     onClick: () -> Unit,
     iconRes: Int,
     iconSize: Dp = IconSize,
-    onRailPrefetch: (Screens) -> Unit = {},
-    onRailPreview: (Screens) -> Unit = {},
+    onRailFocus: (Screens, Boolean) -> Unit = { _, _ -> },
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
 ) {
@@ -214,12 +209,6 @@ private fun BrewRailItem(
         label = "railTint",
     )
 
-    LaunchedEffect(focused, screen, selected) {
-        if (!focused) return@LaunchedEffect
-        onRailPrefetch(screen)
-        if (!selected) onRailPreview(screen)
-    }
-
     Box(modifier = Modifier.scale(scale)) {
         Surface(
         onClick = onClick,
@@ -235,7 +224,12 @@ private fun BrewRailItem(
         ),
         modifier = Modifier
             .size(RailItemSize)
-            .onFocusChanged { focused = it.isFocused }
+            .onFocusChanged { state ->
+                focused = state.isFocused
+                if (state.isFocused) {
+                    onRailFocus(screen, selected)
+                }
+            }
             .then(
                 if (sidebarFocusRequester != null) {
                     Modifier.focusRequester(sidebarFocusRequester)

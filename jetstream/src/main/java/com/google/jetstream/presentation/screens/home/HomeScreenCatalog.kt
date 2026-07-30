@@ -16,13 +16,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -37,7 +34,7 @@ import com.google.jetstream.presentation.common.MoviesRow
 import com.google.jetstream.presentation.common.RandomMoviePickerSection
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.utils.bringIntoViewIfChildrenAreFocused
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 private val ScreenBlack = Color(0xFF000000)
 
@@ -50,6 +47,7 @@ internal fun Catalog(
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
+    requestInitialShowcaseFocus: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val childPadding = rememberChildPadding()
@@ -59,7 +57,6 @@ internal fun Catalog(
     val firstRowFocus = firstRowFocusRequester ?: localFirstRowFocus
     val showcasePrimaryFocus = showcaseFocusRequester ?: localShowcasePrimaryFocus
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val showTopScrim by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0 ||
@@ -83,6 +80,13 @@ internal fun Catalog(
                 }
             }
         }
+    }
+
+    LaunchedEffect(requestInitialShowcaseFocus, sections) {
+        if (!requestInitialShowcaseFocus || sections.isEmpty()) return@LaunchedEffect
+        if (sections.none { it.type == HomeSectionType.Showcase }) return@LaunchedEffect
+        delay(80)
+        showcasePrimaryFocus.requestFocus()
     }
 
     Box(modifier = modifier.background(ScreenBlack)) {
@@ -112,17 +116,7 @@ internal fun Catalog(
                                 .fillMaxWidth()
                                 .height(ShowcaseHeight)
                                 .focusGroup()
-                                .bringIntoViewIfChildrenAreFocused()
-                                .onFocusChanged { state ->
-                                    if (!state.hasFocus) return@onFocusChanged
-                                    scope.launch {
-                                        if (listState.firstVisibleItemIndex == 0 &&
-                                            listState.firstVisibleItemScrollOffset > 0
-                                        ) {
-                                            listState.scrollToItem(0, scrollOffset = 0)
-                                        }
-                                    }
-                                },
+                                .bringIntoViewIfChildrenAreFocused(),
                         )
                     }
 
@@ -138,8 +132,8 @@ internal fun Catalog(
                     HomeSectionType.Row -> {
                         val rowOrdinal = rowOrdinalByIndex[index] ?: 0
                         val isFirstContentRow = index == firstContentRowIndex
-                        val deferCards = rowOrdinal >= 2
-                        val deferDelayMs = 200L + ((rowOrdinal - 2).coerceAtLeast(0) * 90L)
+                        val deferCards = rowOrdinal >= 3
+                        val deferDelayMs = 120L + ((rowOrdinal - 3).coerceAtLeast(0) * 70L)
                         MoviesRow(
                             modifier = Modifier.focusGroup(),
                             movieList = section.movies,

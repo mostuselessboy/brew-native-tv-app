@@ -1,7 +1,6 @@
 package com.google.jetstream.presentation.common
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -213,8 +211,9 @@ fun CommerceChromeRow(
 ) {
     if (!showStore && !showBrewPlus) return
 
-    val storeSize = if (compact) 18.dp else 26.dp
-    val storeIcon = if (compact) 8.dp else 12.dp
+    val storeHeight = if (compact) 20.dp else 28.dp
+    val storeIconSize = if (compact) 11.dp else 15.dp
+    val storeHPadding = if (compact) 7.dp else 10.dp
     val plusHeight = if (compact) 20.dp else 28.dp
     val plusWordmarkHeight = if (compact) 10.dp else 14.dp
     val plusWordmarkWidth = if (compact) 44.dp else 58.dp
@@ -228,16 +227,16 @@ fun CommerceChromeRow(
         if (showStore) {
             Box(
                 modifier = Modifier
-                    .size(storeSize)
-                    .background(Color.Black.copy(alpha = 0.7f), CircleShape)
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape),
+                    .height(storeHeight)
+                    .background(Color.Black, RoundedCornerShape(storeHeight / 2))
+                    .padding(horizontal = storeHPadding),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_brew_store),
+                    painter = painterResource(R.drawable.ic_lucide_store),
                     contentDescription = "Store",
                     tint = StoreIconGold,
-                    modifier = Modifier.size(storeIcon),
+                    modifier = Modifier.size(storeIconSize),
                 )
             }
         }

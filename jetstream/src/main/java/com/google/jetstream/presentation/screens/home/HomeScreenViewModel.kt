@@ -106,9 +106,8 @@ class HomeScreeViewModel @Inject constructor(
                 .filter {
                     it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
                 }
-                .take(2)
-                .flatMap { it.movies.asSequence() }
-                .take(10)
+                .take(4)
+                .flatMap { it.movies.asSequence().take(8) }
                 .forEach { movie ->
                     context.imageLoader.enqueue(
                         ImageRequest.Builder(context)
