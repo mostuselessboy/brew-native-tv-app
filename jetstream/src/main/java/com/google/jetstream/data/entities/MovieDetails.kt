@@ -1,5 +1,7 @@
 package com.google.jetstream.data.entities
 
+import com.google.jetstream.data.util.DetailPurchaseCtaSlot
+
 data class MovieAward(
     val name: String,
     val category: String,
@@ -18,6 +20,13 @@ data class MovieCriticReview(
     val link: String?,
 )
 
+data class MovieLanguageRow(
+    val key: String,
+    val displayName: String,
+    val hasAudio: Boolean,
+    val hasSubtitles: Boolean,
+)
+
 data class MovieDetails(
     val id: String,
     val videoUri: String,
@@ -25,10 +34,15 @@ data class MovieDetails(
     val posterUri: String,
     val name: String,
     val description: String,
+    val tagline: String = "",
     val pgRating: String,
     val releaseDate: String,
     val categories: List<String>,
     val duration: String,
+    val releaseYear: String = "",
+    val imdbLink: String = "",
+    val letterboxdLink: String = "",
+    val rottenTomatoesLink: String = "",
     val director: String,
     val screenplay: String,
     val music: String,
@@ -39,6 +53,32 @@ data class MovieDetails(
     val originalLanguage: String,
     val budget: String,
     val revenue: String,
-    val similarMovies: MovieList,
+    /** Viewer average on 0–10 scale (display as /5). */
+    val averageRating: Double? = null,
+    val ratingCount: Int? = null,
+    val customersAlsoWatched: MovieList = emptyList(),
+    val relatedMovies: MovieList = emptyList(),
     val reviewsAndRatings: List<MovieReviewsAndRatings> = emptyList(),
+    val reviewSummary: MovieReviewSummary? = null,
+    val userCountry: String = "",
+    // Commerce — mirrors mobile-viewer purchase CTA inputs
+    val projectType: String? = null,
+    val isComingSoon: Boolean = false,
+    val comingSoonHint: String? = null,
+    val isFreeTier: Boolean = false,
+    val showBrewPlus: Boolean = false,
+    val showStore: Boolean = false,
+    val rentPriceFormatted: String? = null,
+    val buyPriceFormatted: String? = null,
+    val rentOriginalPriceFormatted: String? = null,
+    val languageRows: List<MovieLanguageRow> = emptyList(),
+    val hasTrailer: Boolean = false,
+    /** Enriched from get-campaign `purchase_cta.slots` when present. */
+    val purchaseCtaSlots: List<DetailPurchaseCtaSlot> = emptyList(),
+    /** Main VOD asset id for bookmark API. */
+    val vodAssetId: Int? = null,
+    /** Slug for check-purchase / start-playback / vod asset APIs. */
+    val cvName: String = "",
+    val campaignVersionId: Int? = null,
+    val campaignId: Int? = null,
 )

@@ -7,6 +7,8 @@ data class HomeSection(
     val movies: MovieList,
     /** Prime/Brew "Most Watched" style — large rank numerals beside cards. */
     val showRanking: Boolean = false,
+    val subheading: String? = null,
+    val slug: String? = null,
 )
 
 enum class HomeSectionType {

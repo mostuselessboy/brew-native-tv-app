@@ -87,4 +87,14 @@ abstract class MovieRepositoryModule {
     abstract fun bindMovieRepository(
         movieRepositoryImpl: MovieRepositoryImpl
     ): MovieRepository
+
+    @Binds
+    abstract fun bindLibraryRepository(
+        libraryRepositoryImpl: com.google.jetstream.data.repositories.LibraryRepositoryImpl
+    ): com.google.jetstream.data.repositories.LibraryRepository
+
+    @Binds
+    abstract fun bindPlaybackRepository(
+        playbackRepositoryImpl: com.google.jetstream.data.repositories.PlaybackRepositoryImpl
+    ): com.google.jetstream.data.repositories.PlaybackRepository
 }

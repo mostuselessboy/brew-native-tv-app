@@ -212,7 +212,8 @@ fun CommerceChromeRow(
     if (!showStore && !showBrewPlus) return
 
     val storeHeight = if (compact) 20.dp else 28.dp
-    val storeIconSize = if (compact) 11.dp else 15.dp
+    val storeIconHeight = if (compact) 11.dp else 15.dp
+    val storeIconWidth = storeIconHeight * (448f / 512f)
     val storeHPadding = if (compact) 7.dp else 10.dp
     val plusHeight = if (compact) 20.dp else 28.dp
     val plusWordmarkHeight = if (compact) 10.dp else 14.dp
@@ -233,10 +234,12 @@ fun CommerceChromeRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_lucide_store),
+                    painter = painterResource(R.drawable.ic_fa_shopping_bag),
                     contentDescription = "Store",
                     tint = StoreIconGold,
-                    modifier = Modifier.size(storeIconSize),
+                    modifier = Modifier
+                        .width(storeIconWidth)
+                        .height(storeIconHeight),
                 )
             }
         }

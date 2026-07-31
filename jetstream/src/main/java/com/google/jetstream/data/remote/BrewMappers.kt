@@ -16,6 +16,7 @@
 
 package com.google.jetstream.data.remote
 
+import com.google.jetstream.data.entities.CollectionSectionDetails
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.HomeSectionType
 import com.google.jetstream.data.entities.Movie
@@ -25,12 +26,18 @@ import com.google.jetstream.data.entities.MovieCategory
 import com.google.jetstream.data.entities.MovieCriticReview
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.MovieList
+import com.google.jetstream.data.entities.MovieReviewsAndRatings
+import com.google.jetstream.data.entities.MovieReviewSummary
+import com.google.jetstream.data.entities.ReviewSection
 import com.google.jetstream.data.entities.ThumbnailType
 import com.google.jetstream.data.util.BrewArtworkUrls
 import com.google.jetstream.data.util.BrewDateUtils
 import com.google.jetstream.data.util.BrewTrailerUrl
 import com.google.jetstream.data.util.CardCommerce
+import com.google.jetstream.data.util.ComingSoonUtils
 import com.google.jetstream.data.util.DailyRotatingArtwork
+import com.google.jetstream.data.util.DetailPurchaseCta
+import com.google.jetstream.data.util.MovieLanguageRows
 import com.google.jetstream.data.util.VodTagBadge
 
 object BrewMappers {
@@ -64,6 +71,8 @@ object BrewMappers {
         )
         val salesPitch = shortDescription?.takeIf { it.isNotBlank() }.orEmpty()
         val durationLabel = runtime?.takeIf { it.isNotBlank() }
+        val viewerReleaseOption = pricingData?.viewerReleaseOption
+        val comingSoon = ComingSoonUtils.isComingSoon(distribution, viewerReleaseOption)
 
         return Movie(
             id = id,
@@ -81,6 +90,15 @@ object BrewMappers {
             showStore = chrome.showStore,
             showBrewPlus = chrome.showPlus,
             leavingSoon = BrewDateUtils.isLeaveDateInFuture(leaveDate),
+            projectType = projectType,
+            isComingSoon = comingSoon,
+            isFreeTier = isFreeTier == true,
+            rentPriceFormatted = rentPriceFormatted?.takeIf { it.isNotBlank() },
+            comingSoonHint = if (comingSoon) {
+                ComingSoonUtils.releaseHint(comingSoonReleaseInfo, releaseDate)
+            } else {
+                null
+            },
         )
     }
 
@@ -110,12 +128,37 @@ object BrewMappers {
             type = sectionType,
             movies = movies,
             showRanking = showRanking,
+            subheading = subheading?.takeIf { it.isNotBlank() },
+            slug = slug?.takeIf { it.isNotBlank() } ?: id.toString(),
+        )
+    }
+
+    fun BrewHomeSectionDto.toCollectionSectionDetails(): CollectionSectionDetails? {
+        val movies = content.mapNotNull { item ->
+            val data = item.contentData ?: return@mapNotNull null
+            data.toMovie(ThumbnailType.Long)
+        }
+        if (movies.isEmpty()) return null
+
+        return CollectionSectionDetails(
+            id = id.toString(),
+            slug = slug?.takeIf { it.isNotBlank() } ?: id.toString(),
+            title = name,
+            subheading = subheading?.takeIf { it.isNotBlank() },
+            movies = movies,
+            total = total ?: movies.size,
+            heroPosterUri = movies.firstOrNull()?.posterUri,
         )
     }
 
     fun BrewCampaignData.toMovieDetails(
         requestedId: String,
-        similarMovies: MovieList = emptyList(),
+        customersAlsoWatched: MovieList = emptyList(),
+        relatedMovies: MovieList = emptyList(),
+        userReviewComments: List<MovieReviewsAndRatings> = emptyList(),
+        reviewSummary: MovieReviewSummary? = null,
+        userCountry: String = "",
+        catalogOverlay: BrewContentDataDto? = null,
     ): MovieDetails {
         val title = projectTitle ?: title ?: project?.projectTitle ?: "Untitled"
         val synopsis = projectSynopsis
@@ -133,7 +176,7 @@ object BrewMappers {
             project?.projectPoster,
         ).firstOrNull { it.isNotBlank() }.orEmpty()
         val videoUri = BrewTrailerUrl.resolveFromCandidates(
-            projectTrailer.firstOrNull { it.startsWith("http") && !it.contains("youtube", ignoreCase = true) },
+            projectTrailer.firstHttpTrailer(),
             trailer?.trailerOriginalUrl,
             campaign?.trailerOriginalUrl,
         )
@@ -217,15 +260,102 @@ object BrewMappers {
             ?.fullName
             .orEmpty()
 
-        // Prefer caller-resolved slug-backed similar movies. Never fall back to bare
-        // numeric campaign ids — get-campaign/{id} 404s and details "open nothing".
-        val related = similarMovies
-            .filter { it.id.isNotBlank() && it.id.toIntOrNull() == null }
+        // Keep slug-backed movie ids — numeric-only ids are not navigable slugs.
+        fun isNavigableMovieId(id: String): Boolean =
+            id.isNotBlank() && !id.all { it.isDigit() }
+
+        val alsoWatched = customersAlsoWatched
+            .filter { isNavigableMovieId(it.id) }
             .take(12)
+        val related = relatedMovies
+            .filter { isNavigableMovieId(it.id) }
+            .filter { movie -> alsoWatched.none { it.id == movie.id } }
+            .take(12)
+
+        val userReviewCards = userReviewComments.ifEmpty {
+            userReviews.mapNotNull { review ->
+                val name = review.name?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val body = review.review?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                MovieReviewsAndRatings(
+                    reviewerName = name,
+                    reviewerIconUri = "",
+                    reviewBody = body,
+                    reviewRating = review.rating,
+                )
+            }
+        }
 
         val metaDate = listOfNotNull(year, countrySuffix.takeIf { it.isNotBlank() })
             .joinToString(" • ")
             .ifBlank { release }
+
+        val overlayPricing = catalogOverlay?.pricingData ?: pricingData
+        val pricingModels = overlayPricing?.viewerMonetizationModels?.keys
+            ?.map { it.lowercase() }
+            ?.filter { it.isNotBlank() }
+            .orEmpty()
+        val monetization = when {
+            monetizationModel.isNotEmpty() -> monetizationModel
+            catalogOverlay?.monetizationModel?.isNotEmpty() == true -> catalogOverlay.monetizationModel
+            pricingModels.isNotEmpty() -> pricingModels
+            else -> emptyList()
+        }
+        val chrome = CardCommerce.resolve(
+            monetizationModel = monetization,
+            pricingData = overlayPricing,
+            isSvod = isSvod ?: catalogOverlay?.isSvod,
+            isTvod = isTvod ?: catalogOverlay?.isTvod,
+            availableForBuy = availableForBuy ?: catalogOverlay?.availableForBuy,
+            availableForRent = availableForRent ?: catalogOverlay?.availableForRent,
+            isStoreContent = isStoreContent ?: catalogOverlay?.isStoreContent,
+        )
+        val distributionValue = distribution
+            ?: campaign?.distribution
+            ?: catalogOverlay?.distribution
+        val viewerReleaseOption = overlayPricing?.viewerReleaseOption
+        val comingSoon = ComingSoonUtils.isComingSoon(distributionValue, viewerReleaseOption)
+        val rentFormatted = rentPriceFormatted?.takeIf { it.isNotBlank() }
+            ?: catalogOverlay?.rentPriceFormatted?.takeIf { it.isNotBlank() }
+            ?: overlayPricing?.rent?.firstOrNull()?.let { formatPrice(it) }
+        val buyFormatted = overlayPricing?.buy?.firstOrNull()?.let { formatPrice(it) }
+        val rentOriginal = overlayPricing?.rent?.firstOrNull()?.perceivedPrice?.let { perceived ->
+            val symbol = overlayPricing.rent.firstOrNull()?.currencySymbol ?: "₹"
+            "$symbol${perceived.toInt()}"
+        }
+        val tagline = shortDescription?.takeIf { it.isNotBlank() }.orEmpty()
+        val languageRows = MovieLanguageRows.build(vodPrimaryLanguage, subtitles)
+        val resolvedProjectType = projectType ?: catalogOverlay?.projectType
+        val freeTier = isFreeTier == true || catalogOverlay?.isFreeTier == true
+
+        val resolvedImdbLink = imdbUrl?.takeIf { it.isNotBlank() }
+            ?: project?.imdbLink?.takeIf { it.isNotBlank() }
+            .orEmpty()
+        val resolvedLetterboxdLink = letterboxdUrl?.takeIf { it.isNotBlank() }
+            ?: letterboxdLink?.takeIf { it.isNotBlank() }
+            ?: project?.letterboxdLink?.takeIf { it.isNotBlank() }
+            .orEmpty()
+        val resolvedRottenTomatoesLink = rottenTomatoesLink?.takeIf { it.isNotBlank() }
+            ?: project?.rottenTomatoesLink?.takeIf { it.isNotBlank() }
+            .orEmpty()
+
+        val purchaseCtaSlots = DetailPurchaseCta.mapFromApi(
+            purchaseCta = purchaseCta,
+            rentPriceFormatted = rentFormatted,
+            buyPriceFormatted = buyFormatted,
+            rentOriginalPriceFormatted = rentOriginal,
+            subscriptionPlans = subscriptionPlans,
+            comingSoonHint = if (comingSoon) {
+                ComingSoonUtils.releaseHint(
+                    comingSoonReleaseInfo ?: catalogOverlay?.comingSoonReleaseInfo,
+                    releaseDate ?: project?.releaseDate,
+                )
+            } else {
+                null
+            },
+        )
+        val resolvedCvName = campaign?.cvName?.takeIf { it.isNotBlank() }
+            ?: preferredSlug?.takeIf { it.isNotBlank() }
+            ?: requestedId
 
         return MovieDetails(
             id = preferredSlug ?: requestedId,
@@ -234,10 +364,15 @@ object BrewMappers {
             posterUri = poster,
             name = title,
             description = synopsis,
+            tagline = tagline,
             pgRating = contentRatingLabel?.takeIf { it.isNotBlank() } ?: "NR",
             releaseDate = metaDate,
             categories = genres.ifEmpty { project?.genres.orEmpty() },
             duration = runtime.ifBlank { "—" },
+            releaseYear = year.orEmpty(),
+            imdbLink = resolvedImdbLink,
+            letterboxdLink = resolvedLetterboxdLink,
+            rottenTomatoesLink = resolvedRottenTomatoesLink,
             director = director.ifBlank { "—" },
             screenplay = screenplay.ifBlank { "—" },
             music = music.ifBlank { "—" },
@@ -248,9 +383,49 @@ object BrewMappers {
             originalLanguage = vodPrimaryLanguage?.name ?: "—",
             budget = "—",
             revenue = rating?.let { String.format("%.1f ★ (%d)", it, ratingCount ?: 0) } ?: "—",
-            similarMovies = related,
-            reviewsAndRatings = emptyList(),
+            averageRating = rating,
+            ratingCount = ratingCount,
+            customersAlsoWatched = alsoWatched,
+            relatedMovies = related,
+            reviewsAndRatings = userReviewCards,
+            reviewSummary = reviewSummary,
+            userCountry = userCountry,
+            projectType = resolvedProjectType,
+            isComingSoon = comingSoon,
+            comingSoonHint = if (comingSoon) {
+                ComingSoonUtils.releaseHint(comingSoonReleaseInfo ?: catalogOverlay?.comingSoonReleaseInfo, releaseDate ?: project?.releaseDate)
+            } else {
+                null
+            },
+            isFreeTier = freeTier && !chrome.showPlus && !chrome.showStore,
+            showBrewPlus = chrome.showPlus,
+            showStore = chrome.showStore,
+            rentPriceFormatted = rentFormatted,
+            buyPriceFormatted = buyFormatted,
+            rentOriginalPriceFormatted = rentOriginal,
+            languageRows = languageRows,
+            hasTrailer = videoUri.isNotBlank(),
+            purchaseCtaSlots = purchaseCtaSlots,
+            vodAssetId = resolveVodAssetId(),
+            cvName = resolvedCvName,
+            campaignVersionId = campaign?.campaignVersionId,
+            campaignId = campaign?.id?.takeIf { it > 0 },
         )
+    }
+
+    private fun BrewCampaignData.resolveVodAssetId(): Int? {
+        movieDetails?.vodAssetId?.takeIf { it > 0 }?.let { return it }
+        movieDetails?.movieAssetId?.takeIf { it > 0 }?.let { return it }
+        vodAssetId?.takeIf { it > 0 }?.let { return it }
+        campaign?.vodAssetId?.takeIf { it > 0 }?.let { return it }
+        project?.vodAssetId?.takeIf { it > 0 }?.let { return it }
+        return null
+    }
+
+    private fun formatPrice(option: BrewPricingOptionDto): String {
+        val symbol = option.currencySymbol?.takeIf { it.isNotBlank() } ?: "₹"
+        val amount = option.price?.toInt() ?: return symbol
+        return "$symbol$amount"
     }
 
     private fun formatCriticDate(raw: String?): String? {
@@ -279,5 +454,40 @@ object BrewMappers {
     private fun formatReleaseDate(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
         return raw.take(10)
+    }
+
+    fun BrewCommentDto.toUserReview(): MovieReviewsAndRatings? {
+        val name = user?.name?.takeIf { it.isNotBlank() } ?: return null
+        val body = text?.takeIf { it.isNotBlank() }
+            ?: heading?.takeIf { it.isNotBlank() }
+            ?: return null
+        val rating5 = starRating?.takeIf { it > 0 }?.let { it / 2.0 }
+        return MovieReviewsAndRatings(
+            id = id.orEmpty(),
+            reviewerName = name,
+            reviewerUsername = user?.username.orEmpty(),
+            reviewerIconUri = user?.image.orEmpty(),
+            reviewHeading = heading.orEmpty(),
+            reviewBody = body,
+            reviewRating = rating5,
+            createdAt = createdAt.orEmpty(),
+            countryCode = user?.countryCode.orEmpty(),
+            countryName = user?.countryName.orEmpty(),
+            isVerifiedCritic = user?.isBrewCritic == true,
+            section = ReviewSection.fromApi(section),
+        )
+    }
+
+    fun BrewCommentsData.toReviewSummary(): MovieReviewSummary? {
+        val total = totalRatings ?: return null
+        if (total <= 0) return null
+        val distribution = ratingDistribution.mapKeys { (key, _) -> key.toIntOrNull() ?: 0 }
+            .filterKeys { it in 1..10 }
+        val avg5 = averageRating?.takeIf { it > 0 }?.let { it / 2.0 } ?: 0.0
+        return MovieReviewSummary(
+            averageRating = avg5,
+            totalRatings = total,
+            ratingDistribution = distribution,
+        )
     }
 }

@@ -53,6 +53,7 @@ fun VideoPlayerOverlay(
     focusRequester: FocusRequester = remember { FocusRequester() },
     showControls: () -> Unit = {},
     centerButton: @Composable () -> Unit = {},
+    centerControls: @Composable () -> Unit = {},
     subtitles: @Composable () -> Unit = {},
     controls: @Composable () -> Unit = {}
 ) {
@@ -72,6 +73,15 @@ fun VideoPlayerOverlay(
     ) {
         AnimatedVisibility(isControlsVisible, Modifier, fadeIn(), fadeOut()) {
             CinematicBackground(Modifier.fillMaxSize())
+        }
+
+        AnimatedVisibility(
+            isControlsVisible,
+            Modifier.align(Alignment.Center),
+            fadeIn(),
+            fadeOut(),
+        ) {
+            centerControls()
         }
 
         Column {
@@ -107,8 +117,10 @@ fun CinematicBackground(modifier: Modifier = Modifier) {
         modifier.background(
             Brush.verticalGradient(
                 listOf(
-                    Color.Black.copy(alpha = 0.1f),
-                    Color.Black.copy(alpha = 0.8f)
+                    Color.Black.copy(alpha = 0.55f),
+                    Color.Transparent,
+                    Color.Transparent,
+                    Color.Black.copy(alpha = 0.85f),
                 )
             )
         )

@@ -39,15 +39,28 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ClickableSurfaceDefaults
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.google.jetstream.data.util.BrewImageUrl
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import com.google.jetstream.R
 import com.google.jetstream.presentation.screens.Screens
+
+private const val WatchHiddenGemsUrl =
+    "https://createstir.b-cdn.net/stir-static/watch-hidden-gems.png"
+
+private val RailLogoHeight = 28.dp
+private val RailLogoWidth = 44.dp
+private val RailWordmarkHeight = 28.dp
+private val RailWordmarkWidth = 44.dp
 
 /** Side rail — pure black, white pill when focused/selected. */
 private val RailBg = Color(0xFF000000)
@@ -86,6 +99,7 @@ fun DashboardNavigationDrawer(
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
     onRailFocus: (Screens, Boolean) -> Unit = { _, _ -> },
+    onRailBlur: (Screens) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     Row(
@@ -103,15 +117,37 @@ fun DashboardNavigationDrawer(
                 .focusGroup(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Image(
-                painter = painterResource(R.drawable.brew_logo),
-                contentDescription = "Brew",
-                modifier = Modifier
-                    .height(26.dp)
-                    .width(40.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                contentScale = ContentScale.Fit,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = 4.dp),
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.brew_logo),
+                    contentDescription = "Brew",
+                    modifier = Modifier
+                        .height(RailLogoHeight)
+                        .width(RailLogoWidth)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Fit,
+                )
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(
+                            BrewImageUrl.forWatchHiddenGems(
+                                WatchHiddenGemsUrl,
+                            ),
+                        )
+                        .size(80, 64)
+                        .crossfade(false)
+                        .build(),
+                    contentDescription = "Watch hidden gems",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .height(RailWordmarkHeight)
+                        .width(RailWordmarkWidth),
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -130,6 +166,7 @@ fun DashboardNavigationDrawer(
                         iconSize = if (entry.compactIcon) StoreIconSize else IconSize,
                         onClick = { onNavigateTo(entry.screen) },
                         onRailFocus = onRailFocus,
+                        onRailBlur = onRailBlur,
                         contentFocusRequester = contentFocusRequester,
                         sidebarFocusRequester = if (selectedRoute == entry.screen()) {
                             sidebarFocusRequester
@@ -147,6 +184,7 @@ fun DashboardNavigationDrawer(
                 iconRes = R.drawable.ic_lucide_profile,
                 onClick = { onNavigateTo(Screens.Profile) },
                 onRailFocus = onRailFocus,
+                onRailBlur = onRailBlur,
                 contentFocusRequester = contentFocusRequester,
                 sidebarFocusRequester = if (selectedRoute == Screens.Profile()) {
                     sidebarFocusRequester
@@ -178,6 +216,7 @@ private fun BrewRailItem(
     iconRes: Int,
     iconSize: Dp = IconSize,
     onRailFocus: (Screens, Boolean) -> Unit = { _, _ -> },
+    onRailBlur: (Screens) -> Unit = {},
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
 ) {
@@ -228,6 +267,8 @@ private fun BrewRailItem(
                 focused = state.isFocused
                 if (state.isFocused) {
                     onRailFocus(screen, selected)
+                } else {
+                    onRailBlur(screen)
                 }
             }
             .then(
@@ -246,7 +287,7 @@ private fun BrewRailItem(
                                 event.key == Key.NavigateNext
                             if (!isRight) return@onPreviewKeyEvent false
                             if (event.type == KeyEventType.KeyDown) {
-                                contentFocusRequester.requestFocus()
+                                runCatching { contentFocusRequester.requestFocus() }
                             }
                             true
                         }

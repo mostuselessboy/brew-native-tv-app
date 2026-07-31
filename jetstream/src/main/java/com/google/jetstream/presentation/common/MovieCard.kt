@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,11 +36,15 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.util.BrewImageUrl
+import com.google.jetstream.presentation.screens.movies.MovieDetailTokens
 import com.google.jetstream.presentation.theme.BrewTitle
 
 /** Matches vod-frontend landscape tray card — compact for TV shelves. */
 val BrewLandscapeCardWidth = 220.dp
-private val BrewCardShape = RoundedCornerShape(9.dp)
+private val BrewDetailCardWidth = 280.dp
+private val BrewTrayCardShape = RoundedCornerShape(9.dp)
+private val BrewDetailCardShape = RoundedCornerShape(10.dp)
+private val BrewDetailShellBorder = Color.White.copy(alpha = 0.1f)
 
 /**
  * Brew.tv landscape card — title + sales pitch overlay ON the art
@@ -50,8 +55,10 @@ fun BrewLandscapeMovieCard(
     movie: Movie,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    cardWidth: Dp? = BrewLandscapeCardWidth,
+    cardWidth: Dp? = null,
+    fillAvailableWidth: Boolean = false,
     showTitle: Boolean = true,
+    style: BrewMovieCardStyle = BrewMovieCardStyle.Tray,
     onFocused: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -62,25 +69,60 @@ fun BrewLandscapeMovieCard(
             .crossfade(false)
             .build()
     }
-    val widthModifier = if (cardWidth != null) {
-        Modifier.width(cardWidth)
-    } else {
-        Modifier.fillMaxWidth()
+
+    val shape = when (style) {
+        BrewMovieCardStyle.Tray -> BrewTrayCardShape
+        BrewMovieCardStyle.Detail -> BrewDetailCardShape
+    }
+    val titleSize = when (style) {
+        BrewMovieCardStyle.Tray -> 16.sp
+        BrewMovieCardStyle.Detail -> 14.sp
+    }
+    val titleLine = when (style) {
+        BrewMovieCardStyle.Tray -> 17.sp
+        BrewMovieCardStyle.Detail -> 15.sp
+    }
+    val focusedScale = when (style) {
+        BrewMovieCardStyle.Tray -> 1.06f
+        BrewMovieCardStyle.Detail -> 1.04f
+    }
+    val containerColor = when (style) {
+        BrewMovieCardStyle.Tray -> Color.Black
+        BrewMovieCardStyle.Detail -> Color.White.copy(alpha = 0.06f)
+    }
+
+    val widthModifier = when {
+        fillAvailableWidth -> Modifier.fillMaxWidth()
+        cardWidth != null -> Modifier.width(cardWidth)
+        style == BrewMovieCardStyle.Detail -> Modifier.width(BrewDetailCardWidth)
+        else -> Modifier.width(BrewLandscapeCardWidth)
+    }
+
+    val focusedBorder = Border(
+        border = BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
+        shape = shape,
+    )
+    val surfaceBorder = when (style) {
+        BrewMovieCardStyle.Detail -> ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, BrewDetailShellBorder),
+                shape = shape,
+            ),
+            focusedBorder = focusedBorder,
+        )
+        BrewMovieCardStyle.Tray -> ClickableSurfaceDefaults.border(
+            focusedBorder = focusedBorder,
+        )
     }
 
     Surface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(BrewCardShape),
-        border = ClickableSurfaceDefaults.border(
-            focusedBorder = Border(
-                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
-                shape = BrewCardShape,
-            ),
-        ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        shape = ClickableSurfaceDefaults.shape(shape),
+        border = surfaceBorder,
+        scale = ClickableSurfaceDefaults.scale(focusedScale = focusedScale),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color.Black,
-            focusedContainerColor = Color.Black,
+            containerColor = containerColor,
+            focusedContainerColor = containerColor,
         ),
         modifier = modifier
             .then(widthModifier)
@@ -90,7 +132,7 @@ fun BrewLandscapeMovieCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(BrewCardShape)
+                .clip(shape)
                 .background(Color.Black),
         ) {
             AsyncImage(
@@ -115,6 +157,23 @@ fun BrewLandscapeMovieCard(
 
             MovieBadgeChrome(movie = movie, compact = true)
 
+            movie.watchProgressPercent?.takeIf { it > 0 }?.let { progress ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(Color.White.copy(alpha = 0.14f)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress / 100f)
+                            .height(4.dp)
+                            .background(MovieDetailTokens.AccentYellow),
+                    )
+                }
+            }
+
             if (showTitle) {
                 Column(
                     modifier = Modifier
@@ -127,8 +186,8 @@ fun BrewLandscapeMovieCard(
                         color = Color.White,
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        lineHeight = 17.sp,
+                        fontSize = titleSize,
+                        lineHeight = titleLine,
                         letterSpacing = (-0.5).sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -164,11 +223,11 @@ fun MovieCard(
 ) {
     Surface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(BrewCardShape),
+        shape = ClickableSurfaceDefaults.shape(BrewTrayCardShape),
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(
                 border = BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface),
-                shape = BrewCardShape,
+                shape = BrewTrayCardShape,
             )
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),

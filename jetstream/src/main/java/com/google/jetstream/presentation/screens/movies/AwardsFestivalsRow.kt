@@ -1,40 +1,55 @@
 package com.google.jetstream.presentation.screens.movies
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.data.entities.MovieAward
 import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
-import com.google.jetstream.presentation.theme.BrewTitle
 
 private const val WreathFallback =
-    "https://createstir.b-cdn.net/stir-static/wreath.png"
+    "https://createstir.b-cdn.net/stir-marketplace/film-festivals/wreath.png"
 
-/**
- * Awards strip — vod-frontend Awards & Festivals style with wreath fallback.
- */
+private val AwardCardShape = RoundedCornerShape(16.dp)
+private val AwardCardWidth = 176.dp
+private val AccentGold = Color(0xFFFFC15E)
+
+/** Awards strip — polished festival cards with TV focus. */
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalTvMaterial3Api::class)
 @Composable
 fun AwardsFestivalsRow(
     awards: List<MovieAward>,
@@ -44,7 +59,6 @@ fun AwardsFestivalsRow(
     val childPadding = rememberChildPadding()
     val context = LocalContext.current
 
-    // Group by festival name like web (one card per festival, join categories).
     val grouped = awards
         .groupBy { it.name }
         .entries
@@ -52,68 +66,131 @@ fun AwardsFestivalsRow(
             val first = items.first()
             Triple(
                 name,
-                items.mapNotNull { it.category.takeIf { c -> c.isNotBlank() } }
-                    .distinct()
-                    .joinToString(", ")
-                    .ifBlank { first.year },
+                listOfNotNull(
+                    first.year.takeIf { it.isNotBlank() },
+                    items.mapNotNull { it.category.takeIf { c -> c.isNotBlank() } }
+                        .distinct()
+                        .joinToString(", ")
+                        .takeIf { it.isNotBlank() },
+                ).joinToString(" · "),
                 first.logoUrl?.takeIf { it.isNotBlank() } ?: WreathFallback,
             )
         }
 
-    Column(modifier = modifier.padding(top = 24.dp)) {
-        Text(
-            text = "Awards & Festivals",
-            color = Color.White,
-            fontFamily = BrewTitle,
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            letterSpacing = (-0.4).sp,
-            modifier = Modifier.padding(start = childPadding.start),
-        )
+    Column(modifier = modifier.padding(top = 2.dp)) {
+        MovieDetailSectionTitle(text = "Awards & Festivals")
         LazyRow(
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .focusRestorer(),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
-                top = 14.dp,
             ),
-            horizontalArrangement = Arrangement.spacedBy(28.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             items(grouped, key = { it.first }) { (name, detail, logo) ->
-                Column(
-                    modifier = Modifier.width(148.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Surface(
+                    onClick = {},
+                    shape = ClickableSurfaceDefaults.shape(AwardCardShape),
+                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
+                    border = ClickableSurfaceDefaults.border(
+                        border = Border(
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                            shape = AwardCardShape,
+                        ),
+                        focusedBorder = Border(
+                            border = BorderStroke(2.dp, AccentGold.copy(alpha = 0.88f)),
+                            shape = AwardCardShape,
+                        ),
+                    ),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.width(AwardCardWidth),
                 ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(BrewImageUrl.withDimensions(logo, 96, 96))
-                            .size(96, 96)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = name,
-                        contentScale = ContentScale.Fit,
+                    Box(
                         modifier = Modifier
-                            .height(56.dp)
-                            .fillMaxWidth(),
-                    )
-                    Text(
-                        text = name,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 10.dp),
-                    )
-                    if (detail.isNotBlank()) {
-                        Text(
-                            text = detail,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.6f),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color(0xFF1A1A1C),
+                                        Color(0xFF0C0C0E),
+                                    ),
+                                ),
+                            ),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.06f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(BrewImageUrl.withDimensions(logo, 96, 64, quality = "100"))
+                                        .size(48, 48)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = name,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(40.dp),
+                                )
+                            }
+
+                            Text(
+                                text = name,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 17.sp,
+                                ),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 10.dp),
+                            )
+
+                            if (detail.isNotBlank()) {
+                                Text(
+                                    text = detail,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        lineHeight = 14.sp,
+                                    ),
+                                    color = AccentGold.copy(alpha = 0.78f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 10.dp)
+                                    .fillMaxWidth(0.55f)
+                                    .height(2.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                AccentGold.copy(alpha = 0.5f),
+                                                Color.Transparent,
+                                            ),
+                                        ),
+                                    ),
+                            )
+                        }
                     }
                 }
             }

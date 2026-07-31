@@ -25,8 +25,11 @@ object BrewImageUrl {
     const val CAST_WIDTH = 200
     const val CAST_HEIGHT = 267
 
-    const val CRITIC_LOGO_WIDTH = 140
-    const val CRITIC_LOGO_HEIGHT = 70
+    /** Cast avatar on detail — 120dp @ 2× density, square crop. */
+    const val CAST_AVATAR_PX = 240
+
+    const val CRITIC_LOGO_WIDTH = 180
+    const val CRITIC_LOGO_HEIGHT = 90
 
     /** Watch hidden gems wordmark — splash + header lockup. */
     const val WATCH_HIDDEN_GEMS_WIDTH = 160
@@ -48,13 +51,16 @@ object BrewImageUrl {
 
     fun forCast(url: String): String = withDimensions(url, CAST_WIDTH, CAST_HEIGHT)
 
+    fun forCastAvatar(url: String): String =
+        withDimensions(url, CAST_AVATAR_PX, CAST_AVATAR_PX, quality = "100")
+
     fun forCriticLogo(url: String): String =
-        withDimensions(url, CRITIC_LOGO_WIDTH, CRITIC_LOGO_HEIGHT)
+        withDimensions(url, CRITIC_LOGO_WIDTH, CRITIC_LOGO_HEIGHT, quality = "100")
 
     fun forWatchHiddenGems(url: String): String =
         withDimensions(url, WATCH_HIDDEN_GEMS_WIDTH, WATCH_HIDDEN_GEMS_HEIGHT)
 
-    fun withDimensions(url: String?, width: Int, height: Int): String {
+    fun withDimensions(url: String?, width: Int, height: Int, quality: String = CDN_QUALITY): String {
         if (url.isNullOrBlank()) return ""
         val trimmed = normalizeDoubleSlash(url.trim())
         if (!trimmed.startsWith("http", ignoreCase = true) && !trimmed.startsWith("//")) {
@@ -92,7 +98,7 @@ object BrewImageUrl {
             builder.appendQueryParameter("width", width.toString())
             builder.appendQueryParameter("height", height.toString())
             builder.appendQueryParameter("format", bunnyFormat())
-            builder.appendQueryParameter("quality", CDN_QUALITY)
+            builder.appendQueryParameter("quality", quality)
             builder.appendQueryParameter("sharpen", CDN_SHARPEN)
 
             val optimized = builder.build().toString()

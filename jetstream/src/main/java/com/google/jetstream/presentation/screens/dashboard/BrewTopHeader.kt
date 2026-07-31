@@ -115,7 +115,7 @@ fun BrewTopHeader(
         ) {
             BrewTopNavTabs.forEach { screen ->
                 val label = when (screen) {
-                    Screens.Favourites -> "Library"
+                    Screens.Favourites -> "My Library"
                     else -> screen.name
                 }
                 BrewNavPill(

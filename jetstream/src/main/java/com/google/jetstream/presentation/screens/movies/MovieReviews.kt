@@ -135,19 +135,19 @@ private fun Review(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = StringConstants
-                            .Composable
-                            .reviewCount(reviewAndRating.reviewCount),
+                        text = reviewAndRating.reviewBody.take(80),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.alpha(0.75f)
                     )
                 }
             }
-            Text(
-                text = reviewAndRating.reviewRating,
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.padding(end = 16.dp)
-            )
+            reviewAndRating.reviewRating?.let { rating ->
+                Text(
+                    text = String.format("%.1f", rating),
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.padding(end = 16.dp)
+                )
+            }
         }
     }
 }

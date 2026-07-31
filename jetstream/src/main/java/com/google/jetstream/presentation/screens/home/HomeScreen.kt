@@ -18,6 +18,7 @@ import com.google.jetstream.presentation.common.HomeShimmerSkeleton
 fun HomeScreen(
     onMovieClick: (movie: Movie) -> Unit,
     goToVideoPlayer: (movie: Movie) -> Unit,
+    onViewMoreClick: (sectionId: String) -> Unit = {},
     onScroll: (isTopBarVisible: Boolean) -> Unit,
     isTopBarVisible: Boolean,
     page: String = BrewPages.HOME,
@@ -25,8 +26,8 @@ fun HomeScreen(
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
+    onShowcaseOpenMovie: () -> Unit = {},
     isTabVisible: Boolean = true,
-    requestInitialShowcaseFocus: Boolean = false,
 ) {
     SideEffect { homeScreeViewModel.setPage(page) }
 
@@ -36,15 +37,19 @@ fun HomeScreen(
 
     when (val s = uiState) {
         is HomeScreenUiState.Ready -> {
+            val continueWatchingState by homeScreeViewModel.continueWatchingState
+                .collectAsStateWithLifecycle()
             if (isTabVisible) {
                 Catalog(
                     sections = s.sections,
+                    continueWatchingState = continueWatchingState,
                     onMovieClick = onMovieClick,
                     goToVideoPlayer = goToVideoPlayer,
+                    onViewMoreClick = onViewMoreClick,
+                    onShowcaseOpenMovie = onShowcaseOpenMovie,
                     showcaseFocusRequester = showcaseFocusRequester,
                     firstRowFocusRequester = firstRowFocusRequester,
                     sidebarFocusRequester = sidebarFocusRequester,
-                    requestInitialShowcaseFocus = requestInitialShowcaseFocus,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

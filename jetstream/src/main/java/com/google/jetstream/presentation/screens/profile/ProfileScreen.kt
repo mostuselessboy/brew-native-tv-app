@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -43,6 +42,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
@@ -73,6 +73,11 @@ import com.google.jetstream.presentation.theme.JetStreamTheme
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ProfileScreen(
+    openSignInPhone: () -> Unit = {},
+    openSignInEmail: () -> Unit = {},
+    sidebarFocusRequester: FocusRequester? = null,
+    contentFocusRequester: FocusRequester? = null,
+    isTabVisible: Boolean = true,
     @FloatRange(from = 0.0, to = 1.0)
     sidebarWidthFraction: Float = 0.32f
 ) {
@@ -82,11 +87,10 @@ fun ProfileScreen(
     val backStack by profileNavController.currentBackStackEntryAsState()
     val currentDestination =
         remember(backStack?.destination?.route) { backStack?.destination?.route }
-    val focusRequester = remember { FocusRequester() }
+    val menuFocusRequester = contentFocusRequester ?: remember { FocusRequester() }
+    val panelFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     var isLeftColumnFocused by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Row(
         modifier = Modifier
@@ -132,13 +136,32 @@ fun ProfileScreen(
                             )
                         },
                         selected = currentDestination == profileScreen.name,
-                        onClick = { focusManager.moveFocus(FocusDirection.Right) },
+                        onClick = {
+                            if (currentDestination != profileScreen.name) {
+                                profileNavController.navigate(profileScreen()) {
+                                    currentDestination?.let { nnCurrentDestination ->
+                                        popUpTo(nnCurrentDestination) { inclusive = true }
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+                            runCatching { panelFocusRequester.requestFocus() }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (index == 0) Modifier.focusRequester(focusRequester)
-                                else Modifier
+                                if (index == 0) {
+                                    Modifier.focusRequester(menuFocusRequester)
+                                } else {
+                                    Modifier
+                                },
                             )
+                            .focusProperties {
+                                right = panelFocusRequester
+                                if (index == 0 && sidebarFocusRequester != null) {
+                                    left = sidebarFocusRequester
+                                }
+                            }
                             .onFocusChanged {
                                 if (it.isFocused && currentDestination != profileScreen.name) {
                                     profileNavController.navigate(profileScreen()) {
@@ -167,6 +190,10 @@ fun ProfileScreen(
         NavHost(
             modifier = Modifier
                 .fillMaxSize()
+                .focusGroup()
+                .focusProperties {
+                    left = menuFocusRequester
+                }
                 .onPreviewKeyEvent {
                     if (it.key == Key.Back && it.type == KeyEventType.KeyUp) {
                         // Using 'while' because AccountsScreen has a grid that has multiple items
@@ -182,7 +209,11 @@ fun ProfileScreen(
             startDestination = ProfileScreens.Accounts(),
             builder = {
                 composable(ProfileScreens.Accounts()) {
-                    AccountsSection()
+                    AccountsSection(
+                        onSignInPhone = openSignInPhone,
+                        onSignInEmail = openSignInEmail,
+                        panelFocusRequester = panelFocusRequester,
+                    )
                 }
                 composable(ProfileScreens.About()) {
                     AboutSection()

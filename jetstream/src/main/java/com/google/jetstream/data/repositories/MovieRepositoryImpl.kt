@@ -16,6 +16,7 @@
 
 package com.google.jetstream.data.repositories
 
+import com.google.jetstream.data.entities.CollectionSectionDetails
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.HomeSectionType
 import com.google.jetstream.data.entities.Movie
@@ -26,16 +27,21 @@ import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.entities.ThumbnailType
 import com.google.jetstream.data.remote.BrewAlsoWatchedMovieDto
+import com.google.jetstream.data.remote.BrewMappers.toReviewSummary
+import com.google.jetstream.data.remote.BrewMappers.toUserReview
 import com.google.jetstream.data.remote.BrewApiService
 import com.google.jetstream.data.remote.BrewContentDataDto
 import com.google.jetstream.data.remote.BrewHomeSectionDto
+import com.google.jetstream.data.remote.BrewMappers.toCollectionSectionDetails
 import com.google.jetstream.data.remote.BrewMappers.toHomeSection
 import com.google.jetstream.data.remote.BrewMappers.toMovie
 import com.google.jetstream.data.remote.BrewMappers.toMovieDetails
 import com.google.jetstream.data.remote.BrewMappers.genresToCategories
 import com.google.jetstream.data.remote.BrewPages
+import com.google.jetstream.data.remote.BrewCampaignData
 import com.google.jetstream.data.util.BrewArtworkUrls
 import com.google.jetstream.data.util.CardCommerce
+import com.google.jetstream.data.util.DailyRotatingArtwork
 import com.google.jetstream.data.util.VodTagBadge
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,12 +59,62 @@ class MovieRepositoryImpl @Inject constructor(
     private val cachedSectionsByPage = mutableMapOf<String, List<BrewHomeSectionDto>>()
     private val cachedMappedSectionsByPage = mutableMapOf<String, List<HomeSection>>()
     private var campaignIdToSlug: Map<Int, String> = emptyMap()
+    private val slugAliases = mutableMapOf<String, String>()
+
+    private companion object {
+        val CatalogPages = listOf(
+            BrewPages.HOME,
+            BrewPages.BREW_PLUS,
+            BrewPages.SHORTS,
+            BrewPages.STORE,
+        )
+    }
+
+    private fun registerSlugAliases(data: BrewContentDataDto, cid: Int?) {
+        val slug = data.slug?.takeIf { it.isNotBlank() } ?: return
+        fun put(alias: String?) {
+            alias?.trim()?.takeIf { it.isNotBlank() }?.let { slugAliases[it.lowercase()] = slug }
+        }
+        put(slug)
+        data.id?.let { slugAliases[it.toString()] = slug }
+        cid?.let { slugAliases[it.toString()] = slug }
+        put(data.localizedCvName)
+        put(data.canonicalCvName)
+        data.projectId?.let { slugAliases[it.toString()] = slug }
+    }
+
+    private fun registerCampaignAliases(data: BrewCampaignData) {
+        val slug = data.preferredSlug?.takeIf { it.isNotBlank() }
+            ?: data.campaign?.cvName?.takeIf { it.isNotBlank() }
+            ?: return
+        fun put(alias: String?) {
+            alias?.trim()?.takeIf { it.isNotBlank() }?.let { slugAliases[it.lowercase()] = slug }
+        }
+        put(slug)
+        data.campaign?.id?.let { slugAliases[it.toString()] = slug }
+        data.campaign?.cvName?.let { put(it) }
+        data.project?.id?.let { slugAliases[it.toString()] = slug }
+    }
+
+    private suspend fun warmSlugIndex() {
+        CatalogPages.forEach { page ->
+            runCatching { homeSections(page) }
+        }
+    }
 
     private fun BrewAlsoWatchedMovieDto.toAlsoWatchedMovie(): Movie? {
         val id = cvName?.takeIf { it.isNotBlank() } ?: return null
         val name = projectTitle?.takeIf { it.isNotBlank() } ?: return null
-        val poster = projectPoster?.takeIf { it.isNotBlank() }
-            ?: BrewArtworkUrls.landscapeFromAppearance(appearance)
+        val backgroundArt = BrewArtworkUrls.asUrl(appearance?.get("background_art"))
+        val horizontalThumbnails = BrewArtworkUrls.horizontalAlternatesFromAppearance(appearance)
+        val posterFallback = projectPoster?.takeIf { it.isNotBlank() }
+            ?: BrewArtworkUrls.asUrl(appearance?.get("poster"))
+        val landscape = DailyRotatingArtwork.pickDailyLandscape(
+            backgroundArtUrl = backgroundArt,
+            horizontalThumbnails = horizontalThumbnails,
+            fallback = posterFallback ?: BrewArtworkUrls.landscapeFromAppearance(appearance),
+        ).takeIf { it.isNotBlank() }
+            ?: posterFallback?.takeIf { it.isNotBlank() }
             ?: return null
         val chrome = CardCommerce.resolve(
             monetizationModel = monetizationModel,
@@ -73,7 +129,7 @@ class MovieRepositoryImpl @Inject constructor(
             id = id,
             videoUri = "",
             subtitleUri = null,
-            posterUri = poster,
+            posterUri = landscape,
             name = name,
             description = shortDescription.orEmpty(),
             vodTagLabel = VodTagBadge.movieCardLabel(vodTag),
@@ -92,15 +148,17 @@ class MovieRepositoryImpl @Inject constructor(
                 page = page,
             )
             cachedSectionsByPage[page] = sections
-            campaignIdToSlug = campaignIdToSlug + sections
-                .flatMap { it.content }
-                .mapNotNull { item ->
-                    val data = item.contentData ?: return@mapNotNull null
-                    val id = data.id ?: item.cid ?: return@mapNotNull null
-                    val slug = data.slug?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    id to slug
+            val newIdMap = mutableMapOf<Int, String>()
+            sections.forEach { section ->
+                section.content.forEach { item ->
+                    val data = item.contentData ?: return@forEach
+                    registerSlugAliases(data, item.cid)
+                    val id = data.id ?: item.cid ?: return@forEach
+                    val slug = data.slug?.takeIf { it.isNotBlank() } ?: return@forEach
+                    newIdMap[id] = slug
                 }
-                .toMap()
+            }
+            campaignIdToSlug = campaignIdToSlug + newIdMap
             sections
         }
     }
@@ -123,6 +181,7 @@ class MovieRepositoryImpl @Inject constructor(
         cachedMappedSectionsByPage[page]?.let { return it }
         val mapped = homeSections(page)
             .mapNotNull { it.toHomeSection() }
+            .filter { it.type != HomeSectionType.RandomMoviePicker }
             .map { section ->
                 section.copy(
                     movies = when (section.type) {
@@ -141,10 +200,32 @@ class MovieRepositoryImpl @Inject constructor(
         cachedMappedSectionsByPage[page]
 
     private fun resolveSlug(movieId: String): String {
-        movieId.toIntOrNull()?.let { campaignId ->
+        val trimmed = movieId.trim()
+        trimmed.toIntOrNull()?.let { campaignId ->
             campaignIdToSlug[campaignId]?.let { return it }
+            slugAliases[campaignId.toString()]?.let { return it }
         }
-        return movieId
+        slugAliases[trimmed.lowercase()]?.let { return it }
+        return trimmed
+    }
+
+    private suspend fun fetchCampaignData(requestedSlug: String): BrewCampaignData {
+        val resolved = resolveSlug(requestedSlug)
+        val candidates = buildList {
+            add(resolved)
+            if (resolved != requestedSlug.trim()) add(requestedSlug.trim())
+            slugAliases[resolved.lowercase()]?.let { add(it) }
+        }.distinct().filter { it.isNotBlank() }
+
+        for (candidate in candidates) {
+            val response = runCatching { brewApiService.getCampaign(candidate) }.getOrNull()
+            val data = response?.data
+            if (data != null) {
+                registerCampaignAliases(data)
+                return data
+            }
+        }
+        error("Campaign not found for $requestedSlug")
     }
 
     override fun getHomeSections(page: String): Flow<List<HomeSection>> = flow {
@@ -202,20 +283,30 @@ class MovieRepositoryImpl @Inject constructor(
         runCatching { mappedHomeSections(page) }
     }
 
+    private suspend fun findCatalogContent(slug: String): BrewContentDataDto? {
+        CatalogPages.forEach { page ->
+            allContent(page).firstOrNull { item ->
+                item.slug?.equals(slug, ignoreCase = true) == true
+            }?.let { return it }
+        }
+        return null
+    }
+
     override suspend fun getMovieDetails(movieId: String): MovieDetails {
-        // Warm id→slug map when possible, but never block details on catalog failure.
-        runCatching { homeSections() }
+        warmSlugIndex()
         val slug = resolveSlug(movieId.trim())
         require(slug.isNotBlank()) { "Blank movie id" }
-        val response = brewApiService.getCampaign(slug)
-        val data = response.data
-            ?: error("Campaign not found for $slug")
+        val data = fetchCampaignData(slug)
+        val catalogOverlay = findCatalogContent(slug)
 
         val cvName = data.campaign?.cvName?.takeIf { it.isNotBlank() }
             ?: data.preferredSlug?.takeIf { it.isNotBlank() }
             ?: slug
 
-        val alsoWatched = runCatching {
+        val campaignVersionId = data.campaign?.campaignVersionId
+        val campaignId = data.campaign?.id?.toString()?.takeIf { it.isNotBlank() } ?: slug
+
+        val customersAlsoWatched = runCatching {
             brewApiService.getAlsoWatched(
                 cvName = cvName,
                 country = BrewPages.DEFAULT_COUNTRY,
@@ -226,38 +317,44 @@ class MovieRepositoryImpl @Inject constructor(
             .distinctBy { it.id }
             .take(12)
 
-        val relatedFromCatalog = if (alsoWatched.isNotEmpty()) {
-            emptyList()
+        val alsoWatchedIds = customersAlsoWatched.map { it.id }.toSet()
+
+        val relatedMovies = if (campaignVersionId != null && campaignVersionId > 0) {
+            runCatching {
+                brewApiService.getRelatedMovies(campaignVersionId = campaignVersionId)
+                    .data?.relatedMovies.orEmpty()
+                    .mapNotNull { it.toAlsoWatchedMovie() }
+                    .filter { it.id != slug && it.id !in alsoWatchedIds }
+                    .distinctBy { it.id }
+                    .take(12)
+            }.getOrDefault(emptyList())
         } else {
-            data.collections
-                .flatMap { it.topMovies }
-                .mapNotNull { related ->
-                    val relatedSlug = related.campaignId?.let { campaignIdToSlug[it] }
-                        ?: return@mapNotNull null
-                    val poster = related.backgroundArtUrl
-                        ?: related.projectPoster
-                        ?: related.verticalBackgroundArtUrl
-                        ?: return@mapNotNull null
-                    Movie(
-                        id = relatedSlug,
-                        videoUri = "",
-                        subtitleUri = null,
-                        posterUri = poster,
-                        name = related.projectTitle.orEmpty(),
-                        description = "",
-                    )
-                }
-                .distinctBy { it.id }
-                .take(12)
+            emptyList()
         }
 
-        val fallbackSimilar = when {
-            alsoWatched.isNotEmpty() -> alsoWatched
-            relatedFromCatalog.isNotEmpty() -> relatedFromCatalog
-            else -> allMovies(ThumbnailType.Long).filter { it.id != slug }.take(8)
-        }
+        val userReviewComments = runCatching {
+            brewApiService.getComments(
+                campaignId = campaignId,
+                limit = 20,
+                country = BrewPages.DEFAULT_COUNTRY,
+            ).data
+        }.getOrNull()
 
-        return data.toMovieDetails(requestedId = slug, similarMovies = fallbackSimilar)
+        val reviewCards = userReviewComments?.comments.orEmpty()
+            .mapNotNull { it.toUserReview() }
+        val reviewSummary = userReviewComments?.toReviewSummary()
+        val userCountry = data.userCountry?.takeIf { it.isNotBlank() }
+            ?: BrewPages.DEFAULT_COUNTRY
+
+        return data.toMovieDetails(
+            requestedId = slug,
+            customersAlsoWatched = customersAlsoWatched,
+            relatedMovies = relatedMovies,
+            userReviewComments = reviewCards,
+            reviewSummary = reviewSummary,
+            userCountry = userCountry,
+            catalogOverlay = catalogOverlay,
+        )
     }
 
     override suspend fun searchMovies(query: String): MovieList {
@@ -298,5 +395,17 @@ class MovieRepositoryImpl @Inject constructor(
 
     override fun getFavouriteMovies(): Flow<MovieList> = flow {
         emit(allMovies().take(28))
+    }
+
+    override suspend fun getCollectionSection(sectionId: String, page: Int): CollectionSectionDetails {
+        val response = brewApiService.getHomeSectionById(
+            sectionId = sectionId,
+            page = page,
+            pageSize = 50,
+        )
+        val section = response.data
+            ?: throw IllegalStateException("Collection section not found: $sectionId")
+        return section.toCollectionSectionDetails()
+            ?: throw IllegalStateException("Collection section empty: $sectionId")
     }
 }

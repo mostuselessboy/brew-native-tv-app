@@ -37,17 +37,21 @@ import androidx.compose.ui.unit.dp
 fun VideoPlayerMainFrame(
     mediaTitle: @Composable () -> Unit,
     seeker: @Composable () -> Unit,
-    mediaActions: @Composable () -> Unit = {},
+    mediaActions: @Composable (() -> Unit)? = null,
     more: (@Composable () -> Unit)? = null
 ) {
     Column(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Box(Modifier.weight(1f)) { mediaTitle() }
-            mediaActions()
+        if (mediaActions != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Box(Modifier.weight(1f)) { mediaTitle() }
+                mediaActions()
+            }
+        } else {
+            Box(Modifier.fillMaxWidth()) { mediaTitle() }
         }
         Spacer(Modifier.height(16.dp))
         seeker()

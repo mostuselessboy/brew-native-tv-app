@@ -9,10 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -29,31 +28,69 @@ import androidx.tv.material3.MaterialTheme
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.HomeSectionType
 import com.google.jetstream.data.entities.Movie
+import com.google.jetstream.presentation.common.ContinueWatchingTraySkeleton
 import com.google.jetstream.presentation.common.ItemDirection
 import com.google.jetstream.presentation.common.MoviesRow
-import com.google.jetstream.presentation.common.RandomMoviePickerSection
+import com.google.jetstream.presentation.common.ShowcaseHeight
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.utils.bringIntoViewIfChildrenAreFocused
-import kotlinx.coroutines.delay
 
 private val ScreenBlack = Color(0xFF000000)
+
+private sealed interface CatalogListItem {
+    data class Section(val section: HomeSection, val sectionIndex: Int) : CatalogListItem
+    data object ContinueWatching : CatalogListItem
+}
+
+private fun buildCatalogItems(
+    sections: List<HomeSection>,
+    showContinueWatching: Boolean,
+): List<CatalogListItem> {
+    if (!showContinueWatching) {
+        return sections.mapIndexed { index, section ->
+            CatalogListItem.Section(section, index)
+        }
+    }
+    val firstRowIndex = sections.indexOfFirst {
+        it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
+    }
+    // 2nd tray: after showcase + first content row (mobile parity).
+    val insertBeforeIndex = when {
+        firstRowIndex >= 0 -> firstRowIndex + 1
+        else -> sections.indexOfFirst { it.type == HomeSectionType.Showcase } + 1
+    }.coerceAtLeast(0)
+    return buildList {
+        sections.forEachIndexed { index, section ->
+            if (index == insertBeforeIndex) {
+                add(CatalogListItem.ContinueWatching)
+            }
+            add(CatalogListItem.Section(section, index))
+        }
+        if (insertBeforeIndex >= sections.size) {
+            add(CatalogListItem.ContinueWatching)
+        }
+    }
+}
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun Catalog(
     sections: List<HomeSection>,
+    continueWatchingState: ContinueWatchingTrayState = ContinueWatchingTrayState.Hidden,
     onMovieClick: (movie: Movie) -> Unit,
     goToVideoPlayer: (movie: Movie) -> Unit,
+    onViewMoreClick: (sectionId: String) -> Unit = {},
+    onShowcaseOpenMovie: () -> Unit = {},
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
-    requestInitialShowcaseFocus: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val childPadding = rememberChildPadding()
     val localFirstRowFocus = remember { FocusRequester() }
     val localShowcasePrimaryFocus = remember { FocusRequester() }
     val showcaseSecondaryFocus = remember { FocusRequester() }
+    val continueWatchingFocus = remember { FocusRequester() }
     val firstRowFocus = firstRowFocusRequester ?: localFirstRowFocus
     val showcasePrimaryFocus = showcaseFocusRequester ?: localShowcasePrimaryFocus
     val listState = rememberLazyListState()
@@ -63,12 +100,11 @@ internal fun Catalog(
                 listState.firstVisibleItemScrollOffset > 12
         }
     }
-    val firstContentRowIndex = remember(sections) {
-        sections.indexOfFirst {
-            it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
-        }.coerceAtLeast(0)
+    val showContinueWatchingSlot = continueWatchingState !is ContinueWatchingTrayState.Hidden
+    val catalogItems = remember(sections, showContinueWatchingSlot) {
+        buildCatalogItems(sections, showContinueWatchingSlot)
     }
-    val rowOrdinalByIndex = remember(sections) {
+    val rowOrdinalBySectionIndex = remember(sections) {
         var ordinal = 0
         buildMap {
             sections.forEachIndexed { index, section ->
@@ -81,12 +117,10 @@ internal fun Catalog(
             }
         }
     }
-
-    LaunchedEffect(requestInitialShowcaseFocus, sections) {
-        if (!requestInitialShowcaseFocus || sections.isEmpty()) return@LaunchedEffect
-        if (sections.none { it.type == HomeSectionType.Showcase }) return@LaunchedEffect
-        delay(80)
-        showcasePrimaryFocus.requestFocus()
+    val firstContentSectionIndex = remember(sections) {
+        sections.indexOfFirst {
+            it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
+        }
     }
 
     Box(modifier = modifier.background(ScreenBlack)) {
@@ -96,75 +130,129 @@ internal fun Catalog(
             contentPadding = PaddingValues(top = 0.dp, bottom = 56.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            itemsIndexed(
-                items = sections,
-                key = { _, section -> section.id },
-                contentType = { _, section -> section.type.name },
-            ) { index, section ->
-                when (section.type) {
-                    HomeSectionType.Showcase -> {
-                        FeaturedMoviesCarousel(
-                            movies = section.movies,
-                            padding = childPadding,
-                            onMovieClick = onMovieClick,
-                            goToVideoPlayer = goToVideoPlayer,
-                            primaryFocusRequester = showcasePrimaryFocus,
-                            secondaryFocusRequester = showcaseSecondaryFocus,
-                            downFocusRequester = firstRowFocus,
-                            sidebarFocusRequester = sidebarFocusRequester,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(ShowcaseHeight)
-                                .focusGroup()
-                                .bringIntoViewIfChildrenAreFocused(),
-                        )
+            items(
+                items = catalogItems,
+                key = { item ->
+                    when (item) {
+                        CatalogListItem.ContinueWatching -> "continue_watching"
+                        is CatalogListItem.Section -> item.section.id
+                    }
+                },
+                contentType = { item ->
+                    when (item) {
+                        CatalogListItem.ContinueWatching -> "continue_watching"
+                        is CatalogListItem.Section -> item.section.type.name
+                    }
+                },
+            ) { item ->
+                when (item) {
+                    CatalogListItem.ContinueWatching -> {
+                        when (continueWatchingState) {
+                            ContinueWatchingTrayState.Hidden -> Unit
+                            ContinueWatchingTrayState.Loading -> {
+                                ContinueWatchingTraySkeleton(
+                                    modifier = Modifier.focusGroup(),
+                                )
+                            }
+                            is ContinueWatchingTrayState.Ready -> {
+                                MoviesRow(
+                                    modifier = Modifier.focusGroup(),
+                                    movieList = continueWatchingState.movies,
+                                    title = "Continue Watching",
+                                    subtitle = "Pick up where you left off",
+                                    itemDirection = ItemDirection.Horizontal,
+                                    showItemTitle = true,
+                                    onMovieSelected = { movie ->
+                                        if (movie.libraryClickAction == com.google.jetstream.data.util.LibraryClickAction.Play) {
+                                            goToVideoPlayer(movie)
+                                        } else {
+                                            onMovieClick(movie)
+                                        }
+                                    },
+                                    firstItemFocusRequester = continueWatchingFocus,
+                                    upFocusRequester = firstRowFocus,
+                                    leftFocusRequester = sidebarFocusRequester,
+                                )
+                            }
+                        }
                     }
 
-                    HomeSectionType.RandomMoviePicker -> {
-                        RandomMoviePickerSection(
-                            movies = section.movies,
-                            onSurpriseMe = onMovieClick,
-                            modifier = Modifier.focusGroup(),
-                        )
-                    }
+                    is CatalogListItem.Section -> {
+                        val section = item.section
+                        val sectionIndex = item.sectionIndex
+                        when (section.type) {
+                            HomeSectionType.Showcase -> {
+                                FeaturedMoviesCarousel(
+                                    movies = section.movies,
+                                    padding = childPadding,
+                                    onMovieClick = {
+                                        onShowcaseOpenMovie()
+                                        onMovieClick(it)
+                                    },
+                                    goToVideoPlayer = goToVideoPlayer,
+                                    primaryFocusRequester = showcasePrimaryFocus,
+                                    secondaryFocusRequester = showcaseSecondaryFocus,
+                                    downFocusRequester = firstRowFocus,
+                                    sidebarFocusRequester = sidebarFocusRequester,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(ShowcaseHeight)
+                                        .focusGroup()
+                                        .bringIntoViewIfChildrenAreFocused(),
+                                )
+                            }
 
-                    HomeSectionType.Immersive,
-                    HomeSectionType.Row -> {
-                        val rowOrdinal = rowOrdinalByIndex[index] ?: 0
-                        val isFirstContentRow = index == firstContentRowIndex
-                        val deferCards = rowOrdinal >= 3
-                        val deferDelayMs = 120L + ((rowOrdinal - 3).coerceAtLeast(0) * 70L)
-                        MoviesRow(
-                            modifier = Modifier.focusGroup(),
-                            movieList = section.movies,
-                            title = section.title,
-                            titleStyle = MaterialTheme.typography.titleMedium.copy(
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.15).sp,
-                            ),
-                            itemDirection = ItemDirection.Horizontal,
-                            showIndexOverImage = section.showRanking ||
-                                section.type == HomeSectionType.Immersive,
-                            onMovieSelected = onMovieClick,
-                            deferCardMount = deferCards,
-                            deferCardMountDelayMs = deferDelayMs,
-                            firstItemFocusRequester = if (isFirstContentRow) {
-                                firstRowFocus
-                            } else {
-                                null
-                            },
-                            upFocusRequester = if (isFirstContentRow) {
-                                showcaseSecondaryFocus
-                            } else {
-                                null
-                            },
-                            leftFocusRequester = if (isFirstContentRow) {
-                                sidebarFocusRequester
-                            } else {
-                                null
-                            },
-                        )
+                            HomeSectionType.RandomMoviePicker -> Unit
+
+                            HomeSectionType.Immersive,
+                            HomeSectionType.Row -> {
+                                val rowOrdinal = rowOrdinalBySectionIndex[sectionIndex] ?: 0
+                                val isFirstContentRow = sectionIndex == firstContentSectionIndex
+                                val deferCards = rowOrdinal >= 3
+                                val deferDelayMs = 120L + ((rowOrdinal - 3).coerceAtLeast(0) * 70L)
+                                MoviesRow(
+                                    modifier = Modifier.focusGroup(),
+                                    movieList = section.movies,
+                                    title = section.title,
+                                    titleStyle = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.15).sp,
+                                    ),
+                                    itemDirection = ItemDirection.Horizontal,
+                                    showIndexOverImage = section.showRanking ||
+                                        section.type == HomeSectionType.Immersive,
+                                    onMovieSelected = onMovieClick,
+                                    onViewMoreClick = {
+                                        onViewMoreClick(section.slug ?: section.id)
+                                    },
+                                    deferCardMount = deferCards,
+                                    deferCardMountDelayMs = deferDelayMs,
+                                    firstItemFocusRequester = if (isFirstContentRow) {
+                                        firstRowFocus
+                                    } else {
+                                        null
+                                    },
+                                    upFocusRequester = if (isFirstContentRow) {
+                                        showcaseSecondaryFocus
+                                    } else {
+                                        null
+                                    },
+                                    downFocusRequester = if (
+                                        isFirstContentRow && showContinueWatchingSlot
+                                    ) {
+                                        continueWatchingFocus
+                                    } else {
+                                        null
+                                    },
+                                    leftFocusRequester = if (isFirstContentRow) {
+                                        sidebarFocusRequester
+                                    } else {
+                                        null
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
             }

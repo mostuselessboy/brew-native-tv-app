@@ -17,8 +17,19 @@
 package com.google.jetstream.data.entities
 
 data class MovieReviewsAndRatings(
+    val id: String = "",
     val reviewerName: String,
+    val reviewerUsername: String = "",
     val reviewerIconUri: String,
-    val reviewCount: String,
-    val reviewRating: String,
+    /** Review title / heading. */
+    val reviewHeading: String = "",
+    /** Review body text. */
+    val reviewBody: String,
+    /** Star rating on 0–5 scale for display. */
+    val reviewRating: Double? = null,
+    val createdAt: String = "",
+    val countryCode: String = "",
+    val countryName: String = "",
+    val isVerifiedCritic: Boolean = false,
+    val section: ReviewSection = ReviewSection.OtherCountries,
 )

@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,18 +48,7 @@ fun AccountsSelectionItem(
     accountsSectionData: AccountsSectionData,
 ) {
     key(key) {
-        Surface(
-            onClick = accountsSectionData.onClick,
-            modifier = modifier
-                .padding(8.dp)
-                .fillMaxWidth()
-                .aspectRatio(2f),
-            colors = ClickableSurfaceDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
-            ),
-            shape = ClickableSurfaceDefaults.shape(shape = MaterialTheme.shapes.extraSmall),
-            scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
-        ) {
+        val cardContent = @Composable {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -79,6 +71,37 @@ fun AccountsSelectionItem(
                         modifier = Modifier.alpha(0.75f)
                     )
                 }
+            }
+        }
+
+        if (accountsSectionData.focusable) {
+            Surface(
+                onClick = accountsSectionData.onClick,
+                modifier = modifier
+                    .padding(8.dp)
+                    .fillMaxWidth()
+                    .aspectRatio(2f),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+                ),
+                shape = ClickableSurfaceDefaults.shape(shape = MaterialTheme.shapes.extraSmall),
+                scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+            ) {
+                cardContent()
+            }
+        } else {
+            Box(
+                modifier = modifier
+                    .padding(8.dp)
+                    .fillMaxWidth()
+                    .aspectRatio(2f)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
+                        MaterialTheme.shapes.extraSmall,
+                    )
+                    .focusProperties { canFocus = false },
+            ) {
+                cardContent()
             }
         }
     }

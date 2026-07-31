@@ -16,22 +16,17 @@
 
 package com.google.jetstream.presentation.screens.videoPlayer.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesomeMotion
-import androidx.compose.material.icons.filled.ClosedCaption
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.google.jetstream.data.entities.MovieDetails
-import com.google.jetstream.data.util.StringConstants
 
+/**
+ * Netflix-style bottom chrome — title + seek bar only (no media-action sidebar).
+ * Port of mobile-viewer `BottomControls` + `TopControls` title row.
+ */
 @Composable
 fun VideoPlayerControls(
     player: Player,
@@ -39,8 +34,6 @@ fun VideoPlayerControls(
     focusRequester: FocusRequester,
     onShowControls: () -> Unit = {},
 ) {
-    val isPlaying = player.isPlaying
-
     VideoPlayerMainFrame(
         mediaTitle = {
             VideoPlayerMediaTitle(
@@ -50,47 +43,7 @@ fun VideoPlayerControls(
                 type = VideoPlayerMediaTitleType.DEFAULT
             )
         },
-        mediaActions = {
-            Row(
-                modifier = Modifier.padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                PreviousButton(
-                    player = player,
-                    onShowControls = onShowControls
-                )
-                NextButton(
-                    player = player,
-                    onShowControls = onShowControls
-                )
-                RepeatButton(
-                    player = player,
-                    onShowControls = onShowControls,
-                )
-                VideoPlayerControlsIcon(
-                    icon = Icons.Default.AutoAwesomeMotion,
-                    isPlaying = isPlaying,
-                    contentDescription =
-                    StringConstants.Composable.VideoPlayerControlPlaylistButton,
-                    onShowControls = onShowControls
-                )
-                VideoPlayerControlsIcon(
-                    icon = Icons.Default.ClosedCaption,
-                    isPlaying = isPlaying,
-                    contentDescription =
-                    StringConstants.Composable.VideoPlayerControlClosedCaptionsButton,
-                    onShowControls = onShowControls
-                )
-                VideoPlayerControlsIcon(
-                    icon = Icons.Default.Settings,
-                    isPlaying = isPlaying,
-                    contentDescription =
-                    StringConstants.Composable.VideoPlayerControlSettingsButton,
-                    onShowControls = onShowControls
-                )
-            }
-        },
+        mediaActions = null,
         seeker = {
             VideoPlayerSeeker(
                 player = player,

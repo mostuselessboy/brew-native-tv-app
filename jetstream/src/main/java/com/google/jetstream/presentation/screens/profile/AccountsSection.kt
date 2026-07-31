@@ -1,19 +1,3 @@
-/*
- * Copyright 2023 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.google.jetstream.presentation.screens.profile
 
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.jetstream.data.util.StringConstants
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 
@@ -38,43 +24,77 @@ import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 data class AccountsSectionData(
     val title: String,
     val value: String? = null,
-    val onClick: () -> Unit = {}
+    val onClick: () -> Unit = {},
+    /** Read-only tiles (signed-in profile summary) are not focusable. */
+    val focusable: Boolean = true,
 )
 
 @Composable
-fun AccountsSection() {
+fun AccountsSection(
+    onSignInPhone: () -> Unit = {},
+    onSignInEmail: () -> Unit = {},
+    panelFocusRequester: FocusRequester? = null,
+    viewModel: AccountsViewModel = hiltViewModel(),
+) {
     val childPadding = rememberChildPadding()
+    val authState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
-    val accountsSectionListItems = remember {
-        listOf(
-            AccountsSectionData(
-                title = StringConstants.Composable.Placeholders
-                    .AccountsSelectionSwitchAccountsTitle,
-                value = StringConstants.Composable.Placeholders.AccountsSelectionSwitchAccountsEmail
-            ),
-            AccountsSectionData(
-                title = StringConstants.Composable.Placeholders.AccountsSelectionLogOut,
-                value = StringConstants.Composable.Placeholders.AccountsSelectionSwitchAccountsEmail
-            ),
-            AccountsSectionData(
-                title = StringConstants.Composable.Placeholders
-                    .AccountsSelectionChangePasswordTitle,
-                value = StringConstants.Composable.Placeholders.AccountsSelectionChangePasswordValue
-            ),
-            AccountsSectionData(
-                title = StringConstants.Composable.Placeholders.AccountsSelectionAddNewAccountTitle,
-            ),
-            AccountsSectionData(
-                title = StringConstants.Composable.Placeholders
-                    .AccountsSelectionViewSubscriptionsTitle
-            ),
-            AccountsSectionData(
-                title = StringConstants.Composable.Placeholders.AccountsSelectionDeleteAccountTitle,
-                onClick = { showDeleteDialog = true }
+    val defaultPanelFocus = remember { FocusRequester() }
+    val panelFocus = panelFocusRequester ?: defaultPanelFocus
+
+    val accountsSectionListItems = remember(authState, onSignInPhone, onSignInEmail) {
+        if (authState.isSignedIn) {
+            val user = authState.user
+            listOf(
+                AccountsSectionData(
+                    title = user?.displayName ?: "Signed in",
+                    value = user?.email ?: user?.phone ?: "Brew account",
+                    focusable = false,
+                ),
+                AccountsSectionData(
+                    title = StringConstants.Composable.Placeholders.AccountsSelectionLogOut,
+                    value = "Sign out of Brew",
+                    onClick = { viewModel.signOut() },
+                ),
+                AccountsSectionData(
+                    title = StringConstants.Composable.Placeholders
+                        .AccountsSelectionChangePasswordTitle,
+                    value = StringConstants.Composable.Placeholders.AccountsSelectionChangePasswordValue,
+                ),
+                AccountsSectionData(
+                    title = StringConstants.Composable.Placeholders
+                        .AccountsSelectionViewSubscriptionsTitle,
+                ),
+                AccountsSectionData(
+                    title = StringConstants.Composable.Placeholders.AccountsSelectionDeleteAccountTitle,
+                    onClick = { showDeleteDialog = true },
+                ),
             )
-        )
+        } else {
+            listOf(
+                AccountsSectionData(
+                    title = "Sign in with Phone",
+                    value = "We'll text you a 4-digit code",
+                    onClick = onSignInPhone,
+                ),
+                AccountsSectionData(
+                    title = "Sign in with Email",
+                    value = "Code sent to your inbox",
+                    onClick = onSignInEmail,
+                ),
+                AccountsSectionData(
+                    title = StringConstants.Composable.Placeholders
+                        .AccountsSelectionSwitchAccountsTitle,
+                    value = StringConstants.Composable.Placeholders.AccountsSelectionSwitchAccountsEmail,
+                ),
+                AccountsSectionData(
+                    title = StringConstants.Composable.Placeholders.AccountsSelectionAddNewAccountTitle,
+                ),
+            )
+        }
     }
+
+    val firstFocusIndex = accountsSectionListItems.indexOfFirst { it.focusable }
 
     LazyVerticalGrid(
         modifier = Modifier
@@ -83,18 +103,25 @@ fun AccountsSection() {
         columns = GridCells.Fixed(2),
         content = {
             items(accountsSectionListItems.size) { index ->
+                val item = accountsSectionListItems[index]
                 AccountsSelectionItem(
-                    modifier = Modifier.focusRequester(focusRequester),
+                    modifier = Modifier.then(
+                        if (index == firstFocusIndex && firstFocusIndex >= 0) {
+                            Modifier.focusRequester(panelFocus)
+                        } else {
+                            Modifier
+                        },
+                    ),
                     key = index,
-                    accountsSectionData = accountsSectionListItems[index]
+                    accountsSectionData = item,
                 )
             }
-        }
+        },
     )
 
     AccountsSectionDeleteDialog(
         showDialog = showDeleteDialog,
         onDismissRequest = { showDeleteDialog = false },
-        modifier = Modifier.width(428.dp)
+        modifier = Modifier.width(428.dp),
     )
 }

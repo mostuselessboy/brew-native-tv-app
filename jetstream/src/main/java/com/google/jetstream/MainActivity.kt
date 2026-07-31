@@ -19,21 +19,13 @@ package com.google.jetstream
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
-import com.google.jetstream.data.repositories.MovieRepository
+import com.google.jetstream.data.util.CatalogPrewarm
 import com.google.jetstream.presentation.App
-import com.google.jetstream.presentation.screens.splash.BrewSplashScreen
 import com.google.jetstream.presentation.theme.JetStreamTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -42,46 +34,27 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject lateinit var movieRepository: MovieRepository
+    @Inject lateinit var catalogPrewarm: CatalogPrewarm
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
-        var keepSystemSplash = true
-        splashScreen.setKeepOnScreenCondition { keepSystemSplash }
-
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        var appReady by mutableStateOf(false)
-
         lifecycleScope.launch {
-            runCatching { movieRepository.warmHomeCache() }
-            appReady = true
-            keepSystemSplash = false
+            runCatching { catalogPrewarm.warmHome() }
         }
 
         setContent {
             JetStreamTheme {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface),
+                CompositionLocalProvider(
+                    LocalContentColor provides MaterialTheme.colorScheme.onSurface,
                 ) {
-                    if (appReady) {
-                        CompositionLocalProvider(
-                            LocalContentColor provides MaterialTheme.colorScheme.onSurface,
-                        ) {
-                            App(
-                                onBackPressed = onBackPressedDispatcher::onBackPressed,
-                            )
-                        }
-                    } else {
-                        BrewSplashScreen()
-                    }
+                    App(
+                        onBackPressed = onBackPressedDispatcher::onBackPressed,
+                    )
                 }
             }
-            if (appReady) {
-                reportFullyDrawn()
-            }
         }
+        reportFullyDrawn()
     }
 }

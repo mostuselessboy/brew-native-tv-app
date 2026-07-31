@@ -561,8 +561,10 @@ private fun Modifier.dialogFocusable() = composed {
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-        focusManager.moveFocus(FocusDirection.Enter)
+        runCatching {
+            focusRequester.requestFocus()
+            focusManager.moveFocus(FocusDirection.Enter)
+        }
     }
     this.then(
         Modifier

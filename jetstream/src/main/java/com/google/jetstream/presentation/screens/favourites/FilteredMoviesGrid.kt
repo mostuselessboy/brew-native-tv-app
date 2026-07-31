@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.presentation.common.BrewLandscapeMovieCard
+import com.google.jetstream.presentation.common.BrewMovieCardStyle
 import com.google.jetstream.presentation.theme.JetStreamBottomListPadding
 
 @Composable
@@ -32,8 +33,9 @@ fun FilteredMoviesGrid(
             BrewLandscapeMovieCard(
                 movie = movie,
                 onClick = { onMovieClick(movie.id) },
-                cardWidth = null,
+                fillAvailableWidth = true,
                 showTitle = true,
+                style = BrewMovieCardStyle.Detail,
             )
         }
     }

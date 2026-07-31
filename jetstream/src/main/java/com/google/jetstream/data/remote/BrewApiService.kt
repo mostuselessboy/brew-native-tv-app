@@ -27,13 +27,37 @@ interface BrewApiService {
         @Query("page") page: String = BrewPages.HOME,
     ): List<BrewHomeSectionDto>
 
+    @GET("api/v1/vod/home-sections/{sectionId}")
+    suspend fun getHomeSectionById(
+        @Path("sectionId") sectionId: String,
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 50,
+        @Query("locale") locale: String = "en-in",
+        @Query("country") country: String = BrewPages.DEFAULT_COUNTRY,
+    ): BrewHomeSectionResponse
+
     @GET("api/v1/vod/get-campaign/{slug}")
     suspend fun getCampaign(@Path("slug") slug: String): BrewCampaignResponse
 
-    /** Customers also watched — same as vod-frontend `getRelatedMovies`. */
+    /** Customers also watched — vod `getRelatedMovies` → `/also-watched`. */
     @GET("api/v1/vod/also-watched")
     suspend fun getAlsoWatched(
         @Query("cv_name") cvName: String,
         @Query("country") country: String = BrewPages.DEFAULT_COUNTRY,
     ): BrewAlsoWatchedResponse
+
+    /** Related movies at bottom — vod `getRelatedMoviesV1` → `/related-movies`. */
+    @GET("api/v1/vod/related-movies")
+    suspend fun getRelatedMovies(
+        @Query("campaign_version_id") campaignVersionId: Int,
+    ): BrewAlsoWatchedResponse
+
+    /** User reviews — vod `GET /api/v1/comments/:campaign_id`. */
+    @GET("api/v1/comments/{campaignId}")
+    suspend fun getComments(
+        @Path("campaignId") campaignId: String,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 5,
+        @Query("country") country: String = BrewPages.DEFAULT_COUNTRY,
+    ): BrewCommentsResponse
 }

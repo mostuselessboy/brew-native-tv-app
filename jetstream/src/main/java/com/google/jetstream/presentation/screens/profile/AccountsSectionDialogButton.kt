@@ -45,7 +45,7 @@ fun AccountsSectionDialogButton(
 
     LaunchedEffect(Unit) {
         if (shouldRequestFocus) {
-            focusRequester.requestFocus()
+            runCatching { focusRequester.requestFocus() }
         }
     }
 

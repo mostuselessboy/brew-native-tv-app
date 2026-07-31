@@ -1,0 +1,405 @@
+package com.google.jetstream.presentation.screens.movies
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusProperties
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Icon
+import androidx.tv.material3.Surface
+import androidx.tv.material3.Text
+import com.google.jetstream.R
+import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.util.DetailCtaColor
+import com.google.jetstream.data.util.DetailCtaKind
+import com.google.jetstream.data.util.DetailPurchaseCta
+import com.google.jetstream.data.util.DetailPurchaseCtaSlot
+import com.google.jetstream.presentation.theme.BrewTitle
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun MovieDetailPurchaseCtaRow(
+    movie: MovieDetails,
+    onPrimaryAction: () -> Unit,
+    onSecondaryAction: () -> Unit,
+    modifier: Modifier = Modifier,
+    primaryFocusRequester: FocusRequester? = null,
+    upFocusRequester: FocusRequester? = null,
+) {
+    val slots = DetailPurchaseCta.primaryRowSlots(movie)
+
+    if (slots.isEmpty()) {
+        return
+    }
+
+    Column(
+        modifier = modifier
+            .width(MovieDetailTokens.CtaFixedWidth)
+            .graphicsLayer { clip = false }
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        slots.forEachIndexed { index, slot ->
+            val isPrimary = index == 0
+            val ctaModifier = Modifier
+                .width(MovieDetailTokens.CtaFixedWidth)
+                .then(
+                    if (isPrimary && primaryFocusRequester != null) {
+                        Modifier
+                            .focusRequester(primaryFocusRequester)
+                            .ctaFocusLinks { linkUp(upFocusRequester) }
+                    } else {
+                        Modifier
+                    },
+                )
+
+            DetailPurchaseCtaButton(
+                slot = slot,
+                compact = false,
+                onClick = if (isPrimary) onPrimaryAction else onSecondaryAction,
+                modifier = ctaModifier,
+            )
+        }
+    }
+}
+
+private fun Modifier.ctaFocusLinks(block: FocusProperties.() -> Unit): Modifier =
+    focusProperties(block)
+
+private fun FocusProperties.linkUp(requester: FocusRequester?) {
+    if (requester != null) up = requester
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun DetailPurchaseCtaButton(
+    slot: DetailPurchaseCtaSlot,
+    compact: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val onYellow = slot.color == DetailCtaColor.Yellow
+    val style = wideStackColors(onYellow)
+    val minHeight = when {
+        slot.showBrewPlusLogo && compact -> MovieDetailTokens.CtaHalfRowSubscribeMinHeight
+        slot.showBrewPlusLogo -> MovieDetailTokens.CtaSubscribeMinHeight
+        compact -> MovieDetailTokens.CtaHalfRowMinHeight
+        else -> MovieDetailTokens.CtaMinHeight
+    }
+    val padTop = if (compact) MovieDetailTokens.CtaHalfRowPadTop else MovieDetailTokens.CtaPadTop
+    val padBottom = if (compact) MovieDetailTokens.CtaHalfRowPadBottom else MovieDetailTokens.CtaPadBottom
+    val titleSize = if (compact) MovieDetailTokens.CtaHalfRowTitleSize else MovieDetailTokens.CtaTitleSize
+    val titleLine = if (compact) MovieDetailTokens.CtaHalfRowTitleLine else MovieDetailTokens.CtaTitleLine
+    val sublabelSize = if (compact) MovieDetailTokens.CtaHalfRowSublabelSize else MovieDetailTokens.CtaSublabelSize
+    val sublabelLine = if (compact) MovieDetailTokens.CtaHalfRowSublabelLine else MovieDetailTokens.CtaSublabelLine
+    val iconBoxSize = if (compact) MovieDetailTokens.CtaHalfRowIconBox else MovieDetailTokens.CtaIconBox
+    val priceSize = if (compact) MovieDetailTokens.CtaHalfRowPriceSize else MovieDetailTokens.CtaPriceSize
+    val cornerRadius = if (compact) MovieDetailTokens.CtaHalfRowRadius else MovieDetailTokens.CtaWideRadius
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.05f else 1f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 380f),
+        label = "ctaScale",
+    )
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = minHeight)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                clip = false
+            }
+            .onFocusChanged { focused = it.isFocused },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(cornerRadius)),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, Color.Transparent),
+                shape = RoundedCornerShape(cornerRadius),
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(
+                    2.dp,
+                    if (onYellow) {
+                        MovieDetailTokens.CtaFocusBorderYellow
+                    } else {
+                        MovieDetailTokens.CtaFocusBorderGray
+                    },
+                ),
+                shape = RoundedCornerShape(cornerRadius),
+            ),
+        ),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = style.background,
+            focusedContainerColor = style.background,
+        ),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = MovieDetailTokens.CtaPadH,
+                        end = MovieDetailTokens.CtaPadH,
+                        top = padTop,
+                        bottom = padBottom,
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
+                ) {
+                    if (slot.showBrewPlusLogo) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Text(
+                                text = slot.title,
+                                color = style.text,
+                                fontFamily = BrewTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = titleSize,
+                                lineHeight = titleLine,
+                                letterSpacing = (-0.72).sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            BrewPlusCtaLogo(
+                                onYellowBackground = onYellow,
+                                compact = compact,
+                                stacked = false,
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = slot.title,
+                            color = style.text,
+                            fontFamily = BrewTitle,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = titleSize,
+                            lineHeight = titleLine,
+                            letterSpacing = (-0.72).sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    slot.sublabel?.takeIf { it.isNotBlank() }?.let { sub ->
+                        Text(
+                            text = sub,
+                            color = style.sublabel,
+                            fontFamily = BrewTitle,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = sublabelSize,
+                            lineHeight = sublabelLine,
+                            letterSpacing = (-0.2).sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 1.dp),
+                        )
+                    }
+                }
+
+                when {
+                    slot.price != null -> {
+                        PaidPriceColumn(
+                            price = slot.price,
+                            originalPrice = slot.originalPrice,
+                            intervalSuffix = slot.intervalSuffix,
+                            textColor = style.text,
+                            sublabelColor = style.sublabel,
+                            priceSize = priceSize,
+                            compact = compact,
+                        )
+                    }
+                    shouldShowRightIcon(slot) -> {
+                        CtaIconBox(
+                            background = style.iconBoxBg,
+                            kind = slot.kind,
+                            iconColor = Color.Black,
+                            boxSize = iconBoxSize,
+                            compact = compact,
+                        )
+                    }
+                }
+            }
+
+            if (slot.progressPercent > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .background(Color(0x1A000000)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(slot.progressPercent / 100f)
+                            .background(style.seekFill),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Matches mobile `PurchaseCtaApiStack` right-slot rules. */
+private fun shouldShowRightIcon(slot: DetailPurchaseCtaSlot): Boolean {
+    if (slot.price != null) return false
+    return when (slot.kind) {
+        DetailCtaKind.WatchForFree,
+        DetailCtaKind.WatchNow,
+        DetailCtaKind.ContinueWatching,
+        DetailCtaKind.ComingSoon,
+        DetailCtaKind.ComingSoonNotify,
+        DetailCtaKind.Rent,
+        DetailCtaKind.Buy,
+        DetailCtaKind.SupportFilmmaker -> true
+        DetailCtaKind.SubscribeYearly,
+        DetailCtaKind.SubscribeQuarterly -> false
+        else -> false
+    }
+}
+
+@Composable
+private fun CtaIconBox(
+    background: Color,
+    kind: DetailCtaKind,
+    iconColor: Color,
+    boxSize: androidx.compose.ui.unit.Dp,
+    compact: Boolean,
+) {
+    val iconSize = when (kind) {
+        DetailCtaKind.Rent -> if (compact) 18.dp else 20.dp
+        DetailCtaKind.ComingSoon,
+        DetailCtaKind.ComingSoonNotify -> if (compact) 16.dp else 18.dp
+        else -> if (compact) 15.dp else 16.dp
+    }
+    Box(
+        modifier = Modifier
+            .size(boxSize)
+            .clip(RoundedCornerShape(MovieDetailTokens.CtaIconBoxRadius))
+            .background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (kind) {
+            DetailCtaKind.Rent -> Icon(
+                painter = painterResource(R.drawable.ic_mdi_ticket_confirmation),
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(iconSize),
+            )
+            DetailCtaKind.ComingSoon,
+            DetailCtaKind.ComingSoonNotify -> Icon(
+                painter = painterResource(R.drawable.ic_lucide_bell),
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(iconSize),
+            )
+            DetailCtaKind.SupportFilmmaker -> Icon(
+                painter = painterResource(R.drawable.ic_clap),
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(iconSize),
+            )
+            else -> Icon(
+                painter = painterResource(R.drawable.ic_fa_play),
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier
+                    .size(iconSize)
+                    .padding(start = if (compact) 1.dp else 2.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaidPriceColumn(
+    price: String,
+    originalPrice: String?,
+    intervalSuffix: String?,
+    textColor: Color,
+    sublabelColor: Color,
+    priceSize: androidx.compose.ui.unit.TextUnit,
+    compact: Boolean,
+) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        modifier = Modifier.width(
+            if (compact) MovieDetailTokens.CtaHalfRowPriceColumnWidth
+            else MovieDetailTokens.CtaPriceColumnWidth,
+        ),
+    ) {
+        Text(
+            text = buildString {
+                append(price)
+                intervalSuffix?.let { append(it) }
+            },
+            color = textColor,
+            fontFamily = BrewTitle,
+            fontWeight = FontWeight.Bold,
+            fontSize = priceSize,
+            lineHeight = if (compact) 18.sp else 20.sp,
+            letterSpacing = (-0.4).sp,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        originalPrice?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = it,
+                color = sublabelColor,
+                fontFamily = BrewTitle,
+                fontWeight = FontWeight.Medium,
+                fontSize = if (compact) 10.sp else 11.sp,
+                lineHeight = if (compact) 12.sp else 13.sp,
+                textDecoration = TextDecoration.LineThrough,
+                textAlign = TextAlign.End,
+                modifier = Modifier.padding(top = 1.dp),
+            )
+        }
+    }
+}

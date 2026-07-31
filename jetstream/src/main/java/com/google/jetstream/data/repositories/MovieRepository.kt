@@ -16,6 +16,7 @@
 
 package com.google.jetstream.data.repositories
 
+import com.google.jetstream.data.entities.CollectionSectionDetails
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.MovieCategoryDetails
 import com.google.jetstream.data.entities.MovieCategoryList
@@ -35,6 +36,7 @@ interface MovieRepository {
     suspend fun prefetchHomePage(page: String)
     fun peekHomeSections(page: String): List<HomeSection>?
     suspend fun getMovieDetails(movieId: String): MovieDetails
+    suspend fun getCollectionSection(sectionId: String, page: Int = 1): CollectionSectionDetails
     suspend fun searchMovies(query: String): MovieList
     fun getMoviesWithLongThumbnail(): Flow<MovieList>
     fun getMovies(): Flow<MovieList>

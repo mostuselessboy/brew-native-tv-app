@@ -6,30 +6,33 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -41,34 +44,25 @@ import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 
-private val CastShape = RoundedCornerShape(12.dp)
-private val CastCardWidth = 132.dp
+private val CastAvatarSize = 120.dp
+private val CastCardWidth = 124.dp
 
-/**
- * Cast row aligned with vod-frontend `CastAndCrew.tsx` —
- * 3:4 headshots, name + role under the image.
- */
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalTvMaterial3Api::class)
 @Composable
-fun CastAndCrewList(castAndCrew: List<MovieCast>) {
+fun CastAndCrewList(
+    castAndCrew: List<MovieCast>,
+    firstItemFocusRequester: FocusRequester? = null,
+    upFocusRequester: FocusRequester? = null,
+    onFirstItemFocused: () -> Unit = {},
+) {
     if (castAndCrew.isEmpty()) return
     val childPadding = rememberChildPadding()
     val members = castAndCrew.take(12)
 
     Column(modifier = Modifier.padding(top = 24.dp)) {
-        Text(
-            text = stringResource(R.string.cast_and_crew),
-            color = Color.White,
-            fontFamily = BrewTitle,
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            letterSpacing = (-0.4).sp,
-            modifier = Modifier.padding(start = childPadding.start),
-        )
+        MovieDetailSectionTitle(text = stringResource(R.string.cast_and_crew))
         LazyRow(
-            modifier = Modifier
-                .padding(top = 14.dp)
-                .focusRestorer(),
+            modifier = Modifier.padding(top = 14.dp),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
@@ -76,54 +70,79 @@ fun CastAndCrewList(castAndCrew: List<MovieCast>) {
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             items(members, key = { it.id }) { member ->
-                CastAndCrewItem(member)
+                val isFirst = member.id == members.first().id
+                CastAndCrewItem(
+                    castMember = member,
+                    modifier = Modifier.then(
+                        if (isFirst && firstItemFocusRequester != null) {
+                            Modifier
+                                .focusRequester(firstItemFocusRequester)
+                                .onFocusChanged { state ->
+                                    if (state.isFocused) onFirstItemFocused()
+                                }
+                                .then(
+                                    if (upFocusRequester != null) {
+                                        Modifier.focusProperties { up = upFocusRequester }
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                        } else {
+                            Modifier
+                        },
+                    ),
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun CastAndCrewItem(castMember: MovieCast) {
+private fun CastAndCrewItem(
+    castMember: MovieCast,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
-    Surface(
-        onClick = {},
-        shape = ClickableSurfaceDefaults.shape(CastShape),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
-        border = ClickableSurfaceDefaults.border(
-            border = Border(
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.04f)),
-                shape = CastShape,
-            ),
-            focusedBorder = Border(
-                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
-                shape = CastShape,
-            ),
-        ),
-        colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color(0xFF111111),
-            focusedContainerColor = Color(0xFF111111),
-        ),
-        modifier = Modifier.width(CastCardWidth),
+    Column(
+        modifier = modifier.width(CastCardWidth),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            onClick = {},
+            shape = ClickableSurfaceDefaults.shape(CircleShape),
+            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.12f),
+            border = ClickableSurfaceDefaults.border(
+                focusedBorder = Border(
+                    border = BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
+                    shape = CircleShape,
+                ),
+            ),
+            colors = ClickableSurfaceDefaults.colors(
+                containerColor = Color(0xFF1A1A1A),
+                focusedContainerColor = Color(0xFF2A2A2A),
+            ),
+            modifier = Modifier.size(CastAvatarSize),
+        ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(3f / 4f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                    .background(Color(0xFF1A1A1A)),
                 contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(CastAvatarSize)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1A1A1A)),
             ) {
                 if (castMember.avatarUrl.isNotBlank()) {
                     AsyncImage(
                         model = ImageRequest.Builder(context)
-                            .data(BrewImageUrl.forCast(castMember.avatarUrl))
-                            .size(BrewImageUrl.CAST_WIDTH, BrewImageUrl.CAST_HEIGHT)
+                            .data(BrewImageUrl.forCastAvatar(castMember.avatarUrl))
+                            .size(BrewImageUrl.CAST_AVATAR_PX, BrewImageUrl.CAST_AVATAR_PX)
                             .crossfade(true)
                             .build(),
                         contentDescription = castMember.realName,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .size(CastAvatarSize)
+                            .clip(CircleShape),
                     )
                 } else {
                     Text(
@@ -131,39 +150,36 @@ private fun CastAndCrewItem(castMember: MovieCast) {
                         color = Color.White.copy(alpha = 0.35f),
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 36.sp,
+                        fontSize = 24.sp,
                     )
                 }
             }
+        }
+        Text(
+            text = castMember.realName,
+            color = Color.White,
+            fontFamily = BrewTitle,
+            fontWeight = FontWeight.Medium,
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .width(CastCardWidth)
+                .padding(top = 8.dp),
+        )
+        if (castMember.characterName.isNotBlank()) {
             Text(
-                text = castMember.realName,
-                color = Color.White,
-                style = MaterialTheme.typography.labelLarge,
+                text = castMember.characterName,
+                color = Color.White.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, end = 10.dp, top = 10.dp),
+                    .width(CastCardWidth)
+                    .padding(top = 2.dp),
             )
-            if (castMember.characterName.isNotBlank()) {
-                Text(
-                    text = castMember.characterName,
-                    color = Color.White.copy(alpha = 0.65f),
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 12.dp),
-                )
-            } else {
-                SpacerBottom()
-            }
         }
     }
-}
-
-@Composable
-private fun SpacerBottom() {
-    Box(modifier = Modifier.padding(bottom = 12.dp))
 }

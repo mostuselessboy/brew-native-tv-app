@@ -16,6 +16,7 @@
 
 package com.google.jetstream.data.remote
 
+import com.google.jetstream.data.auth.AuthClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -73,4 +74,29 @@ object NetworkModule {
     @Singleton
     fun provideBrewApiService(retrofit: Retrofit): BrewApiService =
         retrofit.create(BrewApiService::class.java)
+
+    @Provides
+    @Singleton
+    @AuthClient
+    fun provideAuthRetrofit(
+        @AuthClient okHttpClient: OkHttpClient,
+        json: Json,
+    ): Retrofit {
+        val contentType = "application/json".toMediaType()
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBrewLibraryApiService(@AuthClient retrofit: Retrofit): BrewLibraryApiService =
+        retrofit.create(BrewLibraryApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBrewVodApiService(@AuthClient retrofit: Retrofit): BrewVodApiService =
+        retrofit.create(BrewVodApiService::class.java)
 }

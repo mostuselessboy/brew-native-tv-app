@@ -18,6 +18,13 @@ package com.google.jetstream.data.remote
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+
+@Serializable
+data class BrewHomeSectionResponse(
+    val success: Boolean = false,
+    val data: BrewHomeSectionDto? = null,
+)
 
 @Serializable
 data class BrewHomeSectionDto(
@@ -29,6 +36,9 @@ data class BrewHomeSectionDto(
     val slug: String? = null,
     val metadata: BrewSectionMetadataDto? = null,
     val content: List<BrewHomeContentItemDto> = emptyList(),
+    val total: Int? = null,
+    @SerialName("page_size") val pageSize: Int? = null,
+    val page: Int? = null,
 )
 
 @Serializable
@@ -75,6 +85,17 @@ data class BrewContentDataDto(
     @SerialName("available_for_buy") val availableForBuy: Boolean? = null,
     @SerialName("available_for_rent") val availableForRent: Boolean? = null,
     @SerialName("pricing_data") val pricingData: BrewPricingDataDto? = null,
+    @SerialName("localized_cv_name") val localizedCvName: String? = null,
+    @SerialName("canonical_cv_name") val canonicalCvName: String? = null,
+    @SerialName("is_free_tier") val isFreeTier: Boolean? = null,
+    @SerialName("rent_price_formatted") val rentPriceFormatted: String? = null,
+    val distribution: String? = null,
+    @SerialName("coming_soon_release_info") val comingSoonReleaseInfo: BrewComingSoonReleaseInfoDto? = null,
+)
+
+@Serializable
+data class BrewComingSoonReleaseInfoDto(
+    @SerialName("vod_release_timestamp") val vodReleaseTimestamp: String? = null,
 )
 
 @Serializable
@@ -82,6 +103,8 @@ data class BrewPricingDataDto(
     @SerialName("pricing_id") val pricingId: Int = 0,
     val buy: List<BrewPricingOptionDto> = emptyList(),
     val rent: List<BrewPricingOptionDto> = emptyList(),
+    @SerialName("viewer_release_option") val viewerReleaseOption: String? = null,
+    @SerialName("viewer_monetization_models") val viewerMonetizationModels: Map<String, JsonObject> = emptyMap(),
 )
 
 @Serializable
@@ -100,6 +123,16 @@ data class BrewHomeCastDto(
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val job: String? = null,
     @SerialName("character_name") val characterName: List<String> = emptyList(),
+)
+
+@Serializable
+data class BrewSubtitleDto(
+    @SerialName("language_name") val languageName: String? = null,
+    val language: String? = null,
+    val name: String? = null,
+    val title: String? = null,
+    @SerialName("srclang") val srcLang: String? = null,
+    val lang: String? = null,
 )
 
 @Serializable
@@ -124,15 +157,83 @@ data class BrewCampaignData(
     @SerialName("release_date") val releaseDate: String? = null,
     val country: String? = null,
     @SerialName("content_rating_label") val contentRatingLabel: String? = null,
-    @SerialName("project_trailer") val projectTrailer: List<String> = emptyList(),
+    @SerialName("project_trailer")
+    @Serializable(with = StringOrStringListSerializer::class)
+    val projectTrailer: List<String> = emptyList(),
     @SerialName("cast_and_awards") val castAndAwards: BrewCastAndAwards? = null,
     val collections: List<BrewCollectionDto> = emptyList(),
     @SerialName("critic_reviews") val criticReviews: List<BrewCriticReviewDto> = emptyList(),
     @SerialName("user_reviews") val userReviews: List<BrewUserReviewDto> = emptyList(),
     @SerialName("vod_primary_language") val vodPrimaryLanguage: BrewLanguageDto? = null,
+    val subtitles: List<BrewSubtitleDto> = emptyList(),
+    @SerialName("project_type") val projectType: String? = null,
+    @SerialName("is_svod") val isSvod: Boolean? = null,
+    @SerialName("is_tvod") val isTvod: Boolean? = null,
+    @SerialName("is_free_tier") val isFreeTier: Boolean? = null,
+    @SerialName("is_store_content") val isStoreContent: Boolean? = null,
+    @SerialName("available_for_buy") val availableForBuy: Boolean? = null,
+    @SerialName("available_for_rent") val availableForRent: Boolean? = null,
+    @SerialName("rent_price_formatted") val rentPriceFormatted: String? = null,
+    @SerialName("monetization_model") val monetizationModel: List<String> = emptyList(),
+    @SerialName("pricing_data") val pricingData: BrewPricingDataDto? = null,
+    val distribution: String? = null,
+    @SerialName("coming_soon_release_info") val comingSoonReleaseInfo: BrewComingSoonReleaseInfoDto? = null,
     val campaign: BrewCampaignMeta? = null,
     val project: BrewProjectDto? = null,
     val trailer: BrewTrailerDto? = null,
+    @SerialName("imdb_url") val imdbUrl: String? = null,
+    @SerialName("letterboxd_url") val letterboxdUrl: String? = null,
+    @SerialName("letterboxd_link") val letterboxdLink: String? = null,
+    @SerialName("rottentomatoes_link") val rottenTomatoesLink: String? = null,
+    @SerialName("purchase_cta") val purchaseCta: BrewPurchaseCtaDto? = null,
+    @SerialName("subscription_plans") val subscriptionPlans: List<BrewSubscriptionPlanDto> = emptyList(),
+    @SerialName("vod_asset_id") val vodAssetId: Int? = null,
+    @SerialName("movie_details") val movieDetails: BrewMovieDetailsDto? = null,
+    @SerialName("user_country") val userCountry: String? = null,
+)
+
+@Serializable
+data class BrewMovieDetailsDto(
+    @SerialName("vod_asset_id") val vodAssetId: Int? = null,
+    @SerialName("movie_asset_id") val movieAssetId: Int? = null,
+)
+
+@Serializable
+data class BrewSubscriptionPlanDto(
+    val id: Int = 0,
+    val name: String? = null,
+    val price: Double = 0.0,
+    @SerialName("perceived_price") val perceivedPrice: Double? = null,
+    val currency: String? = null,
+    @SerialName("currency_symbol") val currencySymbol: String? = null,
+    @SerialName("interval_unit") val intervalUnit: String? = null,
+    @SerialName("interval_count") val intervalCount: Int? = null,
+    @SerialName("is_active") val isActive: Boolean = true,
+)
+
+@Serializable
+data class BrewPurchaseCtaDto(
+    val scenario: String? = null,
+    val slots: List<BrewPurchaseCtaSlotDto> = emptyList(),
+    @SerialName("add_ons") val addOns: BrewPurchaseCtaAddOnsDto? = null,
+)
+
+@Serializable
+data class BrewPurchaseCtaSlotDto(
+    val kind: String? = null,
+    val color: String? = null,
+    val free: Boolean? = null,
+    @SerialName("reminder_set") val reminderSet: Boolean? = null,
+    @SerialName("is_continue_watching") val isContinueWatching: Boolean? = null,
+    @SerialName("percentage_watched") val percentageWatched: Int? = null,
+    val reason: String? = null,
+)
+
+@Serializable
+data class BrewPurchaseCtaAddOnsDto(
+    val coupons: Boolean = false,
+    @SerialName("more_purchase_options") val morePurchaseOptions: Boolean = false,
+    val download: Boolean? = null,
 )
 
 @Serializable
@@ -209,8 +310,11 @@ data class BrewLanguageDto(
 @Serializable
 data class BrewCampaignMeta(
     val id: Int? = null,
+    @SerialName("vod_asset_id") val vodAssetId: Int? = null,
     @SerialName("cv_name") val cvName: String? = null,
+    @SerialName("campaign_version_id") val campaignVersionId: Int? = null,
     val status: String? = null,
+    val distribution: String? = null,
     @SerialName("trailer_original_url") val trailerOriginalUrl: String? = null,
     val appearance: BrewAppearanceDto? = null,
 )
@@ -233,6 +337,51 @@ data class BrewAlsoWatchedResponse(
 data class BrewAlsoWatchedData(
     @SerialName("related_movies") val relatedMovies: List<BrewAlsoWatchedMovieDto> = emptyList(),
     @SerialName("total_count") val totalCount: Int = 0,
+)
+
+@Serializable
+data class BrewCommentsResponse(
+    val success: Boolean = false,
+    val data: BrewCommentsData? = null,
+)
+
+@Serializable
+data class BrewCommentsData(
+    val comments: List<BrewCommentDto> = emptyList(),
+    val pagination: BrewCommentsPagination? = null,
+    @SerialName("averageRating") val averageRating: Double? = null,
+    @SerialName("totalRatings") val totalRatings: Int? = null,
+    @SerialName("ratingDistribution") val ratingDistribution: Map<String, Int> = emptyMap(),
+)
+
+@Serializable
+data class BrewCommentsPagination(
+    val page: Int = 1,
+    val limit: Int = 5,
+    val total: Int = 0,
+    @SerialName("totalPages") val totalPages: Int = 0,
+)
+
+@Serializable
+data class BrewCommentDto(
+    val id: String? = null,
+    val heading: String? = null,
+    val text: String? = null,
+    @SerialName("star_rating") val starRating: Int? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    val section: String? = null,
+    val user: BrewCommentUserDto? = null,
+)
+
+@Serializable
+data class BrewCommentUserDto(
+    val id: Int? = null,
+    val name: String? = null,
+    val image: String? = null,
+    val username: String? = null,
+    @SerialName("country_code") val countryCode: String? = null,
+    @SerialName("country_name") val countryName: String? = null,
+    @SerialName("is_brew_critic") val isBrewCritic: Boolean? = null,
 )
 
 @Serializable
@@ -262,6 +411,10 @@ data class BrewProjectDto(
     val runtime: Int? = null,
     val genres: List<String> = emptyList(),
     @SerialName("release_date") val releaseDate: String? = null,
+    @SerialName("imdb_link") val imdbLink: String? = null,
+    @SerialName("letterboxd_link") val letterboxdLink: String? = null,
+    @SerialName("rottentomatoes_link") val rottenTomatoesLink: String? = null,
+    @SerialName("vod_asset_id") val vodAssetId: Int? = null,
 )
 
 @Serializable

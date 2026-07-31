@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -32,16 +34,26 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MovieList
+import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 import kotlinx.coroutines.delay
@@ -60,12 +72,15 @@ fun MoviesRow(
     startPadding: Dp = rememberChildPadding().start,
     endPadding: Dp = rememberChildPadding().end,
     title: String? = null,
+    subtitle: String? = null,
     titleStyle: TextStyle = MaterialTheme.typography.titleLarge,
     showItemTitle: Boolean = true,
     showIndexOverImage: Boolean = false,
     onMovieSelected: (movie: Movie) -> Unit = {},
+    onViewMoreClick: (() -> Unit)? = null,
     firstItemFocusRequester: FocusRequester? = null,
     upFocusRequester: FocusRequester? = null,
+    downFocusRequester: FocusRequester? = null,
     leftFocusRequester: FocusRequester? = null,
     deferCardMount: Boolean = false,
     deferCardMountDelayMs: Long = 280,
@@ -85,16 +100,28 @@ fun MoviesRow(
 
     Column(modifier = modifier.focusGroup()) {
         if (title != null) {
-            Text(
-                text = title,
-                style = titleStyle,
-                color = MaterialTheme.colorScheme.onSurface,
+            Column(
                 modifier = Modifier.padding(
                     start = startPadding,
                     top = 2.dp,
                     bottom = 8.dp,
                 ),
-            )
+            ) {
+                Text(
+                    text = title,
+                    style = titleStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                subtitle?.takeIf { it.isNotBlank() }?.let { sub ->
+                    Text(
+                        text = sub,
+                        color = Color.White.copy(alpha = 0.52f),
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                }
+            }
         }
 
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -119,13 +146,14 @@ fun MoviesRow(
                         Modifier
                     }
                     val focusModifier = itemModifier.focusProperties {
-                        left = when {
-                            index > 0 -> FocusRequester.Default
-                            leftFocusRequester != null -> leftFocusRequester
-                            else -> FocusRequester.Cancel
+                        if (index == 0 && leftFocusRequester != null) {
+                            left = leftFocusRequester
                         }
                         if (index == 0 && upFocusRequester != null) {
                             up = upFocusRequester
+                        }
+                        if (index == 0 && downFocusRequester != null) {
+                            down = downFocusRequester
                         }
                     }
 
@@ -152,6 +180,18 @@ fun MoviesRow(
                                 onMovieSelected(movie)
                             },
                             modifier = focusModifier,
+                        )
+                    }
+                }
+
+                if (cardsReady && onViewMoreClick != null) {
+                    item(key = "view_more") {
+                        ViewMoreTrayCard(
+                            previewMovies = movieList,
+                            onClick = {
+                                lazyRow.saveFocusedChild()
+                                onViewMoreClick()
+                            },
                         )
                     }
                 }
@@ -250,6 +290,99 @@ private fun RankedMovieItem(
                 .padding(start = numberWidth * 0.55f)
                 .zIndex(1f),
         )
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun ViewMoreTrayCard(
+    previewMovies: MovieList,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val previewArt = remember(previewMovies.map { it.id }.joinToString()) {
+        previewMovies
+            .shuffled()
+            .mapNotNull { it.posterUri.takeIf { uri -> uri.isNotBlank() } }
+            .distinct()
+            .take(4)
+            .ifEmpty { listOf("") }
+    }
+
+    Surface(
+        onClick = onClick,
+        shape = ClickableSurfaceDefaults.shape(TrayCardShape),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
+                shape = TrayCardShape,
+            ),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color(0xFF141414),
+            focusedContainerColor = Color(0xFF1E1E1E),
+        ),
+        modifier = modifier
+            .width(BrewLandscapeCardWidth)
+            .aspectRatio(16f / 9f),
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(modifier = Modifier.weight(1f)) {
+                    PreviewThumb(url = previewArt.getOrElse(0) { "" }, context = context, modifier = Modifier.weight(1f))
+                    PreviewThumb(url = previewArt.getOrElse(1) { "" }, context = context, modifier = Modifier.weight(1f))
+                }
+                Row(modifier = Modifier.weight(1f)) {
+                    PreviewThumb(url = previewArt.getOrElse(2) { "" }, context = context, modifier = Modifier.weight(1f))
+                    PreviewThumb(url = previewArt.getOrElse(3) { "" }, context = context, modifier = Modifier.weight(1f))
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.52f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "View More",
+                    color = Color.White,
+                    fontFamily = BrewTitle,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    letterSpacing = (-0.3).sp,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreviewThumb(
+    url: String,
+    context: android.content.Context,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1A1A1A)),
+    ) {
+        if (url.isNotBlank()) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(BrewImageUrl.forCard(url))
+                    .size(BrewImageUrl.CARD_WIDTH / 2, BrewImageUrl.CARD_HEIGHT / 2)
+                    .crossfade(false)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 

@@ -17,7 +17,12 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 <resources>
 
-    <style name="Theme.JetStream" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.JetStream" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/jetstream_background</item>
+        <item name="android:colorBackground">@color/jetstream_background</item>
+        <item name="android:statusBarColor">@color/jetstream_background</item>
+        <item name="android:navigationBarColor">@color/jetstream_background</item>
+    </style>
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/jetstream_background</item>

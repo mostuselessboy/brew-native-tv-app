@@ -26,6 +26,8 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.jetstream.presentation.screens.categories.CategoryMovieListScreen
+import com.google.jetstream.presentation.screens.collection.CollectionScreen
+import com.google.jetstream.presentation.screens.auth.AuthScreenRoute
 import com.google.jetstream.presentation.screens.movies.MovieDetailsScreen
 import com.google.jetstream.presentation.screens.videoPlayer.VideoPlayerScreen
 
@@ -41,7 +43,9 @@ enum class Screens(
     Shorts(isTabItem = true, tabIcon = Icons.Outlined.Movie),
     Store(isTabItem = true, tabIcon = Icons.Outlined.Storefront),
     Favourites(isTabItem = true, tabIcon = Icons.Outlined.BookmarkBorder),
+    SignIn(listOf(AuthScreenRoute.MethodBundleKey)),
     CategoryMovieList(listOf(CategoryMovieListScreen.CategoryIdBundleKey)),
+    Collection(listOf(CollectionScreen.SectionIdBundleKey)),
     MovieDetails(listOf(MovieDetailsScreen.MovieIdBundleKey)),
     Dashboard,
     VideoPlayer(listOf(VideoPlayerScreen.MovieIdBundleKey));

@@ -1,5 +1,7 @@
 package com.google.jetstream.data.entities
 
+import com.google.jetstream.data.util.LibraryClickAction
+
 import com.google.jetstream.data.models.MoviesResponseItem
 
 data class Movie(
@@ -20,6 +22,17 @@ data class Movie(
     val showStore: Boolean = false,
     val showBrewPlus: Boolean = false,
     val leavingSoon: Boolean = false,
+    val projectType: String? = null,
+    val isComingSoon: Boolean = false,
+    val isFreeTier: Boolean = false,
+    val rentPriceFormatted: String? = null,
+    val comingSoonHint: String? = null,
+    /** Continue-watching progress (0–100) for tray / library cards. */
+    val watchProgressPercent: Int? = null,
+    /** VOD asset for direct resume playback from library / CW trays. */
+    val vodAssetId: Int? = null,
+    val initialTimeSeconds: Int? = null,
+    val libraryClickAction: LibraryClickAction? = null,
 )
 
 fun MoviesResponseItem.toMovie(thumbnailType: ThumbnailType = ThumbnailType.Standard): Movie {

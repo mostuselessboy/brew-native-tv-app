@@ -10,8 +10,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -25,13 +29,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,6 +55,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
@@ -63,6 +69,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Button
@@ -77,12 +84,16 @@ import coil.request.ImageRequest
 import com.google.jetstream.R
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.util.BrewImageUrl
+import com.google.jetstream.data.util.ShowcaseCta
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import com.google.jetstream.presentation.common.ShowcaseHeroBackdrop
+import com.google.jetstream.presentation.common.ShowcaseHeroFrame
+import com.google.jetstream.presentation.common.ShowcaseHeroMetaRow
+import com.google.jetstream.presentation.common.ShowcaseHeroStyles
 import com.google.jetstream.presentation.common.showcaseInfoLine
 import com.google.jetstream.presentation.theme.BrewTitle
 import com.google.jetstream.presentation.utils.Padding
-
-/** Hero height — Netflix-style with first tray peeking below. */
-val ShowcaseHeight = 380.dp
 
 private const val BrewPlusWordmark =
     "https://createstir.b-cdn.net/stir-static/brew%2B.webp"
@@ -91,15 +102,50 @@ private val BannerScrim = Color(0xFF000000)
 private val ShowcaseTitleStyle = TextStyle(
     fontFamily = BrewTitle,
     fontWeight = FontWeight.Bold,
-    fontSize = 38.sp,
-    lineHeight = 34.sp,
-    letterSpacing = (-2.8).sp,
+    fontSize = 42.sp,
+    lineHeight = 40.sp,
+    letterSpacing = (-2.4).sp,
+)
+private val ShowcaseMetaStyle = TextStyle(
+    fontFamily = BrewTitle,
+    fontWeight = FontWeight.Bold,
+    fontSize = 10.sp,
+    letterSpacing = 0.5.sp,
+)
+private val ShowcaseDescStyle = TextStyle(
+    fontSize = 13.sp,
+    lineHeight = 17.sp,
+    fontWeight = FontWeight.Medium,
+)
+private val ShowcaseCtaPrimaryStyle = TextStyle(
+    fontFamily = BrewTitle,
+    fontWeight = FontWeight.Bold,
+    fontSize = 13.sp,
+    lineHeight = 16.sp,
+    letterSpacing = (-0.35).sp,
+)
+private val ShowcaseCtaSecondaryStyle = TextStyle(
+    fontFamily = BrewTitle,
+    fontWeight = FontWeight.Medium,
+    fontSize = 12.sp,
+    lineHeight = 15.sp,
+    letterSpacing = (-0.25).sp,
+)
+private val ShowcaseComingSoonHintStyle = TextStyle(
+    fontFamily = BrewTitle,
+    fontWeight = FontWeight.Medium,
+    fontSize = 10.sp,
+    lineHeight = 13.sp,
+    letterSpacing = (-0.15).sp,
 )
 private val ShowcaseButtonWidth = 168.dp
-private val ShowcaseButtonShape = RoundedCornerShape(8.dp)
-private val ShowcaseButtonHeight = 36.dp
-private val ShowcaseButtonPadding = PaddingValues(horizontal = 14.dp, vertical = 5.dp)
-private const val ShowcaseButtonFocusedScale = 1.10f
+private val ShowcaseButtonShape = RoundedCornerShape(12.dp)
+private val ShowcaseButtonHeight = 40.dp
+private val ShowcaseButtonPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+private val ShowcasePrimaryUnfocusedColor = Color(0xCC292628)
+private val ShowcaseSecondaryUnfocusedColor = Color(0xB3242220)
+private val ShowcaseSecondaryGlassColor = Color(0x1FFFFFFF)
+private const val ShowcaseButtonFocusedScale = 1.06f
 private const val HorizontalKeyGraceMs = 320L
 
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalComposeUiApi::class)
@@ -134,39 +180,60 @@ fun FeaturedMoviesCarousel(
     var lastFocusedSlide by remember { mutableIntStateOf(slideIndex) }
     LaunchedEffect(slideIndex) {
         if (lastFocusedSlide != slideIndex) {
-            primaryFocus.requestFocus()
+            runCatching { primaryFocus.requestFocus() }
             lastFocusedSlide = slideIndex
         }
     }
 
-    Box(modifier = modifier.focusGroup()) {
-        AnimatedContent(
-            targetState = slideIndex,
-            transitionSpec = {
-                fadeIn(tween(160)).togetherWith(fadeOut(tween(120)))
-            },
-            label = "showcaseBackdrop",
-            modifier = Modifier.fillMaxSize(),
-        ) { index ->
-            ShowcaseBackdrop(movie = movies[index])
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(
-                    start = padding.start,
-                    end = padding.end,
-                    bottom = 14.dp,
-                )
-                .widthIn(max = 460.dp)
-                .fillMaxWidth(0.56f),
-            verticalArrangement = Arrangement.Bottom,
-        ) {
+    ShowcaseHeroFrame(
+        padding = padding,
+        modifier = modifier.focusGroup(),
+        showBrewPlus = activeMovie.showBrewPlus,
+        alsoInStore = activeMovie.showStore,
+        backdrop = {
             AnimatedContent(
                 targetState = slideIndex,
                 transitionSpec = {
-                    fadeIn(tween(120)).togetherWith(fadeOut(tween(80)))
+                    (fadeIn(tween(220, easing = FastOutSlowInEasing)) +
+                        scaleIn(
+                            initialScale = 1.07f,
+                            animationSpec = tween(380, easing = FastOutSlowInEasing),
+                        ))
+                        .togetherWith(
+                            fadeOut(tween(140)) +
+                                scaleOut(targetScale = 1.02f, animationSpec = tween(180)),
+                        )
+                },
+                label = "showcaseBackdrop",
+                modifier = Modifier.fillMaxSize(),
+            ) { index ->
+                ShowcaseHeroBackdrop(
+                    posterUri = movies[index].posterUri,
+                    contentDescription = movies[index].name,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        },
+        overlay = {
+            PrimeCarouselIndicator(
+                itemCount = movies.size,
+                activeItemIndex = slideIndex,
+            )
+        },
+        bottomContent = {
+            AnimatedContent(
+                targetState = slideIndex,
+                transitionSpec = {
+                    (fadeIn(tween(200, easing = FastOutSlowInEasing)) +
+                        slideInHorizontally(tween(280, easing = FastOutSlowInEasing)) {
+                            (it * 0.08f).toInt().coerceAtLeast(28)
+                        })
+                        .togetherWith(
+                            fadeOut(tween(120)) +
+                                slideOutHorizontally(tween(200, easing = FastOutSlowInEasing)) {
+                                    -(it * 0.06f).toInt().coerceAtLeast(20)
+                                },
+                        )
                 },
                 label = "showcaseCopy",
             ) { index ->
@@ -183,97 +250,10 @@ fun FeaturedMoviesCarousel(
                 sidebarFocusRequester = sidebarFocusRequester,
                 showBrewPlus = activeMovie.showBrewPlus,
                 onOpen = { openFeatured(activeMovie) },
+                movie = activeMovie,
             )
-        }
-
-        if (activeMovie.showBrewPlus) {
-            ShowcaseBrewPlusRow(
-                alsoInStore = activeMovie.showStore,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(
-                        end = padding.end,
-                        bottom = 18.dp,
-                    ),
-            )
-        }
-
-        PrimeCarouselIndicator(
-            itemCount = movies.size,
-            activeItemIndex = slideIndex,
-        )
-    }
-}
-
-@Composable
-private fun ShowcaseBackdrop(movie: Movie) {
-    val contentBg = Color.Black
-    Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(BrewImageUrl.forShowcase(movie.posterUri))
-                .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
-                .crossfade(false)
-                .build(),
-            contentDescription = movie.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .fillMaxHeight()
-                .fillMaxWidth(0.82f)
-                .drawWithContent {
-                    drawContent()
-                    drawRect(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0f to Color.Black.copy(alpha = 0.35f),
-                                0.5f to Color.Transparent,
-                                0.78f to Color.Black.copy(alpha = 0.45f),
-                                1f to Color.Black,
-                            ),
-                        ),
-                    )
-                },
-        )
-
-        // Left panel — blends image into text column (Netflix-style)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawWithContent {
-                    drawContent()
-                    drawRect(
-                        Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0f to contentBg,
-                                0.18f to contentBg.copy(alpha = 0.98f),
-                                0.32f to contentBg.copy(alpha = 0.88f),
-                                0.46f to contentBg.copy(alpha = 0.55f),
-                                0.56f to contentBg.copy(alpha = 0.22f),
-                                0.64f to Color.Transparent,
-                                1f to Color.Transparent,
-                            ),
-                        ),
-                    )
-                },
-        )
-
-        // Soft seam where hero meets the left rail edge
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxHeight()
-                .fillMaxWidth(0.12f)
-                .background(
-                    Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0f to contentBg,
-                            1f to Color.Transparent,
-                        ),
-                    ),
-                ),
-        )
-    }
+        },
+    )
 }
 
 @Composable
@@ -282,53 +262,24 @@ private fun ShowcaseCopy(movie: Movie) {
         Text(
             text = movie.name,
             color = Color.White,
-            style = ShowcaseTitleStyle,
+            style = ShowcaseHeroStyles.Title,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
 
-        val info = showcaseInfoLine(movie)
-        if (info.isNotBlank() || movie.showStore) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 6.dp),
-            ) {
-                if (movie.showStore) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_brew_store),
-                        contentDescription = null,
-                        tint = Color(0xFFE6D391),
-                        modifier = Modifier.size(9.dp),
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                }
-                if (info.isNotBlank()) {
-                    Text(
-                        text = info.uppercase(),
-                        color = Color.White.copy(alpha = 0.78f),
-                        fontFamily = BrewTitle,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp,
-                        letterSpacing = 0.6.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
+        ShowcaseHeroMetaRow(
+            infoLine = showcaseInfoLine(movie),
+            showStore = movie.showStore,
+        )
 
         if (movie.description.isNotBlank()) {
             Text(
                 text = movie.description,
                 color = Color.White.copy(alpha = 0.78f),
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontSize = 12.sp,
-                    lineHeight = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
+                style = ShowcaseHeroStyles.Description,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.padding(top = 6.dp),
             )
         }
     }
@@ -346,12 +297,91 @@ private fun ShowcaseActionButtons(
     sidebarFocusRequester: FocusRequester?,
     showBrewPlus: Boolean,
     onOpen: () -> Unit,
+    movie: Movie,
 ) {
     var focusEnteredAt by remember { mutableLongStateOf(0L) }
-    val primaryLabel = if (showBrewPlus) {
-        stringResource(R.string.subscribe)
-    } else {
-        stringResource(R.string.watch_now)
+    val primaryCta = ShowcaseCta.primaryCta(movie)
+
+    if (movie.isComingSoon) {
+        Column(
+            modifier = Modifier
+                .padding(top = 10.dp)
+                .width(ShowcaseButtonWidth)
+                .focusGroup(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ShowcaseFocusButton(
+                onClick = onOpen,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(primaryFocusRequester)
+                    .onFocusChanged {
+                        if (it.isFocused) focusEnteredAt = SystemClock.uptimeMillis()
+                    }
+                    .blockHorizontalKeysAfterFocusEntry(focusEnteredAt)
+                    .focusProperties {
+                        down = secondaryFocusRequester
+                        if (slideIndex == 0 && sidebarFocusRequester != null) {
+                            left = sidebarFocusRequester
+                        }
+                    }
+                    .showcaseSlideKeys(
+                        activeIndex = slideIndex,
+                        itemCount = itemCount,
+                        onIndexChange = onSlideChange,
+                    ),
+                colors = showcasePrimaryButtonColors(),
+                fixedHeight = ShowcaseButtonHeight,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_bell_filled),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = primaryCta.label,
+                    style = ShowcaseCtaPrimaryStyle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            ShowcaseFocusButton(
+                onClick = onOpen,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(secondaryFocusRequester)
+                    .onFocusChanged {
+                        if (it.isFocused) focusEnteredAt = SystemClock.uptimeMillis()
+                    }
+                    .blockHorizontalKeysAfterFocusEntry(focusEnteredAt)
+                    .focusProperties {
+                        up = primaryFocusRequester
+                        if (downFocusRequester != null) {
+                            down = downFocusRequester
+                        }
+                        if (slideIndex == 0 && sidebarFocusRequester != null) {
+                            left = sidebarFocusRequester
+                        }
+                    }
+                    .showcaseSlideKeys(
+                        activeIndex = slideIndex,
+                        itemCount = itemCount,
+                        onIndexChange = onSlideChange,
+                    ),
+            colors = showcaseSecondaryButtonColors(),
+            fixedHeight = ShowcaseButtonHeight,
+        ) {
+            Text(
+                text = stringResource(R.string.more_info),
+                style = ShowcaseCtaPrimaryStyle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        }
+        return
     }
 
     Column(
@@ -381,20 +411,10 @@ private fun ShowcaseActionButtons(
                     itemCount = itemCount,
                     onIndexChange = onSlideChange,
                 ),
-            colors = ButtonDefaults.colors(
-                containerColor = Color.White,
-                contentColor = Color.Black,
-                focusedContainerColor = Color.White,
-                focusedContentColor = Color.Black,
-            ),
+            colors = showcasePrimaryButtonColors(),
+            fixedHeight = ShowcaseButtonHeight,
         ) {
-            Text(
-                text = primaryLabel,
-                fontFamily = BrewTitle,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                letterSpacing = (-0.35).sp,
-            )
+            Text(text = primaryCta.label, style = ShowcaseCtaPrimaryStyle)
         }
 
         ShowcaseFocusButton(
@@ -408,7 +428,9 @@ private fun ShowcaseActionButtons(
                 .blockHorizontalKeysAfterFocusEntry(focusEnteredAt)
                 .focusProperties {
                     up = primaryFocusRequester
-                    down = downFocusRequester ?: FocusRequester.Default
+                    if (downFocusRequester != null) {
+                        down = downFocusRequester
+                    }
                     if (slideIndex == 0 && sidebarFocusRequester != null) {
                         left = sidebarFocusRequester
                     }
@@ -418,34 +440,45 @@ private fun ShowcaseActionButtons(
                     itemCount = itemCount,
                     onIndexChange = onSlideChange,
                 ),
-            colors = ButtonDefaults.colors(
-                containerColor = Color.White.copy(alpha = 0.12f),
-                contentColor = Color.White,
-                focusedContainerColor = Color.White.copy(alpha = 0.22f),
-                focusedContentColor = Color.White,
-            ),
+            colors = showcaseSecondaryButtonColors(),
+            fixedHeight = ShowcaseButtonHeight,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Info,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                Text(
-                    text = stringResource(R.string.more_info),
-                    fontFamily = BrewTitle,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 12.sp,
-                    letterSpacing = (-0.25).sp,
-                )
-            }
+            Text(
+                text = stringResource(R.string.more_info),
+                style = ShowcaseCtaPrimaryStyle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun showcasePrimaryButtonColors(): ButtonColors = ButtonDefaults.colors(
+    containerColor = ShowcasePrimaryUnfocusedColor,
+    contentColor = Color.White,
+    focusedContainerColor = Color.White,
+    focusedContentColor = Color.Black,
+)
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun showcaseSecondaryButtonColors(): ButtonColors = ButtonDefaults.colors(
+    containerColor = ShowcaseSecondaryUnfocusedColor,
+    contentColor = Color.White,
+    focusedContainerColor = Color.White,
+    focusedContentColor = Color.Black,
+)
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun showcaseSecondaryGlassButtonColors(): ButtonColors = ButtonDefaults.colors(
+    containerColor = ShowcaseSecondaryGlassColor,
+    contentColor = Color.White,
+    focusedContainerColor = Color.White,
+    focusedContentColor = Color.Black,
+)
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -453,6 +486,7 @@ private fun ShowcaseFocusButton(
     onClick: () -> Unit,
     colors: ButtonColors,
     modifier: Modifier = Modifier,
+    fixedHeight: Dp = ShowcaseButtonHeight,
     content: @Composable RowScope.() -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -468,7 +502,7 @@ private fun ShowcaseFocusButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .height(ShowcaseButtonHeight)
+            .heightIn(min = fixedHeight, max = fixedHeight)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -478,7 +512,13 @@ private fun ShowcaseFocusButton(
         shape = ButtonDefaults.shape(shape = ShowcaseButtonShape),
         scale = ButtonDefaults.scale(focusedScale = 1f),
         colors = colors,
-        content = content,
+        content = {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                content = content,
+            )
+        },
     )
 }
 
@@ -528,45 +568,6 @@ private fun Modifier.showcaseSlideKeys(
             }
         }
         else -> false
-    }
-}
-
-@Composable
-private fun ShowcaseBrewPlusRow(
-    alsoInStore: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.height(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = stringResource(
-                if (alsoInStore) {
-                    R.string.also_included_in_brew_plus
-                } else {
-                    R.string.included_in_brew_plus
-                }
-            ),
-            color = Color.White.copy(alpha = 0.55f),
-            fontFamily = BrewTitle,
-            fontWeight = FontWeight.Medium,
-            fontSize = 10.sp,
-            letterSpacing = (-0.45).sp,
-            lineHeight = 11.sp,
-        )
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(BrewPlusWordmark)
-                .size(220, 44)
-                .build(),
-            contentDescription = "Brew Plus",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .height(9.dp)
-                .width(34.dp),
-        )
     }
 }
 

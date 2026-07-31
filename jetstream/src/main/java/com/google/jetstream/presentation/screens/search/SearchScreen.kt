@@ -42,6 +42,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -65,10 +66,14 @@ import com.google.jetstream.presentation.common.MoviesRow
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.JetStreamCardShape
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
     onMovieClick: (movie: Movie) -> Unit,
     onScroll: (isTopBarVisible: Boolean) -> Unit,
+    sidebarFocusRequester: FocusRequester? = null,
+    contentFocusRequester: FocusRequester? = null,
+    isTabVisible: Boolean = true,
     searchScreenViewModel: SearchScreenViewModel = hiltViewModel(),
 ) {
     val lazyColumnState = rememberLazyListState()
@@ -95,7 +100,10 @@ fun SearchScreen(
             SearchResult(
                 movieList = movieList,
                 searchMovies = searchScreenViewModel::query,
-                onMovieClick = onMovieClick
+                onMovieClick = onMovieClick,
+                sidebarFocusRequester = sidebarFocusRequester,
+                contentFocusRequester = contentFocusRequester,
+                isTabVisible = isTabVisible,
             )
         }
     }
@@ -109,10 +117,14 @@ fun SearchResult(
     onMovieClick: (movie: Movie) -> Unit,
     modifier: Modifier = Modifier,
     lazyColumnState: LazyListState = rememberLazyListState(),
+    sidebarFocusRequester: FocusRequester? = null,
+    contentFocusRequester: FocusRequester? = null,
+    isTabVisible: Boolean = true,
 ) {
     val childPadding = rememberChildPadding()
     var searchQuery by remember { mutableStateOf("") }
-    val tfFocusRequester = remember { FocusRequester() }
+    val localFocusRequester = remember { FocusRequester() }
+    val tfFocusRequester = contentFocusRequester ?: localFocusRequester
     val focusManager = LocalFocusManager.current
     val tfInteractionSource = remember { MutableInteractionSource() }
 
@@ -177,6 +189,13 @@ fun SearchResult(
                             horizontal = 8.dp
                         )
                         .focusRequester(tfFocusRequester)
+                        .then(
+                            if (sidebarFocusRequester != null) {
+                                Modifier.focusProperties { left = sidebarFocusRequester }
+                            } else {
+                                Modifier
+                            },
+                        )
                         .onKeyEvent {
                             if (it.nativeKeyEvent.action == KeyEvent.ACTION_UP) {
                                 when (it.nativeKeyEvent.keyCode) {
@@ -226,6 +245,7 @@ fun SearchResult(
                     .padding(top = childPadding.top * 2),
                 movieList = movieList,
                 onMovieSelected = { selectedMovie -> onMovieClick(selectedMovie) },
+                leftFocusRequester = sidebarFocusRequester,
             )
         }
     }

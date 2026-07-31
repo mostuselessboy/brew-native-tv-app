@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.MaterialTheme
 import com.google.jetstream.presentation.utils.handleDPadKeyEvents
 import com.google.jetstream.presentation.utils.ifElse
@@ -45,13 +46,18 @@ fun RowScope.VideoPlayerControllerIndicator(
     progress: Float,
     onSeek: (seekProgress: Float) -> Unit,
     onShowControls: () -> Unit = {},
+    progressColor: Color? = null,
+    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     var isSelected by remember { mutableStateOf(false) }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val color by rememberUpdatedState(
-        newValue = if (isSelected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurface
+        newValue = progressColor ?: if (isSelected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
     )
     val animatedIndicatorHeight by animateDpAsState(
         targetValue = 4.dp.times((if (isFocused) 2.5f else 1f))
@@ -83,7 +89,7 @@ fun RowScope.VideoPlayerControllerIndicator(
     )
 
     Canvas(
-        modifier = Modifier
+        modifier = modifier
             .weight(1f)
             .height(animatedIndicatorHeight)
             .padding(horizontal = 4.dp)

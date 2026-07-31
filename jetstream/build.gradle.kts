@@ -116,6 +116,9 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
 
+    // QR code generation (TV sign-in)
+    implementation("com.google.zxing:core:3.5.3")
+
     // Baseline profile installer
     implementation(libs.androidx.profileinstaller)
 

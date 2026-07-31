@@ -23,6 +23,10 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.HomeSectionType
+import com.google.jetstream.data.entities.Movie
+import com.google.jetstream.data.remote.BrewPages
+import com.google.jetstream.data.repositories.LibraryRepository
+import com.google.jetstream.data.auth.AuthSessionStore
 import com.google.jetstream.data.repositories.MovieRepository
 import com.google.jetstream.data.util.BrewImageUrl
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +37,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -41,14 +46,26 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+sealed interface ContinueWatchingTrayState {
+    data object Hidden : ContinueWatchingTrayState
+    data object Loading : ContinueWatchingTrayState
+    data class Ready(val movies: List<Movie>) : ContinueWatchingTrayState
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeScreeViewModel @Inject constructor(
     private val movieRepository: MovieRepository,
+    private val libraryRepository: LibraryRepository,
+    private val authSessionStore: AuthSessionStore,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val page = MutableStateFlow<String?>(null)
+    private val _continueWatchingState =
+        MutableStateFlow<ContinueWatchingTrayState>(ContinueWatchingTrayState.Hidden)
+    val continueWatchingState: StateFlow<ContinueWatchingTrayState> =
+        _continueWatchingState.asStateFlow()
 
     fun peekInitialState(pageKey: String): HomeScreenUiState {
         val cached = movieRepository.peekHomeSections(pageKey)
@@ -57,6 +74,31 @@ class HomeScreeViewModel @Inject constructor(
 
     fun setPage(pageKey: String) {
         page.value = pageKey
+        if (pageKey == BrewPages.HOME) {
+            refreshContinueWatching()
+        }
+    }
+
+    private fun refreshContinueWatching() {
+        val userId = authSessionStore.currentUserId()
+        if (userId == null || userId <= 0) {
+            _continueWatchingState.value = ContinueWatchingTrayState.Hidden
+            return
+        }
+        _continueWatchingState.value = ContinueWatchingTrayState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                libraryRepository.fetchContinueWatchingMovies(userId)
+            }.onSuccess { movies ->
+                _continueWatchingState.value = if (movies.isEmpty()) {
+                    ContinueWatchingTrayState.Hidden
+                } else {
+                    ContinueWatchingTrayState.Ready(movies)
+                }
+            }.onFailure {
+                _continueWatchingState.value = ContinueWatchingTrayState.Hidden
+            }
+        }
     }
 
     val uiState: StateFlow<HomeScreenUiState> = page

@@ -46,4 +46,20 @@ object BrewArtworkUrls {
 
     fun anyFromAppearance(appearance: JsonObject?): String? =
         landscapeFromAppearance(appearance)
+
+    /** Extracts URL list from thumbnail arrays or single URL fields (also-watched appearance). */
+    fun collectUrlList(element: JsonElement?): List<String> {
+        if (element == null) return emptyList()
+        if (element is JsonArray) {
+            return element.mapNotNull { asUrl(it) }
+        }
+        return asUrl(element)?.let { listOf(it) } ?: emptyList()
+    }
+
+    /** First non-empty alternate landscape list — mirrors vod `collectAlternateLandscapeSources`. */
+    fun horizontalAlternatesFromAppearance(appearance: JsonObject?): List<String> {
+        if (appearance == null) return emptyList()
+        return collectUrlList(appearance["horizontal_thumbnails"])
+            .ifEmpty { collectUrlList(appearance["alternate_horizontal_background_art"]) }
+    }
 }
