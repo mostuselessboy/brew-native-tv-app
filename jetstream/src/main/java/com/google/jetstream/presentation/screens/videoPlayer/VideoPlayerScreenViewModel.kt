@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.jetstream.data.auth.AuthSessionStore
 import com.google.jetstream.data.entities.EndScreenRecommendation
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.PlaybackSubtitle
 import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.data.playback.PlaybackIntentStore
 import com.google.jetstream.data.playback.PlaybackLauncher
@@ -75,10 +76,16 @@ class VideoPlayerScreenViewModel @Inject constructor(
                     emit(VideoPlayerScreenUiState.Error)
                     return@flow
                 }
+                val subtitles = if (!intent.isTrailer) {
+                    runCatching { repository.getCampaignSubtitles(id) }.getOrDefault(emptyList())
+                } else {
+                    emptyList()
+                }
                 emit(
                     VideoPlayerScreenUiState.Done(
                         movieDetails = details,
                         playback = intent,
+                        subtitles = subtitles,
                     ),
                 )
             }
@@ -199,6 +206,7 @@ sealed class VideoPlayerScreenUiState {
     data class Done(
         val movieDetails: MovieDetails,
         val playback: PlaybackIntent?,
+        val subtitles: List<PlaybackSubtitle> = emptyList(),
     ) : VideoPlayerScreenUiState()
 }
 

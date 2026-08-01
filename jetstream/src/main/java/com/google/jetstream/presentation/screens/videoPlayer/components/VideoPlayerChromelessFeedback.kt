@@ -2,38 +2,34 @@ package com.google.jetstream.presentation.screens.videoPlayer.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Icon
-import androidx.tv.material3.Text
 import com.google.jetstream.R
-import com.google.jetstream.presentation.theme.BrewTitle
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
 
 enum class NetflixSeekDirection {
     Forward,
@@ -45,7 +41,8 @@ enum class TransientPlayPauseIcon {
     Pause,
 }
 
-const val CHROMELESS_SEEK_SECONDS = 30
+const val CHROMELESS_SEEK_SECONDS = 10
+private const val SEEK_WING_DISMISS_MS = 3_200L
 
 class VideoPlayerFeedbackState(
     private val intervalSeconds: Int = CHROMELESS_SEEK_SECONDS,
@@ -53,11 +50,20 @@ class VideoPlayerFeedbackState(
     private var _playPauseIcon by mutableStateOf<TransientPlayPauseIcon?>(null)
     val playPauseIcon: TransientPlayPauseIcon? get() = _playPauseIcon
 
-    private var _seekDirection by mutableStateOf<NetflixSeekDirection?>(null)
-    val seekDirection: NetflixSeekDirection? get() = _seekDirection
+    private var _isSeekKeyHeld by mutableStateOf(false)
+    val isSeekKeyHeld: Boolean get() = _isSeekKeyHeld
+
+    private var _wingDirection by mutableStateOf<NetflixSeekDirection?>(null)
+    val wingDirection: NetflixSeekDirection? get() = _wingDirection
 
     private var _accumulatedSeconds by mutableIntStateOf(0)
     val accumulatedSeconds: Int get() = _accumulatedSeconds
+
+    private var _showBarPreview by mutableStateOf(false)
+    val showBarPreview: Boolean get() = _showBarPreview
+
+    private var _barPreviewPositionMs by mutableLongStateOf(0L)
+    val barPreviewPositionMs: Long get() = _barPreviewPositionMs
 
     private var _pulseTick by mutableIntStateOf(0)
     val pulseTick: Int get() = _pulseTick
@@ -70,37 +76,66 @@ class VideoPlayerFeedbackState(
             .debounce(900.milliseconds)
             .collect {
                 _playPauseIcon = null
-                _seekDirection = null
-                _accumulatedSeconds = 0
             }
     }
 
     fun triggerPlayPause(icon: TransientPlayPauseIcon) {
         _playPauseIcon = icon
-        _seekDirection = null
+        _wingDirection = null
         _accumulatedSeconds = 0
         _pulseTick++
         dismissChannel.trySend(Unit)
     }
 
-    fun triggerSeek(direction: NetflixSeekDirection) {
-        if (_seekDirection == direction) {
-            _accumulatedSeconds += intervalSeconds
-        } else {
-            _seekDirection = direction
-            _accumulatedSeconds = intervalSeconds
-        }
+    fun onSeekKeyDown(direction: NetflixSeekDirection) {
+        _isSeekKeyHeld = true
+        _wingDirection = direction
         _playPauseIcon = null
         _pulseTick++
-        dismissChannel.trySend(Unit)
     }
 
-    fun trigger(direction: NetflixSeekDirection) = triggerSeek(direction)
+    fun onSeekKeyReleased() {
+        _isSeekKeyHeld = false
+        _pulseTick++
+    }
+
+    fun completeTapSeek(positionMs: Long, direction: NetflixSeekDirection) {
+        if (_wingDirection == direction) {
+            if (_accumulatedSeconds > 0) {
+                _accumulatedSeconds += intervalSeconds
+            } else {
+                _accumulatedSeconds = intervalSeconds
+            }
+        } else {
+            _wingDirection = direction
+            _accumulatedSeconds = intervalSeconds
+        }
+        _barPreviewPositionMs = positionMs
+        _pulseTick++
+    }
+
+    fun clearWings() {
+        _wingDirection = null
+        _accumulatedSeconds = 0
+    }
+
+    fun hideBarPreview() {
+        _showBarPreview = false
+    }
+
+    fun updateBarPreviewPosition(positionMs: Long) {
+        _barPreviewPositionMs = positionMs
+        _showBarPreview = true
+    }
+
+    fun trigger(direction: NetflixSeekDirection) = onSeekKeyDown(direction)
 
     fun clear() {
         _playPauseIcon = null
-        _seekDirection = null
+        _wingDirection = null
         _accumulatedSeconds = 0
+        _isSeekKeyHeld = false
+        _showBarPreview = false
     }
 }
 
@@ -108,122 +143,133 @@ class VideoPlayerFeedbackState(
 fun rememberVideoPlayerFeedbackState(
     intervalSeconds: Int = CHROMELESS_SEEK_SECONDS,
 ): VideoPlayerFeedbackState =
-    remember { VideoPlayerFeedbackState(intervalSeconds) }.also {
-        LaunchedEffect(it) { it.observe() }
+    remember { VideoPlayerFeedbackState(intervalSeconds) }.also { state ->
+        LaunchedEffect(state) { state.observe() }
+        LaunchedEffect(state.isSeekKeyHeld, state.wingDirection, state.pulseTick) {
+            if (state.isSeekKeyHeld || state.wingDirection == null) return@LaunchedEffect
+            delay(SEEK_WING_DISMISS_MS)
+            state.clearWings()
+        }
     }
 
-/** Fade overlays when chrome is hidden — center play/pause, wing ±30s tap seek. */
+/** Center play/pause flash + left/right seek wings with rotation. */
 @Composable
 fun VideoPlayerChromelessFeedback(
     state: VideoPlayerFeedbackState,
     modifier: Modifier = Modifier,
 ) {
     val playPause = state.playPauseIcon
-    val seekDirection = state.seekDirection
-    if (playPause == null && seekDirection == null) return
+    val wingDirection = state.wingDirection
+    val showWings = wingDirection != null && (state.isSeekKeyHeld || state.accumulatedSeconds > 0)
 
-    val alpha = remember { Animatable(0f) }
-    LaunchedEffect(state.pulseTick) {
+    if (playPause == null && !showWings) return
+
+    val alpha = remember { Animatable(1f) }
+
+    LaunchedEffect(state.pulseTick, state.isSeekKeyHeld) {
         if (state.pulseTick == 0) return@LaunchedEffect
-        alpha.snapTo(0f)
-        alpha.animateTo(1f, tween(160))
-        delay(480)
-        alpha.animateTo(0f, tween(280))
+        if (state.isSeekKeyHeld) {
+            alpha.snapTo(1f)
+            return@LaunchedEffect
+        }
+        alpha.snapTo(0.85f)
+        alpha.animateTo(1f, tween(140))
     }
 
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
         if (playPause != null) {
             Box(
                 modifier = Modifier
-                    .alpha(alpha.value)
-                    .size(104.dp)
-                    .background(Color.Black.copy(alpha = 0.45f), CircleShape),
+                    .align(Alignment.Center)
+                    .alpha(alpha.value),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
+                Image(
                     painter = painterResource(
                         if (playPause == TransientPlayPauseIcon.Play) {
-                            R.drawable.ic_lucide_play_circle
+                            R.drawable.ic_brew_play
                         } else {
-                            R.drawable.ic_lucide_circle_pause
+                            R.drawable.ic_brew_pause
                         },
                     ),
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(64.dp),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(120.dp),
                 )
             }
         }
 
-        if (seekDirection == NetflixSeekDirection.Back) {
-            SeekWingFeedback(
+        if (showWings && wingDirection == NetflixSeekDirection.Back) {
+            AnimatedSeekWing(
                 direction = NetflixSeekDirection.Back,
-                seconds = state.accumulatedSeconds,
-                alpha = alpha.value,
+                pulseTick = state.pulseTick,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 80.dp),
+                    .padding(start = 72.dp)
+                    .alpha(alpha.value),
             )
         }
 
-        if (seekDirection == NetflixSeekDirection.Forward) {
-            SeekWingFeedback(
+        if (showWings && wingDirection == NetflixSeekDirection.Forward) {
+            AnimatedSeekWing(
                 direction = NetflixSeekDirection.Forward,
-                seconds = state.accumulatedSeconds,
-                alpha = alpha.value,
+                pulseTick = state.pulseTick,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 80.dp),
+                    .padding(end = 72.dp)
+                    .alpha(alpha.value),
             )
         }
     }
 }
 
 @Composable
-private fun SeekWingFeedback(
+private fun AnimatedSeekWing(
     direction: NetflixSeekDirection,
-    seconds: Int,
-    alpha: Float,
+    pulseTick: Int,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.alpha(alpha),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(88.dp)
-                .background(Color.Black.copy(alpha = 0.45f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(
-                    if (direction == NetflixSeekDirection.Forward) {
-                        R.drawable.ic_lucide_fast_forward
-                    } else {
-                        R.drawable.ic_lucide_rewind
-                    },
-                ),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(44.dp),
+    val rotation = remember { Animatable(0f) }
+    val scale = remember { Animatable(0.92f) }
+
+    LaunchedEffect(pulseTick, direction) {
+        rotation.snapTo(0f)
+        scale.snapTo(0.92f)
+        val targetRotation = if (direction == NetflixSeekDirection.Forward) 10f else -10f
+        launch {
+            rotation.animateTo(
+                targetValue = targetRotation,
+                animationSpec = tween(durationMillis = 220),
             )
         }
-        Text(
-            text = "${if (direction == NetflixSeekDirection.Forward) "+" else "−"}${seconds}s",
-            color = Color.White,
-            fontFamily = BrewTitle,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        launch {
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 260),
+            )
+        }
     }
+
+    Image(
+        painter = painterResource(
+            if (direction == NetflixSeekDirection.Forward) {
+                R.drawable.ic_brew_skip_forward
+            } else {
+                R.drawable.ic_brew_skip_back
+            },
+        ),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = modifier
+            .size(80.dp)
+            .graphicsLayer {
+                rotationZ = rotation.value
+                scaleX = scale.value
+                scaleY = scale.value
+            },
+    )
 }
 
-// Backwards-compatible aliases while call sites migrate.
 typealias NetflixSeekBurstState = VideoPlayerFeedbackState
 
 @Composable

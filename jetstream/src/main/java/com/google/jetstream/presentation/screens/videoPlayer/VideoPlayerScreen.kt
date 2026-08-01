@@ -71,6 +71,7 @@ import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.PlaybackSubtitle
 import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.presentation.common.BrewArcSpinner
 import com.google.jetstream.presentation.common.Error
@@ -88,13 +89,16 @@ import com.google.jetstream.presentation.screens.videoPlayer.components.VideoPla
 import com.google.jetstream.presentation.screens.videoPlayer.components.VideoPlayerState
 import com.google.jetstream.presentation.screens.videoPlayer.components.rememberPlayerSettingsPillLabels
 import com.google.jetstream.presentation.screens.videoPlayer.components.rememberVideoPlayerFeedbackState
+import com.google.jetstream.presentation.screens.videoPlayer.components.VideoPlayerSubtitles
+import androidx.media3.common.Tracks
 import com.google.jetstream.presentation.screens.videoPlayer.components.VideoPlayerHoldSeekState
-import com.google.jetstream.presentation.screens.videoPlayer.components.VideoPlayerSeekOverlay
+import com.google.jetstream.presentation.screens.videoPlayer.components.VideoPlayerTrackHelper
 import com.google.jetstream.presentation.screens.videoPlayer.components.WarmSeekSpritesEffect
 import com.google.jetstream.presentation.screens.videoPlayer.components.rememberPlayer
 import com.google.jetstream.presentation.screens.videoPlayer.components.rememberVideoPlayerState
 import com.google.jetstream.presentation.utils.handleDPadKeyEvents
 import com.google.jetstream.presentation.utils.handleHoldSeekKeyEvents
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -143,6 +147,7 @@ fun VideoPlayerScreen(
                 onEndScreenPick = videoPlayerScreenViewModel::playEndScreenRecommendation,
                 onDismissEndScreen = videoPlayerScreenViewModel::dismissEndScreen,
                 accessToken = videoPlayerScreenViewModel.accessToken,
+                subtitles = s.subtitles,
                 onSyncProgress = videoPlayerScreenViewModel::syncVideoProgress,
             )
         }
@@ -154,6 +159,7 @@ fun VideoPlayerScreen(
 fun VideoPlayerScreenContent(
     movieDetails: MovieDetails,
     playback: PlaybackIntent?,
+    subtitles: List<PlaybackSubtitle> = emptyList(),
     endScreenState: EndScreenUiState = EndScreenUiState.Hidden,
     onBackPressed: () -> Unit,
     onPlaybackEnded: () -> Unit = {},
@@ -198,6 +204,12 @@ fun VideoPlayerScreenContent(
         val playingListener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
+                if (
+                    !playing &&
+                    exoPlayer.playbackState == Player.STATE_READY
+                ) {
+                    videoPlayerState.showControls(isPlaying = false)
+                }
             }
         }
         exoPlayer.addListener(playingListener)
@@ -205,7 +217,36 @@ fun VideoPlayerScreenContent(
         onDispose { exoPlayer.removeListener(playingListener) }
     }
 
-    LaunchedEffect(exoPlayer, streamUrl, playback, initialTimeMs) {
+    LaunchedEffect(exoPlayer, subtitles) {
+        if (subtitles.isEmpty()) return@LaunchedEffect
+        val listener = object : Player.Listener {
+            override fun onTracksChanged(tracks: Tracks) {
+                val options = VideoPlayerTrackHelper.readSubtitleTracks(exoPlayer)
+                if (options.isEmpty()) return
+                if (
+                    !VideoPlayerTrackHelper.isSubtitlesOff(exoPlayer) &&
+                    VideoPlayerTrackHelper.selectedSubtitleId(exoPlayer, options) != null
+                ) {
+                    return
+                }
+                val preferredLanguage = subtitles.firstOrNull { it.isDefault }?.language
+                    ?: subtitles.firstOrNull()?.language
+                val match = options.firstOrNull { option ->
+                    preferredLanguage != null &&
+                        option.label.contains(preferredLanguage, ignoreCase = true)
+                } ?: options.firstOrNull()
+                match?.let { VideoPlayerTrackHelper.selectSubtitle(exoPlayer, it) }
+            }
+        }
+        exoPlayer.addListener(listener)
+        try {
+            awaitCancellation()
+        } finally {
+            exoPlayer.removeListener(listener)
+        }
+    }
+
+    LaunchedEffect(exoPlayer, streamUrl, playback, initialTimeMs, subtitles) {
         exoPlayer.clearMediaItems()
         if (streamUrl.isNotBlank()) {
             exoPlayer.setMediaItem(
@@ -213,6 +254,7 @@ fun VideoPlayerScreenContent(
                     streamUrl = streamUrl,
                     playback = playback,
                     subtitleUri = movieDetails.subtitleUri,
+                    subtitles = subtitles,
                 ),
             )
             exoPlayer.prepare()
@@ -233,38 +275,55 @@ fun VideoPlayerScreenContent(
 
     val feedbackState = rememberVideoPlayerFeedbackState()
     val holdSeekState = remember { VideoPlayerHoldSeekState() }
-    val settingsPills = rememberPlayerSettingsPillLabels(exoPlayer)
+
+    LaunchedEffect(holdSeekState.isActive, settingsDialog, videoPlayerState.isControlsVisible) {
+        val holding = settingsDialog != VideoPlayerSettingsDialog.None ||
+            (holdSeekState.isActive && videoPlayerState.isControlsVisible)
+        if (!holding) return@LaunchedEffect
+        videoPlayerState.holdControlsVisible()
+        try {
+            awaitCancellation()
+        } finally {
+            videoPlayerState.releaseControlsHold()
+        }
+    }
+    var qualityPillOverride by remember { mutableStateOf<String?>(null) }
+    val settingsPills = rememberPlayerSettingsPillLabels(exoPlayer, qualityPillOverride)
     val bunnyVideoId = playback?.bunnyVideoId
     val bunnyCdnZone = playback?.bunnyCdnZone
     var durationSeconds by remember { mutableDoubleStateOf(0.0) }
 
     val startHoldSeek: (NetflixSeekDirection) -> Unit = { direction ->
         feedbackState.clear()
-        videoPlayerState.showControls(isPlaying = isPlaying)
+        if (videoPlayerState.isControlsVisible) {
+            videoPlayerState.showControls(isPlaying = isPlaying)
+        }
         holdSeekState.begin(direction, exoPlayer)
         isPlaying = false
     }
     val commitHoldSeek: () -> Unit = {
         holdSeekState.commit(exoPlayer)
-        isPlaying = exoPlayer.isPlaying
+        isPlaying = exoPlayer.playWhenReady
     }
     val cancelHoldSeek: () -> Unit = {
         holdSeekState.cancel(exoPlayer)
-        isPlaying = exoPlayer.isPlaying
+        isPlaying = exoPlayer.playWhenReady
     }
     val bumpSeekSpeed: (NetflixSeekDirection) -> Unit = { direction ->
         holdSeekState.bumpSpeed(direction)
     }
     val tapSeekChromeless: (NetflixSeekDirection) -> Unit = { direction ->
         tapSeekBy(exoPlayer, direction, CHROMELESS_SEEK_SECONDS * 1000L)
-        feedbackState.triggerSeek(direction)
+        feedbackState.completeTapSeek(exoPlayer.currentPosition, direction)
     }
     val tapSeekBar: (NetflixSeekDirection) -> Unit = { direction ->
         tapSeekBy(exoPlayer, direction, 10_000L)
     }
 
-    LaunchedEffect(holdSeekState.isActive, holdSeekState.speed) {
+    LaunchedEffect(holdSeekState.isActive) {
+        if (!holdSeekState.isActive) return@LaunchedEffect
         while (isActive && holdSeekState.isActive) {
+            holdSeekState.syncAutoSpeed()
             val durationMs = exoPlayer.duration.coerceAtLeast(0L)
             val intervalMs = when (holdSeekState.speed) {
                 5 -> 50L
@@ -382,27 +441,31 @@ fun VideoPlayerScreenContent(
                 onCommit = commitHoldSeek,
                 onCancel = cancelHoldSeek,
                 onBumpSpeed = bumpSeekSpeed,
+                onSeekKeyDown = feedbackState::onSeekKeyDown,
+                onSeekKeyUp = { feedbackState.onSeekKeyReleased() },
+                onInteraction = { videoPlayerState.notifyInteraction(isPlaying) },
             )
             .chromelessNavigationKeys(
                 videoPlayerState = videoPlayerState,
                 holdSeekState = holdSeekState,
                 isBuffering = isBuffering,
+                isPlaying = isPlaying,
                 onPlayPauseToggle = {
-                    if (isPlaying) {
-                        exoPlayer.pause()
-                    } else {
+                    val shouldPlay = !exoPlayer.isPlaying
+                    if (shouldPlay) {
                         exoPlayer.playWhenReady = true
                         exoPlayer.play()
+                        videoPlayerState.notifyInteraction(isPlaying = true)
+                    } else {
+                        exoPlayer.pause()
+                        videoPlayerState.showControls(isPlaying = false)
                     }
-                    isPlaying = !isPlaying
-                    if (videoPlayerState.isControlsVisible) {
-                        videoPlayerState.showControls(isPlaying = isPlaying)
-                    } else if (!isBuffering) {
+                    if (!videoPlayerState.isControlsVisible && !isBuffering) {
                         feedbackState.triggerPlayPause(
-                            if (isPlaying) {
-                                TransientPlayPauseIcon.Play
-                            } else {
+                            if (shouldPlay) {
                                 TransientPlayPauseIcon.Pause
+                            } else {
+                                TransientPlayPauseIcon.Play
                             },
                         )
                     }
@@ -420,6 +483,12 @@ fun VideoPlayerScreenContent(
                 )
         )
 
+        VideoPlayerSubtitles(
+            player = exoPlayer,
+            controlsVisible = videoPlayerState.isControlsVisible,
+            modifier = Modifier.fillMaxSize(),
+        )
+
         if (isBuffering) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -429,20 +498,12 @@ fun VideoPlayerScreenContent(
             }
         }
 
-        if (!videoPlayerState.isControlsVisible && !isBuffering && !holdSeekState.isActive) {
+        if (!videoPlayerState.isControlsVisible && !isBuffering) {
             VideoPlayerChromelessFeedback(
                 state = feedbackState,
                 modifier = Modifier.fillMaxSize(),
             )
         }
-
-        VideoPlayerSeekOverlay(
-            holdSeekState = holdSeekState,
-            durationSeconds = durationSeconds,
-            bunnyVideoId = bunnyVideoId,
-            bunnyCdnZone = bunnyCdnZone,
-            modifier = Modifier.fillMaxSize(),
-        )
 
         VideoPlayerOverlay(
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -483,8 +544,8 @@ fun VideoPlayerScreenContent(
                                 color = Color.White,
                                 fontFamily = BrewTitle,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 30.sp,
-                                letterSpacing = (-0.8).sp,
+                                fontSize = 22.sp,
+                                letterSpacing = (-0.6).sp,
                             )
                             val subtitleText = buildString {
                                 movieDetails.releaseYear.takeIf { it.isNotBlank() }?.let { append(it) }
@@ -498,22 +559,22 @@ fun VideoPlayerScreenContent(
                             if (subtitleText.isNotBlank()) {
                                 Text(
                                     text = subtitleText,
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = Color.White,
                                     fontFamily = BrewTitle,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(top = 4.dp)
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(top = 3.dp)
                                 )
                             }
                         }
                         Image(
                             painter = painterResource(R.drawable.brew_logo),
                             contentDescription = "Brew",
-                            modifier = Modifier.size(52.dp),
+                            modifier = Modifier.size(36.dp),
                         )
                     }
                 }
             },
-            subtitles = { /* TODO Implement subtitles */ },
+            subtitles = { /* cues rendered in VideoPlayerSubtitles overlay */ },
             showControls = videoPlayerState::showControls,
             controls = {
                 Column(
@@ -526,7 +587,13 @@ fun VideoPlayerScreenContent(
                         playback = playback,
                         focusRequester = seekFocusRequester,
                         holdSeekState = holdSeekState,
-                        onShowControls = { videoPlayerState.showControls(isPlaying) },
+                        durationSeconds = durationSeconds,
+                        feedbackState = feedbackState,
+                        videoPlayerState = videoPlayerState,
+                        isPlaying = isPlaying,
+                        onShowControls = { playing ->
+                            videoPlayerState.showControls(playing)
+                        },
                         onDismissControls = hidePlayerChrome,
                         onStartHoldSeek = startHoldSeek,
                         onTapSeek = tapSeekBar,
@@ -561,6 +628,7 @@ fun VideoPlayerScreenContent(
             dialog = settingsDialog,
             player = exoPlayer,
             onDismiss = dismissSettingsDialog,
+            onQualityLabelChange = { qualityPillOverride = it },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -592,10 +660,17 @@ private fun Modifier.chromelessNavigationKeys(
     videoPlayerState: VideoPlayerState,
     holdSeekState: VideoPlayerHoldSeekState,
     isBuffering: Boolean,
+    isPlaying: Boolean,
     onPlayPauseToggle: () -> Unit,
 ): Modifier = this.handleDPadKeyEvents(
-    onUp = { videoPlayerState.showControls() },
-    onDown = { videoPlayerState.showControls() },
+    onUp = {
+        videoPlayerState.showControls(isPlaying = isPlaying)
+        videoPlayerState.notifyInteraction(isPlaying)
+    },
+    onDown = {
+        videoPlayerState.showControls(isPlaying = isPlaying)
+        videoPlayerState.notifyInteraction(isPlaying)
+    },
     onEnter = {
         if (!videoPlayerState.isControlsVisible && !isBuffering && !holdSeekState.isActive) {
             onPlayPauseToggle()

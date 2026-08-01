@@ -19,12 +19,15 @@ package com.google.jetstream.presentation.screens.videoPlayer.components
 import androidx.annotation.OptIn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -40,9 +43,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Icon
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import kotlin.time.Duration.Companion.milliseconds
@@ -52,7 +57,6 @@ import com.google.jetstream.R
 import com.google.jetstream.presentation.utils.handleHoldSeekKeyEvents
 
 private val BrewAccentYellow = Color(0xFFFFC15E)
-private const val TAP_SEEK_MS = 10_000L
 private const val POSITION_TICK_MS = 50L
 
 @OptIn(UnstableApi::class)
@@ -63,18 +67,25 @@ fun VideoPlayerSeeker(
     holdSeekState: VideoPlayerHoldSeekState,
     modifier: Modifier = Modifier,
     progressColor: Color = BrewAccentYellow,
-    onShowControls: () -> Unit = {},
+    durationSeconds: Double = 0.0,
+    bunnyVideoId: String? = null,
+    bunnyCdnZone: String? = null,
+    feedbackState: VideoPlayerFeedbackState? = null,
+    onShowControls: (isPlaying: Boolean) -> Unit = {},
     onDismissControls: () -> Unit = {},
     onStartHoldSeek: (NetflixSeekDirection) -> Unit = {},
     onTapSeek: (NetflixSeekDirection) -> Unit = {},
     onCommitHoldSeek: () -> Unit = {},
     onCancelHoldSeek: () -> Unit = {},
     onBumpSeekSpeed: (NetflixSeekDirection) -> Unit = {},
+    onInteraction: () -> Unit = {},
 ) {
     val contentDuration = player.contentDuration.milliseconds
     val durationMs = contentDuration.inWholeMilliseconds
 
-    var currentPositionMs by remember(player) { mutableLongStateOf(0L) }
+    var currentPositionMs by remember(player) {
+        mutableLongStateOf(player.currentPosition.coerceAtLeast(0L))
+    }
     var isSeekBarFocused by remember { mutableStateOf(false) }
     var isPlaying by remember(player) { mutableStateOf(player.isPlaying) }
 
@@ -88,22 +99,22 @@ fun VideoPlayerSeeker(
         }
         player.addListener(listener)
         isPlaying = player.isPlaying
+        currentPositionMs = player.currentPosition.coerceAtLeast(0L)
         onDispose { player.removeListener(listener) }
     }
 
     LaunchedEffect(player, holdSeekState.isActive) {
         while (isActive) {
-            if (!holdSeekState.isActive && player.isPlaying) {
-                currentPositionMs = player.currentPosition
+            if (!holdSeekState.isActive) {
+                currentPositionMs = player.currentPosition.coerceAtLeast(0L)
             }
             delay(POSITION_TICK_MS)
         }
     }
 
-    val displayPositionMs = if (holdSeekState.isActive) {
-        holdSeekState.positionMs
-    } else {
-        currentPositionMs
+    val displayPositionMs = when {
+        holdSeekState.isActive -> holdSeekState.positionMs
+        else -> currentPositionMs
     }
     val targetProgress = if (durationMs > 0) {
         displayPositionMs.toFloat() / durationMs
@@ -116,6 +127,10 @@ fun VideoPlayerSeeker(
         label = "seekProgress",
     )
 
+    val showThumbPreview = holdSeekState.isActive
+
+    val previewTimeSeconds = displayPositionMs / 1000.0
+
     val timeLabel = formatTimeRemaining(
         currentMs = displayPositionMs,
         durationMs = durationMs,
@@ -126,29 +141,40 @@ fun VideoPlayerSeeker(
         holdSeekState = holdSeekState,
         enabled = { durationMs > 0L },
         onStartHold = { direction ->
-            onShowControls()
+            onShowControls(player.isPlaying)
             onStartHoldSeek(direction)
         },
         onTapSeek = { direction ->
-            onShowControls()
+            onShowControls(player.isPlaying)
             onTapSeek(direction)
         },
         onCommit = onCommitHoldSeek,
         onCancel = onCancelHoldSeek,
         onBumpSpeed = onBumpSeekSpeed,
+        onSeekKeyDown = { direction -> feedbackState?.onSeekKeyDown(direction) },
+        onSeekKeyUp = { feedbackState?.onSeekKeyReleased() },
+        onInteraction = onInteraction,
     )
 
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { clip = false },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        VideoPlayerPlayPauseIcon(
-            isPlaying = isPlaying,
-            highlighted = isSeekBarFocused,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            VideoPlayerPlayPauseIcon(
+                isPlaying = isPlaying,
+                highlighted = isSeekBarFocused || holdSeekState.isActive,
+                controlsChromeVisible = true,
+            )
 
-        VideoPlayerControllerText(text = currentLabel, isRemaining = false)
+            VideoPlayerControllerText(text = currentLabel, isRemaining = false)
+        }
 
         VideoPlayerControllerIndicator(
             modifier = Modifier
@@ -158,53 +184,101 @@ fun VideoPlayerSeeker(
             onPlayPauseToggle = {
                 if (holdSeekState.isActive) {
                     onCommitHoldSeek()
-                } else if (isPlaying) {
+                    isPlaying = player.playWhenReady
+                } else if (player.isPlaying) {
                     player.pause()
-                    isPlaying = false
+                    onShowControls(false)
                 } else {
+                    player.playWhenReady = true
                     player.play()
-                    isPlaying = true
+                    onInteraction()
                 }
             },
-            onShowControls = onShowControls,
+            onShowControls = { onShowControls(player.isPlaying) },
             onDismissControls = onDismissControls,
             onFocusChanged = { isSeekBarFocused = it },
             progressColor = progressColor,
+            showThumbPreview = showThumbPreview,
+            isSeeking = holdSeekState.isActive,
+            previewTimeSeconds = previewTimeSeconds,
+            durationSeconds = durationSeconds,
+            bunnyVideoId = bunnyVideoId,
+            bunnyCdnZone = bunnyCdnZone,
         )
 
         VideoPlayerControllerText(text = timeLabel, isRemaining = true)
     }
 }
 
+private val PlayPauseSlotSize = 48.dp
+
 @Composable
 fun VideoPlayerPlayPauseIcon(
     isPlaying: Boolean,
     highlighted: Boolean = false,
+    controlsChromeVisible: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val backgroundColor = if (highlighted) Color.White else Color.White.copy(alpha = 0.15f)
-    val iconTint = if (highlighted) Color.Black else Color.White
+    val iconSize = if (highlighted) 22.dp else 20.dp
+    val scale by animateFloatAsState(
+        targetValue = if (highlighted) 1.1f else 1f,
+        animationSpec = tween(durationMillis = 200),
+        label = "playPauseScale",
+    )
+    val iconTint = when {
+        !controlsChromeVisible -> Color.Black
+        highlighted -> Color.Black
+        else -> Color.White
+    }
 
-    Box(
-        modifier = modifier
-            .size(48.dp)
-            .background(backgroundColor, CircleShape)
-            .then(
-                if (highlighted) {
-                    Modifier.border(2.dp, Color.White, CircleShape)
-                } else {
-                    Modifier
+    if (controlsChromeVisible) {
+        val backgroundColor = if (highlighted) {
+            Color.White
+        } else {
+            Color.White.copy(alpha = 0.05f)
+        }
+        Box(
+            modifier = modifier
+                .size(PlayPauseSlotSize)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
                 },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(backgroundColor, CircleShape)
+                    .then(
+                        if (highlighted) {
+                            Modifier.border(2.dp, Color.White, CircleShape)
+                        } else {
+                            Modifier
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(
+                        if (isPlaying) R.drawable.ic_brew_pause else R.drawable.ic_brew_play,
+                    ),
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(iconTint),
+                    modifier = Modifier.size(iconSize),
+                )
+            }
+        }
+    } else {
+        Image(
             painter = painterResource(
-                if (isPlaying) R.drawable.ic_lucide_circle_pause else R.drawable.ic_lucide_play_circle,
+                if (isPlaying) R.drawable.ic_brew_pause else R.drawable.ic_brew_play,
             ),
             contentDescription = if (isPlaying) "Pause" else "Play",
-            tint = iconTint,
-            modifier = Modifier.size(24.dp),
+            contentScale = ContentScale.Fit,
+            colorFilter = ColorFilter.tint(Color.Black),
+            modifier = modifier.size(40.dp),
         )
     }
 }

@@ -7,8 +7,8 @@ import com.google.jetstream.presentation.screens.videoPlayer.components.NetflixS
 import com.google.jetstream.presentation.screens.videoPlayer.components.VideoPlayerHoldSeekState
 
 /**
- * TV hold-to-seek keys — tap skips once; hold keeps seeking until OK commits or Back cancels.
- * Same direction while seeking bumps speed (1x → 2x → 5x); opposite direction lowers it.
+ * TV hold-to-seek keys — tap skips once; hold keeps seeking until release/OK commits or Back cancels.
+ * Speed ramps automatically (1x → 2x → 5x) while held; repeated presses can bump faster.
  */
 fun Modifier.handleHoldSeekKeyEvents(
     holdSeekState: VideoPlayerHoldSeekState,
@@ -18,6 +18,9 @@ fun Modifier.handleHoldSeekKeyEvents(
     onCommit: () -> Unit,
     onCancel: () -> Unit,
     onBumpSpeed: (NetflixSeekDirection) -> Unit,
+    onSeekKeyDown: (NetflixSeekDirection) -> Unit = {},
+    onSeekKeyUp: (NetflixSeekDirection) -> Unit = {},
+    onInteraction: () -> Unit = {},
 ): Modifier = onPreviewKeyEvent { event ->
     if (!enabled()) return@onPreviewKeyEvent false
     val native = event.nativeKeyEvent
@@ -51,6 +54,10 @@ fun Modifier.handleHoldSeekKeyEvents(
             onStartHold = onStartHold,
             onTapSeek = onTapSeek,
             onBumpSpeed = onBumpSpeed,
+            onCommit = onCommit,
+            onSeekKeyDown = onSeekKeyDown,
+            onSeekKeyUp = onSeekKeyUp,
+            onInteraction = onInteraction,
         )
         KeyEvent.KEYCODE_DPAD_RIGHT,
         KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT,
@@ -61,6 +68,10 @@ fun Modifier.handleHoldSeekKeyEvents(
             onStartHold = onStartHold,
             onTapSeek = onTapSeek,
             onBumpSpeed = onBumpSpeed,
+            onCommit = onCommit,
+            onSeekKeyDown = onSeekKeyDown,
+            onSeekKeyUp = onSeekKeyUp,
+            onInteraction = onInteraction,
         )
         else -> false
     }
@@ -73,14 +84,20 @@ private fun handleHorizontalSeekKey(
     onStartHold: (NetflixSeekDirection) -> Unit,
     onTapSeek: (NetflixSeekDirection) -> Unit,
     onBumpSpeed: (NetflixSeekDirection) -> Unit,
+    onCommit: () -> Unit,
+    onSeekKeyDown: (NetflixSeekDirection) -> Unit,
+    onSeekKeyUp: (NetflixSeekDirection) -> Unit,
+    onInteraction: () -> Unit,
 ): Boolean {
     val native = event.nativeKeyEvent
     when (native.action) {
         KeyEvent.ACTION_DOWN -> {
+            onInteraction()
             if (holdSeekState.isActive) {
                 onBumpSpeed(direction)
                 return true
             }
+            onSeekKeyDown(direction)
             if (native.repeatCount >= 1) {
                 holdSeekState.clearPendingTap()
                 onStartHold(direction)
@@ -90,7 +107,9 @@ private fun handleHorizontalSeekKey(
             return true
         }
         KeyEvent.ACTION_UP -> {
+            onSeekKeyUp(direction)
             if (holdSeekState.isActive) {
+                onCommit()
                 return true
             }
             if (holdSeekState.pendingTapDirection == direction) {

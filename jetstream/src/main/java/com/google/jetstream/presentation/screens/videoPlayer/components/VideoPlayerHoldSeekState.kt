@@ -30,6 +30,9 @@ class VideoPlayerHoldSeekState {
     var pendingTapDirection by mutableStateOf<NetflixSeekDirection?>(null)
         private set
 
+    private var holdStartedAtMs = 0L
+    private var manualSpeedFloor = 1
+
     fun clearPendingTap() {
         pendingTapDirection = null
     }
@@ -46,9 +49,23 @@ class VideoPlayerHoldSeekState {
         anchorMs = current
         positionMs = current
         speed = 1
-        wasPlaying = player.isPlaying
+        manualSpeedFloor = 1
+        holdStartedAtMs = System.currentTimeMillis()
+        wasPlaying = player.playWhenReady
         player.pause()
         player.playWhenReady = false
+    }
+
+    /** Ramp 1x → 2x → 5x automatically while the seek key stays held. */
+    fun syncAutoSpeed() {
+        if (!isActive) return
+        val elapsedMs = (System.currentTimeMillis() - holdStartedAtMs).coerceAtLeast(0L)
+        val autoSpeed = when {
+            elapsedMs >= 2_800 -> 5
+            elapsedMs >= 1_400 -> 2
+            else -> 1
+        }
+        speed = maxOf(autoSpeed, manualSpeedFloor)
     }
 
     fun bumpSpeed(inputDirection: NetflixSeekDirection) {
@@ -59,7 +76,7 @@ class VideoPlayerHoldSeekState {
             !seekingForward && inputDirection == NetflixSeekDirection.Back -> true
             else -> false
         }
-        speed = when {
+        val bumped = when {
             increasing -> when (speed) {
                 1 -> 2
                 2 -> 5
@@ -71,6 +88,8 @@ class VideoPlayerHoldSeekState {
                 else -> 1
             }
         }
+        manualSpeedFloor = bumped
+        speed = bumped
     }
 
     /** @return false when a boundary was hit and seeking should stop. */
@@ -93,25 +112,33 @@ class VideoPlayerHoldSeekState {
 
     fun commit(player: Player) {
         if (!isActive) return
-        player.seekTo(positionMs)
-        if (wasPlaying) {
+        val resume = wasPlaying
+        val targetMs = positionMs
+        reset()
+        player.seekTo(targetMs)
+        if (resume) {
+            player.playWhenReady = true
             player.play()
         }
-        reset()
     }
 
     fun cancel(player: Player) {
         if (!isActive) return
-        player.seekTo(anchorMs)
-        if (wasPlaying) {
+        val resume = wasPlaying
+        val targetMs = anchorMs
+        reset()
+        player.seekTo(targetMs)
+        if (resume) {
+            player.playWhenReady = true
             player.play()
         }
-        reset()
     }
 
     fun reset() {
         isActive = false
         direction = null
         speed = 1
+        manualSpeedFloor = 1
+        holdStartedAtMs = 0L
     }
 }

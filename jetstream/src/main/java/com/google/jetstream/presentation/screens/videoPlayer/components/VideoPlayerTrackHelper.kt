@@ -78,36 +78,20 @@ object VideoPlayerTrackHelper {
     }
 
     fun autoQualityLabel(player: Player, options: List<QualityTrackOption>): String {
-        val currentHeight = currentVideoHeight(player, options)
-        return if (currentHeight != null) {
-            "Auto (${qualityBadgeName(currentHeight)})"
+        val playingHeight = selectedVideoHeight(player)
+        return if (playingHeight != null && playingHeight > 0) {
+            "Auto-${resolutionLabel(playingHeight)}"
         } else {
-            "Auto (Adaptive)"
+            "Auto"
         }
     }
 
-    private fun currentVideoHeight(player: Player, options: List<QualityTrackOption>): Int? {
-        player.currentTracks.groups.forEach { groupInfo ->
-            if (groupInfo.type != C.TRACK_TYPE_VIDEO) return@forEach
-            for (index in 0 until groupInfo.length) {
-                if (!groupInfo.isTrackSelected(index)) continue
-                val height = groupInfo.mediaTrackGroup.getFormat(index).height
-                if (height > 0) return height
-            }
-        }
-        return selectedQualityHeight(player, options)
-    }
+    private fun currentVideoHeight(player: Player, options: List<QualityTrackOption>): Int? =
+        selectedVideoHeight(player) ?: selectedQualityHeight(player, options)
 
-    fun qualityDisplayLabel(height: Int): String = "${height}p (${qualityBadgeName(height)})"
+    fun qualityDisplayLabel(height: Int): String = resolutionLabel(height)
 
-    private fun qualityBadgeName(height: Int): String = when {
-        height >= 2160 -> "4K UHD"
-        height >= 1440 -> "QHD"
-        height >= 1080 -> "HD"
-        height >= 720 -> "HD"
-        height >= 480 -> "SD"
-        else -> "Low"
-    }
+    private fun resolutionLabel(height: Int): String = "${height}p"
 
     fun speedPillLabel(player: Player): String {
         val speed = player.playbackParameters.speed
@@ -127,16 +111,35 @@ object VideoPlayerTrackHelper {
 
     fun qualityPillLabel(player: Player): String {
         val options = readQualityTracks(player)
-        val selectedHeight = selectedQualityHeight(player, options)
-        if (selectedHeight == null) {
-            val currentHeight = currentVideoHeight(player, options)
-            return if (currentHeight != null) {
-                qualityBadgeName(currentHeight)
-            } else {
-                "Auto"
+        val maxHeight = player.trackSelectionParameters.maxVideoHeight
+        val isAuto = maxHeight == Int.MAX_VALUE || maxHeight <= 0
+
+        if (!isAuto) {
+            val cappedHeight = options.firstOrNull { it.height == maxHeight }?.height
+                ?: options.minByOrNull { kotlin.math.abs(it.height - maxHeight) }?.height
+                ?: maxHeight
+            return resolutionLabel(cappedHeight)
+        }
+
+        val playingHeight = selectedVideoHeight(player)
+        return if (playingHeight != null && playingHeight > 0) {
+            "Auto-${resolutionLabel(playingHeight)}"
+        } else {
+            "Auto"
+        }
+    }
+
+    private fun selectedVideoHeight(player: Player): Int? {
+        player.currentTracks.groups.forEach { groupInfo ->
+            if (groupInfo.type != C.TRACK_TYPE_VIDEO) return@forEach
+            for (index in 0 until groupInfo.length) {
+                if (!groupInfo.isTrackSelected(index)) continue
+                val height = groupInfo.mediaTrackGroup.getFormat(index).height
+                if (height > 0) return height
             }
         }
-        return qualityBadgeName(selectedHeight)
+        val renderedHeight = player.videoSize.height
+        return renderedHeight.takeIf { it > 0 }
     }
 
     fun isSubtitlesOff(player: Player): Boolean {

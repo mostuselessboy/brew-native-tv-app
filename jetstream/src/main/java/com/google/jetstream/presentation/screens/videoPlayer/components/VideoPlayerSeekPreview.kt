@@ -1,5 +1,10 @@
 package com.google.jetstream.presentation.screens.videoPlayer.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -28,12 +35,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.jetstream.R
+import com.google.jetstream.data.util.BrewTrailerUrl
 import com.google.jetstream.data.util.SeekSpritePreview
 import com.google.jetstream.presentation.theme.BrewTitle
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +50,100 @@ private const val STRIP_FRAME_COUNT = 7
 private const val STRIP_TIME_STEP_SECONDS = 10.0
 private val SideFrameMaxWidthPx = 168
 private val CenterFrameMaxWidthPx = 280
+private val PreviewCardBg = Color(0xFF0A0A0A)
+private val PreviewImageBg = Color(0xFF050505)
+
+private fun spriteImageRequest(context: android.content.Context, url: String): ImageRequest =
+    ImageRequest.Builder(context)
+        .data(url)
+        .addHeader("Referer", BrewTrailerUrl.REFERER)
+        .addHeader("Origin", BrewTrailerUrl.ORIGIN)
+        .crossfade(false)
+        .build()
+
+@Composable
+fun SeekThumbPreview(
+    preview: SeekSpritePreview.FramePreview,
+    timeSeconds: Double,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+
+    LaunchedEffect(preview.spriteIndex, preview.spriteUrl) {
+        val base = preview.spriteUrl.substringBeforeLast("/seek/")
+        (-1..2).forEach { offset ->
+            val index = preview.spriteIndex + offset
+            if (index < 0) return@forEach
+            val url = "$base/seek/_$index.jpg?width=480"
+            context.imageLoader.enqueue(spriteImageRequest(context, url))
+        }
+    }
+
+    val previewWidthDp = with(density) { preview.previewWidth.toDp() }
+    val previewHeightDp = with(density) { preview.previewHeight.toDp() }
+    val cardShape = RoundedCornerShape(10.dp)
+    val imageShape = RoundedCornerShape(6.dp)
+
+    Column(
+        modifier = modifier
+            .width(previewWidthDp + 12.dp)
+            .clip(cardShape)
+            .background(PreviewCardBg)
+            .border(1.dp, Color.White.copy(alpha = 0.1f), cardShape)
+            .padding(horizontal = 6.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(previewHeightDp)
+                .clip(imageShape)
+                .background(PreviewImageBg),
+        ) {
+            SpriteFrameImage(
+                preview = preview,
+                cornerRadius = 6.dp,
+            )
+        }
+        Text(
+            text = formatSeekTimestamp(timeSeconds),
+            color = Color.White.copy(alpha = 0.92f),
+            fontFamily = BrewTitle,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
+        )
+    }
+}
+
+@Composable
+fun SeekThumbPreview(
+    timeSeconds: Double,
+    durationSeconds: Double,
+    bunnyVideoId: String?,
+    bunnyCdnZone: String?,
+    modifier: Modifier = Modifier,
+) {
+    val videoId = SeekSpritePreview.normalizeVideoId(bunnyVideoId)
+    val cdnZone = bunnyCdnZone?.trim().orEmpty()
+    if (videoId.isBlank() || durationSeconds <= 0) return
+
+    val preview = remember(timeSeconds, durationSeconds, videoId, cdnZone) {
+        SeekSpritePreview.framePreview(
+            timeSeconds = timeSeconds,
+            durationSeconds = durationSeconds,
+            videoId = videoId,
+            cdnZone = cdnZone,
+        )
+    } ?: return
+
+    SeekThumbPreview(
+        preview = preview,
+        timeSeconds = timeSeconds,
+        modifier = modifier,
+    )
+}
 
 @Composable
 fun WarmSeekSpritesEffect(
@@ -64,11 +165,7 @@ fun WarmSeekSpritesEffect(
         )
         withContext(Dispatchers.IO) {
             urls.forEach { url ->
-                context.imageLoader.enqueue(
-                    ImageRequest.Builder(context)
-                        .data(url)
-                        .build(),
-                )
+                context.imageLoader.enqueue(spriteImageRequest(context, url))
             }
         }
     }
@@ -140,32 +237,9 @@ private fun SeekPreviewFrame(
             videoId = videoId,
             cdnZone = cdnZone,
             maxPreviewWidthPx = maxPreviewWidthPx,
-            maxPreviewHeightPx = if (isCenter) 168 else 118,
+            maxPreviewHeightPx = if (isCenter) 110 else 80,
         )
     } ?: return
-
-    val context = LocalContext.current
-    val density = LocalDensity.current
-
-    LaunchedEffect(preview.spriteIndex, videoId, cdnZone) {
-        (-2..3).forEach { offset ->
-            val index = preview.spriteIndex + offset
-            if (index < 0) return@forEach
-            val url = SeekSpritePreview.spriteUrl(cdnZone, videoId, index)
-            context.imageLoader.enqueue(ImageRequest.Builder(context).data(url).build())
-        }
-    }
-
-    val previewWidthDp = with(density) { preview.previewWidth.toDp() }
-    val previewHeightDp = with(density) { preview.previewHeight.toDp() }
-    val spriteWidthDp = with(density) {
-        (preview.frameWidth * preview.scale * SeekSpritePreview.SPRITE_COLUMNS).toDp()
-    }
-    val spriteHeightDp = with(density) {
-        (preview.frameHeight * preview.scale * SeekSpritePreview.SPRITE_ROWS).toDp()
-    }
-    val offsetXDp = with(density) { preview.offsetX.toDp() }
-    val offsetYDp = with(density) { preview.offsetY.toDp() }
 
     val cornerRadius = if (isCenter) 14.dp else 10.dp
     val borderWidth = if (isCenter) 3.dp else 2.dp
@@ -179,13 +253,7 @@ private fun SeekPreviewFrame(
                 .background(Color.Black),
         ) {
             SpriteFrameImage(
-                spriteUrl = preview.spriteUrl,
-                previewWidth = previewWidthDp,
-                previewHeight = previewHeightDp,
-                spriteWidth = spriteWidthDp,
-                spriteHeight = spriteHeightDp,
-                offsetX = offsetXDp,
-                offsetY = offsetYDp,
+                preview = preview,
                 cornerRadius = cornerRadius,
             )
 
@@ -226,17 +294,17 @@ private fun SeekSpeedBadge(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
+        Image(
             painter = painterResource(
                 if (direction == NetflixSeekDirection.Forward) {
-                    R.drawable.ic_lucide_fast_forward
+                    R.drawable.ic_brew_skip_forward
                 } else {
-                    R.drawable.ic_lucide_rewind
+                    R.drawable.ic_brew_skip_back
                 },
             ),
             contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(18.dp),
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(22.dp),
         )
         Text(
             text = "${speed}x",
@@ -250,19 +318,17 @@ private fun SeekSpeedBadge(
 
 @Composable
 private fun SpriteFrameImage(
-    spriteUrl: String,
-    previewWidth: Dp,
-    previewHeight: Dp,
-    spriteWidth: Dp,
-    spriteHeight: Dp,
-    offsetX: Dp,
-    offsetY: Dp,
+    preview: SeekSpritePreview.FramePreview,
     cornerRadius: Dp,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val spriteWidthPx = with(density) { spriteWidth.roundToPx() }
-    val spriteHeightPx = with(density) { spriteHeight.roundToPx() }
+    val previewWidth = with(density) { preview.previewWidth.toDp() }
+    val previewHeight = with(density) { preview.previewHeight.toDp() }
+    val sheetWidth = with(density) { (preview.sheetWidth * preview.scale).toDp() }
+    val sheetHeight = with(density) { (preview.sheetHeight * preview.scale).toDp() }
+    val offsetX = with(density) { preview.offsetX.toDp() }
+    val offsetY = with(density) { preview.offsetY.toDp() }
 
     Box(
         modifier = Modifier
@@ -271,16 +337,12 @@ private fun SpriteFrameImage(
             .clip(RoundedCornerShape(cornerRadius)),
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(spriteUrl)
-                .size(spriteWidthPx, spriteHeightPx)
-                .crossfade(false)
-                .build(),
+            model = spriteImageRequest(context, preview.spriteUrl),
             contentDescription = null,
             contentScale = ContentScale.None,
             modifier = Modifier
-                .width(spriteWidth)
-                .height(spriteHeight)
+                .width(sheetWidth)
+                .height(sheetHeight)
                 .offset(x = offsetX, y = offsetY),
         )
     }

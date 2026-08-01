@@ -74,5 +74,12 @@ interface BrewApiService {
         @Path("id") id: String,
         @Query("lang") lang: String = "en",
     ): BrewCastMemberProfileResponse
+
+    @GET("api/v1/vod/get-campaign-subtitles/{slug}")
+    suspend fun getCampaignSubtitles(
+        @Path("slug") slug: String,
+        @Query("season") season: Int? = null,
+        @Query("episode") episode: Int? = null,
+    ): BrewCampaignSubtitlesResponse
 }
 

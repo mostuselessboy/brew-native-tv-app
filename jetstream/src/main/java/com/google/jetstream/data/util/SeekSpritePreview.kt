@@ -2,16 +2,22 @@ package com.google.jetstream.data.util
 
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.round
 
-/** Bunny seek sprite sheets — mirrors mobile-viewer `seekSpritePrefetch.ts`. */
+/** Bunny seek sprite sheets — mirrors tv-app `calculateSpriteInfo` / mobile `seekSpritePrefetch`. */
 object SeekSpritePreview {
 
     const val SPRITE_COLUMNS = 6
     const val SPRITE_ROWS = 6
     const val SPRITE_FRAMES = SPRITE_COLUMNS * SPRITE_ROWS
-    const val DEFAULT_SPRITE_WIDTH = 960
-    const val DEFAULT_SPRITE_HEIGHT = 540
-    const val MAX_PREVIEW_WIDTH_PX = 200
+
+    /** Sprite sheet pixel size when loaded via `?width=480` CDN param. */
+    const val CDN_SPRITE_WIDTH = 480
+    const val CDN_SPRITE_HEIGHT = 270
+
+    const val DEFAULT_PREVIEW_WIDTH_PX = 280
+    const val DEFAULT_PREVIEW_HEIGHT_PX = 176
 
     fun normalizeVideoId(raw: String?): String =
         raw.orEmpty().trim().removePrefix("/")
@@ -55,8 +61,8 @@ object SeekSpritePreview {
         val spriteIndex: Int,
         val offsetX: Float,
         val offsetY: Float,
-        val frameWidth: Float,
-        val frameHeight: Float,
+        val sheetWidth: Float,
+        val sheetHeight: Float,
         val previewWidth: Float,
         val previewHeight: Float,
         val scale: Float,
@@ -67,10 +73,10 @@ object SeekSpritePreview {
         durationSeconds: Double,
         videoId: String,
         cdnZone: String,
-        spriteWidth: Int = DEFAULT_SPRITE_WIDTH,
-        spriteHeight: Int = DEFAULT_SPRITE_HEIGHT,
-        maxPreviewWidthPx: Int = MAX_PREVIEW_WIDTH_PX,
-        maxPreviewHeightPx: Int = 160,
+        spriteWidth: Int = CDN_SPRITE_WIDTH,
+        spriteHeight: Int = CDN_SPRITE_HEIGHT,
+        maxPreviewWidthPx: Int = DEFAULT_PREVIEW_WIDTH_PX,
+        maxPreviewHeightPx: Int = DEFAULT_PREVIEW_HEIGHT_PX,
     ): FramePreview? {
         val id = normalizeVideoId(videoId)
         if (id.isBlank() || durationSeconds <= 0) return null
@@ -82,30 +88,23 @@ object SeekSpritePreview {
 
         val frameW = spriteWidth.toFloat() / SPRITE_COLUMNS
         val frameH = spriteHeight.toFloat() / SPRITE_ROWS
-        val aspect = frameW / frameH
 
-        var previewW = maxPreviewWidthPx.toFloat()
-        var previewH = previewW / aspect
-        if (previewH > maxPreviewHeightPx) {
-            previewH = maxPreviewHeightPx.toFloat()
-            previewW = previewH * aspect
-        }
+        val targetW = maxPreviewWidthPx.toFloat()
+        val targetH = maxPreviewHeightPx.toFloat()
+        val scale = max(targetW / frameW, targetH / frameH)
 
-        val scale = minOf(previewW / frameW, previewH / frameH)
-        val scaledFrameW = frameW * scale
-        val scaledFrameH = frameH * scale
-        val offsetX = kotlin.math.round(-(col * frameW) * scale)
-        val offsetY = kotlin.math.round(-(row * frameH) * scale)
+        val offsetX = round(-(col * frameW) * scale)
+        val offsetY = round(-(row * frameH) * scale)
 
         return FramePreview(
             spriteUrl = spriteUrl(cdnZone, id, spriteIndex),
             spriteIndex = spriteIndex,
             offsetX = offsetX,
             offsetY = offsetY,
-            frameWidth = frameW,
-            frameHeight = frameH,
-            previewWidth = scaledFrameW,
-            previewHeight = scaledFrameH,
+            sheetWidth = spriteWidth.toFloat(),
+            sheetHeight = spriteHeight.toFloat(),
+            previewWidth = targetW,
+            previewHeight = targetH,
             scale = scale,
         )
     }

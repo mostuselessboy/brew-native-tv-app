@@ -37,10 +37,10 @@ internal object MovieDetailTokens {
     val CtaIconBox = 26.dp
     val CtaHalfRowIconBox = 30.dp
 
-    val CtaTitleSize = 12.sp
-    val CtaTitleLine = 14.sp
-    val CtaHalfRowTitleSize = 12.sp
-    val CtaHalfRowTitleLine = 14.sp
+    val CtaTitleSize = 14.sp
+    val CtaTitleLine = 16.sp
+    val CtaHalfRowTitleSize = 13.sp
+    val CtaHalfRowTitleLine = 15.sp
 
     val CtaSublabelSize = 8.sp
     val CtaSublabelLine = 10.sp

@@ -1,6 +1,7 @@
 package com.google.jetstream.presentation.screens.videoPlayer.components
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,11 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import android.view.KeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -48,12 +51,25 @@ enum class VideoPlayerSettingsDialog {
     Speed,
 }
 
+private val SettingsDialogShape = RoundedCornerShape(20.dp)
+private val SettingsDialogBorder = Color.White.copy(alpha = 0.14f)
+private val SettingsDialogGradient = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFF1E1E1E),
+        Color(0xFF121212),
+        Color(0xFF0A0A0A),
+    ),
+)
+private val SettingsPillShape = RoundedCornerShape(20.dp)
+private val SettingsOptionShape = RoundedCornerShape(10.dp)
+
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayerSettingsOverlay(
     dialog: VideoPlayerSettingsDialog,
     player: Player,
     onDismiss: () -> Unit,
+    onQualityLabelChange: (String?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     if (dialog == VideoPlayerSettingsDialog.None) return
@@ -70,7 +86,7 @@ fun VideoPlayerSettingsOverlay(
             .fillMaxSize()
             .focusRequester(overlayFocus)
             .focusable()
-            .background(Color.Black.copy(alpha = 0.72f))
+            .background(Color.Black.copy(alpha = 0.88f))
             .onPreviewKeyEvent { event ->
                 val native = event.nativeKeyEvent
                 if (native.keyCode == KeyEvent.KEYCODE_BACK) {
@@ -86,15 +102,16 @@ fun VideoPlayerSettingsOverlay(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(min = 280.dp, max = 420.dp)
-                .background(Color(0xFF1C1C1C), RoundedCornerShape(16.dp))
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .widthIn(min = 300.dp, max = 440.dp)
+                .background(SettingsDialogGradient, SettingsDialogShape)
+                .border(1.dp, SettingsDialogBorder, SettingsDialogShape)
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 4.dp),
+                    .padding(bottom = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -108,7 +125,8 @@ fun VideoPlayerSettingsOverlay(
                     color = Color.White,
                     fontFamily = BrewTitle,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
+                    letterSpacing = (-0.4).sp,
                     modifier = Modifier.weight(1f),
                 )
                 SettingsCloseButton(onClick = onDismiss)
@@ -124,6 +142,7 @@ fun VideoPlayerSettingsOverlay(
                     player = player,
                     firstFocusRequester = firstFocus,
                     onDismiss = onDismiss,
+                    onQualityLabelChange = onQualityLabelChange,
                 )
                 VideoPlayerSettingsDialog.Speed -> SpeedDialogContent(
                     player = player,
@@ -132,6 +151,19 @@ fun VideoPlayerSettingsOverlay(
                 )
                 VideoPlayerSettingsDialog.None -> Unit
             }
+
+            Text(
+                text = "Press OK to select",
+                color = Color.White.copy(alpha = 0.45f),
+                fontFamily = BrewTitle,
+                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp,
+                letterSpacing = (-0.2).sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+            )
         }
     }
 }
@@ -204,7 +236,7 @@ private fun SubtitleDialogContent(
     if (tracks.isEmpty()) {
         Text(
             text = "No subtitles available",
-            color = Color.White.copy(alpha = 0.6f),
+            color = Color.White.copy(alpha = 0.55f),
             fontFamily = BrewTitle,
             fontSize = 13.sp,
         )
@@ -217,6 +249,7 @@ private fun QualityDialogContent(
     player: Player,
     firstFocusRequester: FocusRequester,
     onDismiss: () -> Unit,
+    onQualityLabelChange: (String?) -> Unit,
 ) {
     var qualities by remember(player) { mutableStateOf(VideoPlayerTrackHelper.readQualityTracks(player)) }
     var selectedHeight by remember(player) {
@@ -235,6 +268,7 @@ private fun QualityDialogContent(
         onClick = {
             VideoPlayerTrackHelper.selectQualityAuto(player)
             selectedHeight = null
+            onQualityLabelChange(null)
             onDismiss()
         },
     )
@@ -246,6 +280,7 @@ private fun QualityDialogContent(
             onClick = {
                 VideoPlayerTrackHelper.selectQuality(player, quality.height)
                 selectedHeight = quality.height
+                onQualityLabelChange(quality.label)
                 onDismiss()
             },
         )
@@ -254,7 +289,7 @@ private fun QualityDialogContent(
     if (qualities.isEmpty()) {
         Text(
             text = "Quality options unavailable",
-            color = Color.White.copy(alpha = 0.6f),
+            color = Color.White.copy(alpha = 0.55f),
             fontFamily = BrewTitle,
             fontSize = 13.sp,
         )
@@ -295,7 +330,7 @@ private fun SettingsOptionRow(
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
+        shape = ClickableSurfaceDefaults.shape(SettingsOptionShape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (selected) {
@@ -342,7 +377,7 @@ fun VideoPlayerSettingsButton(
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(20.dp)),
+        shape = ClickableSurfaceDefaults.shape(SettingsPillShape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.White.copy(alpha = 0.1f),

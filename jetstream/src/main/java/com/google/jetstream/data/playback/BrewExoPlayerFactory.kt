@@ -48,6 +48,7 @@ object BrewExoPlayerFactory {
         streamUrl: String,
         playback: PlaybackIntent?,
         subtitleUri: String? = null,
+        subtitles: List<com.google.jetstream.data.entities.PlaybackSubtitle> = emptyList(),
     ): MediaItem {
         val builder = MediaItem.Builder().setUri(streamUrl)
         val licenseUri = playback?.let { resolveWidevineLicenseUrl(it) }.orEmpty()
@@ -60,17 +61,40 @@ object BrewExoPlayerFactory {
                     .build(),
             )
         }
-        val subs = subtitleUri?.takeIf { it.isNotBlank() }
-        if (subs != null) {
-            builder.setSubtitleConfigurations(
-                listOf(
-                    MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(subs))
-                        .setMimeType(MimeTypes.TEXT_VTT)
-                        .setLanguage("en")
-                        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                        .build(),
-                ),
-            )
+
+        val subtitleConfigs = when {
+            subtitles.isNotEmpty() -> subtitles.mapNotNull { subtitle ->
+                val uri = subtitle.url.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(uri))
+                    .setMimeType(MimeTypes.TEXT_VTT)
+                    .setLanguage(subtitle.language)
+                    .setLabel(subtitle.label)
+                    .setSelectionFlags(
+                        if (subtitle.isDefault) {
+                            C.SELECTION_FLAG_DEFAULT
+                        } else {
+                            0
+                        },
+                    )
+                    .build()
+            }
+            else -> {
+                val subs = subtitleUri?.takeIf { it.isNotBlank() }
+                if (subs == null) {
+                    emptyList()
+                } else {
+                    listOf(
+                        MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(subs))
+                            .setMimeType(MimeTypes.TEXT_VTT)
+                            .setLanguage("en")
+                            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                            .build(),
+                    )
+                }
+            }
+        }
+        if (subtitleConfigs.isNotEmpty()) {
+            builder.setSubtitleConfigurations(subtitleConfigs)
         }
         return builder.build()
     }

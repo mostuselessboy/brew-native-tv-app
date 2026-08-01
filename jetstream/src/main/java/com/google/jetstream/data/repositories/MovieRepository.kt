@@ -52,5 +52,6 @@ interface MovieRepository {
     suspend fun getCastMember(id: String): com.google.jetstream.data.remote.BrewCastMemberDetailDto?
     suspend fun getShowcaseAccess(userId: Int): com.google.jetstream.data.remote.BrewShowcaseAccessResponse?
     suspend fun joinWaitlist(userId: Int, campaignVersionId: Int): Result<com.google.jetstream.data.remote.BrewJoinWaitlistResponse>
+    suspend fun getCampaignSubtitles(movieSlug: String): List<com.google.jetstream.data.entities.PlaybackSubtitle>
 }
 

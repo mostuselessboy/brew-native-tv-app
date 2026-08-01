@@ -36,7 +36,11 @@ fun VideoPlayerControls(
     playback: PlaybackIntent?,
     focusRequester: FocusRequester,
     holdSeekState: VideoPlayerHoldSeekState,
-    onShowControls: () -> Unit = {},
+    durationSeconds: Double = 0.0,
+    feedbackState: VideoPlayerFeedbackState? = null,
+    videoPlayerState: VideoPlayerState? = null,
+    isPlaying: Boolean = true,
+    onShowControls: (Boolean) -> Unit = {},
     onDismissControls: () -> Unit = {},
     onStartHoldSeek: (NetflixSeekDirection) -> Unit = {},
     onTapSeek: (NetflixSeekDirection) -> Unit = {},
@@ -48,13 +52,24 @@ fun VideoPlayerControls(
         player = player,
         focusRequester = focusRequester,
         holdSeekState = holdSeekState,
-        onShowControls = onShowControls,
+        durationSeconds = durationSeconds,
+        bunnyVideoId = playback?.bunnyVideoId,
+        bunnyCdnZone = playback?.bunnyCdnZone,
+        feedbackState = feedbackState,
+        onShowControls = { playing ->
+            onShowControls(playing)
+            videoPlayerState?.notifyInteraction(playing)
+        },
         onDismissControls = onDismissControls,
         onStartHoldSeek = onStartHoldSeek,
-        onTapSeek = onTapSeek,
+        onTapSeek = {
+            onTapSeek(it)
+            videoPlayerState?.notifyInteraction(isPlaying)
+        },
         onCommitHoldSeek = onCommitHoldSeek,
         onCancelHoldSeek = onCancelHoldSeek,
         onBumpSeekSpeed = onBumpSeekSpeed,
+        onInteraction = { videoPlayerState?.notifyInteraction(isPlaying) },
         progressColor = BrewAccentYellow,
     )
 }

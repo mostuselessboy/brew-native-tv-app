@@ -26,6 +26,8 @@ import com.google.jetstream.data.entities.MovieCategory
 import com.google.jetstream.data.entities.MovieCategoryDetails
 import com.google.jetstream.data.entities.MovieCategoryList
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.PlaybackSubtitle
+import com.google.jetstream.data.util.PlaybackSubtitleMapper
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.entities.ThumbnailType
 import com.google.jetstream.data.remote.BrewApiService
@@ -428,5 +430,12 @@ class MovieRepositoryImpl @Inject constructor(
         )
         response.data ?: throw IllegalStateException(response.message ?: "Could not join waitlist")
     }
+
+    override suspend fun getCampaignSubtitles(movieSlug: String): List<PlaybackSubtitle> =
+        runCatching {
+            val response = brewApiService.getCampaignSubtitles(movieSlug)
+            if (!response.success) return emptyList()
+            PlaybackSubtitleMapper.fromCampaignRows(response.data?.subtitles.orEmpty())
+        }.getOrDefault(emptyList())
 }
 

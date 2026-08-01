@@ -141,6 +141,36 @@ data class BrewSubtitleDto(
 )
 
 @Serializable
+data class BrewCampaignSubtitleRowDto(
+    val name: String? = null,
+    val language: String? = null,
+    @SerialName("language_name") val languageName: String? = null,
+    val title: String? = null,
+    val label: String? = null,
+    @SerialName("srclang") val srcLang: String? = null,
+    val lang: String? = null,
+    val file: String? = null,
+    val url: String? = null,
+    val default: Boolean? = null,
+    val version: String? = null,
+)
+
+@Serializable
+data class BrewCampaignSubtitlesData(
+    val slug: String? = null,
+    @SerialName("campaign_id") val campaignId: Int? = null,
+    @SerialName("project_id") val projectId: Int? = null,
+    @SerialName("project_type") val projectType: String? = null,
+    val subtitles: List<BrewCampaignSubtitleRowDto> = emptyList(),
+)
+
+@Serializable
+data class BrewCampaignSubtitlesResponse(
+    val success: Boolean = false,
+    val data: BrewCampaignSubtitlesData? = null,
+)
+
+@Serializable
 data class BrewCampaignResponse(
     val success: Boolean = false,
     val data: BrewCampaignData? = null,
