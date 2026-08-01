@@ -170,7 +170,6 @@ internal fun Catalog(
                                         }
                                     },
                                     firstItemFocusRequester = continueWatchingFocus,
-                                    upFocusRequester = firstRowFocus,
                                     leftFocusRequester = sidebarFocusRequester,
                                 )
                             }
@@ -192,7 +191,6 @@ internal fun Catalog(
                                     goToVideoPlayer = goToVideoPlayer,
                                     primaryFocusRequester = showcasePrimaryFocus,
                                     secondaryFocusRequester = showcaseSecondaryFocus,
-                                    downFocusRequester = firstRowFocus,
                                     sidebarFocusRequester = sidebarFocusRequester,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -206,10 +204,10 @@ internal fun Catalog(
 
                             HomeSectionType.Immersive,
                             HomeSectionType.Row -> {
-                                val rowOrdinal = rowOrdinalBySectionIndex[sectionIndex] ?: 0
-                                val isFirstContentRow = sectionIndex == firstContentSectionIndex
-                                val deferCards = rowOrdinal >= 3
-                                val deferDelayMs = 120L + ((rowOrdinal - 3).coerceAtLeast(0) * 70L)
+                                 val rowOrdinal = rowOrdinalBySectionIndex[sectionIndex] ?: 0
+                                 val isFirstContentRow = sectionIndex == firstContentSectionIndex
+                                 val deferCards = true
+                                 val deferDelayMs = 40L + (rowOrdinal * 50L)
                                 MoviesRow(
                                     modifier = Modifier.focusGroup(),
                                     movieList = section.movies,
@@ -230,18 +228,6 @@ internal fun Catalog(
                                     deferCardMountDelayMs = deferDelayMs,
                                     firstItemFocusRequester = if (isFirstContentRow) {
                                         firstRowFocus
-                                    } else {
-                                        null
-                                    },
-                                    upFocusRequester = if (isFirstContentRow) {
-                                        showcaseSecondaryFocus
-                                    } else {
-                                        null
-                                    },
-                                    downFocusRequester = if (
-                                        isFirstContentRow && showContinueWatchingSlot
-                                    ) {
-                                        continueWatchingFocus
                                     } else {
                                         null
                                     },

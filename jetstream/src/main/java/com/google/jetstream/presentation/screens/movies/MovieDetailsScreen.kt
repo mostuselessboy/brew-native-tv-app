@@ -104,7 +104,6 @@ private fun Details(
 ) {
     var showLanguagesDialog by remember { mutableStateOf(false) }
     var showSynopsisDialog by remember { mutableStateOf(false) }
-    val firstSectionFocusRequester = remember { FocusRequester() }
     val backFocusRequester = remember { FocusRequester() }
     val primaryCtaFocusRequester = remember { FocusRequester() }
     val secondaryActionsFocusRequester = remember { FocusRequester() }
@@ -120,26 +119,6 @@ private fun Details(
 
     val hasPurchaseCtas = remember(movieDetails) {
         DetailPurchaseCta.slots(movieDetails).isNotEmpty()
-    }
-
-    val firstTrayLazyIndex = remember(movieDetails) {
-        firstFocusableSectionLazyIndex(movieDetails) ?: 1
-    }
-
-    var boundaryScrollJob by remember { mutableStateOf<Job?>(null) }
-
-    val scrollToShowcase = {
-        boundaryScrollJob?.cancel()
-        boundaryScrollJob = scope.launch {
-            listState.scrollToItem(0, scrollOffset = 0)
-        }
-    }
-
-    val scrollToFirstTray = {
-        boundaryScrollJob?.cancel()
-        boundaryScrollJob = scope.launch {
-            listState.scrollToItem(firstTrayLazyIndex, scrollOffset = 0)
-        }
     }
 
     LaunchedEffect(movieDetails.id, hasPurchaseCtas) {
@@ -178,7 +157,6 @@ private fun Details(
     } else {
         secondaryActionsFocusRequester
     }
-    val heroUpFocusRequester = secondaryActionsFocusRequester
 
     Box(
         modifier = modifier.background(Color.Black),
@@ -196,13 +174,11 @@ private fun Details(
                     onSecondaryCtaClick = onSecondaryCtaClick,
                     onTrailerClick = onTrailerClick,
                     onOpenLanguages = { showLanguagesDialog = true },
-                    downFocusRequester = firstSectionFocusRequester,
                     primaryCtaFocusRequester = primaryCtaFocusRequester,
                     secondaryActionsFocusRequester = secondaryActionsFocusRequester,
                     upFocusRequester = backFocusRequester,
                     isBookmarked = isBookmarked,
                     onBookmarkClick = onBookmarkClick,
-                    onShowcaseActionsFocused = scrollToShowcase,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(ShowcaseHeight)
@@ -233,10 +209,9 @@ private fun Details(
                         title = "Customers Also Watched",
                         movieList = customersAlsoWatched,
                         onMovieSelected = refreshScreenWithNewMovie,
-                        firstItemFocusRequester = firstSectionFocusRequester,
-                        upFocusRequester = heroUpFocusRequester,
-                        onFirstItemFocused = scrollToFirstTray,
                         contentTopPadding = 2.dp,
+                        deferCardMount = true,
+                        deferCardMountDelayMs = 30,
                     )
                 }
             }
@@ -245,21 +220,6 @@ private fun Details(
                 item(key = "critic_reviews") {
                     CriticReviewsRow(
                         reviews = movieDetails.criticReviews,
-                        firstItemFocusRequester = if (customersAlsoWatched.isEmpty()) {
-                            firstSectionFocusRequester
-                        } else {
-                            null
-                        },
-                        upFocusRequester = if (customersAlsoWatched.isEmpty()) {
-                            heroUpFocusRequester
-                        } else {
-                            null
-                        },
-                        onFirstItemFocused = if (customersAlsoWatched.isEmpty()) {
-                            scrollToFirstTray
-                        } else {
-                            {}
-                        },
                     )
                 }
             }
@@ -268,30 +228,6 @@ private fun Details(
                 item(key = "cast") {
                     CastAndCrewList(
                         castAndCrew = movieDetails.castAndCrew,
-                        firstItemFocusRequester = if (
-                            customersAlsoWatched.isEmpty() &&
-                            movieDetails.criticReviews.isEmpty()
-                        ) {
-                            firstSectionFocusRequester
-                        } else {
-                            null
-                        },
-                        upFocusRequester = if (
-                            customersAlsoWatched.isEmpty() &&
-                            movieDetails.criticReviews.isEmpty()
-                        ) {
-                            heroUpFocusRequester
-                        } else {
-                            null
-                        },
-                        onFirstItemFocused = if (
-                            customersAlsoWatched.isEmpty() &&
-                            movieDetails.criticReviews.isEmpty()
-                        ) {
-                            scrollToFirstTray
-                        } else {
-                            {}
-                        },
                     )
                 }
             }
@@ -312,6 +248,8 @@ private fun Details(
                         title = "Related Movies",
                         movieList = relatedMovies,
                         onMovieSelected = refreshScreenWithNewMovie,
+                        deferCardMount = true,
+                        deferCardMountDelayMs = 90,
                     )
                 }
             }

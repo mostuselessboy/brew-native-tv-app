@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 sealed interface ContinueWatchingTrayState {
     data object Hidden : ContinueWatchingTrayState
@@ -143,6 +144,7 @@ class HomeScreeViewModel @Inject constructor(
                             .build()
                     )
                 }
+            delay(2500)
             sections
                 .asSequence()
                 .filter {

@@ -158,7 +158,6 @@ fun FeaturedMoviesCarousel(
     modifier: Modifier = Modifier,
     primaryFocusRequester: FocusRequester? = null,
     secondaryFocusRequester: FocusRequester? = null,
-    downFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
 ) {
     if (movies.isEmpty()) return
@@ -246,7 +245,6 @@ fun FeaturedMoviesCarousel(
                 onSlideChange = { slideIndex = it },
                 primaryFocusRequester = primaryFocus,
                 secondaryFocusRequester = secondaryFocus,
-                downFocusRequester = downFocusRequester,
                 sidebarFocusRequester = sidebarFocusRequester,
                 showBrewPlus = activeMovie.showBrewPlus,
                 onOpen = { openFeatured(activeMovie) },
@@ -293,7 +291,6 @@ private fun ShowcaseActionButtons(
     onSlideChange: (Int) -> Unit,
     primaryFocusRequester: FocusRequester,
     secondaryFocusRequester: FocusRequester,
-    downFocusRequester: FocusRequester?,
     sidebarFocusRequester: FocusRequester?,
     showBrewPlus: Boolean,
     onOpen: () -> Unit,
@@ -358,9 +355,6 @@ private fun ShowcaseActionButtons(
                     .blockHorizontalKeysAfterFocusEntry(focusEnteredAt)
                     .focusProperties {
                         up = primaryFocusRequester
-                        if (downFocusRequester != null) {
-                            down = downFocusRequester
-                        }
                         if (slideIndex == 0 && sidebarFocusRequester != null) {
                             left = sidebarFocusRequester
                         }
@@ -428,9 +422,6 @@ private fun ShowcaseActionButtons(
                 .blockHorizontalKeysAfterFocusEntry(focusEnteredAt)
                 .focusProperties {
                     up = primaryFocusRequester
-                    if (downFocusRequester != null) {
-                        down = downFocusRequester
-                    }
                     if (slideIndex == 0 && sidebarFocusRequester != null) {
                         left = sidebarFocusRequester
                     }

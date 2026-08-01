@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -130,14 +131,50 @@ fun ShowcaseHeroBackdrop(
     modifier: Modifier = Modifier,
 ) {
     val contentBg = Color.Black
+    val context = LocalContext.current
+    val imageRequest = remember(posterUri) {
+        ImageRequest.Builder(context)
+            .data(BrewImageUrl.forShowcase(posterUri))
+            .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
+            .crossfade(false)
+            .build()
+    }
+    val verticalBrush = remember {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0f to Color.Black.copy(alpha = 0.35f),
+                0.5f to Color.Transparent,
+                0.78f to Color.Black.copy(alpha = 0.45f),
+                1f to Color.Black,
+            ),
+        )
+    }
+    val horizontalBrush1 = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                0.18f to contentBg.copy(alpha = 0.98f),
+                0.32f to contentBg.copy(alpha = 0.88f),
+                0.46f to contentBg.copy(alpha = 0.55f),
+                0.56f to contentBg.copy(alpha = 0.22f),
+                0.64f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+    val horizontalBrush2 = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+
     Box(modifier = modifier.background(contentBg)) {
         if (posterUri.isNotBlank()) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(BrewImageUrl.forShowcase(posterUri))
-                    .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
-                    .crossfade(false)
-                    .build(),
+                model = imageRequest,
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -146,16 +183,7 @@ fun ShowcaseHeroBackdrop(
                     .fillMaxWidth(0.82f)
                     .drawWithContent {
                         drawContent()
-                        drawRect(
-                            Brush.verticalGradient(
-                                colorStops = arrayOf(
-                                    0f to Color.Black.copy(alpha = 0.35f),
-                                    0.5f to Color.Transparent,
-                                    0.78f to Color.Black.copy(alpha = 0.45f),
-                                    1f to Color.Black,
-                                ),
-                            ),
-                        )
+                        drawRect(verticalBrush)
                     },
             )
         }
@@ -165,19 +193,7 @@ fun ShowcaseHeroBackdrop(
                 .fillMaxSize()
                 .drawWithContent {
                     drawContent()
-                    drawRect(
-                        Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0f to contentBg,
-                                0.18f to contentBg.copy(alpha = 0.98f),
-                                0.32f to contentBg.copy(alpha = 0.88f),
-                                0.46f to contentBg.copy(alpha = 0.55f),
-                                0.56f to contentBg.copy(alpha = 0.22f),
-                                0.64f to Color.Transparent,
-                                1f to Color.Transparent,
-                            ),
-                        ),
-                    )
+                    drawRect(horizontalBrush1)
                 },
         )
 
@@ -186,14 +202,7 @@ fun ShowcaseHeroBackdrop(
                 .align(Alignment.CenterStart)
                 .fillMaxHeight()
                 .fillMaxWidth(0.12f)
-                .background(
-                    Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0f to contentBg,
-                            1f to Color.Transparent,
-                        ),
-                    ),
-                ),
+                .background(horizontalBrush2),
         )
     }
 }

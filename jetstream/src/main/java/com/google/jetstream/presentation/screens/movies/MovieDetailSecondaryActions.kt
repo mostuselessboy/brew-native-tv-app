@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -32,7 +33,7 @@ import androidx.tv.material3.Surface
 import com.google.jetstream.R
 
 /** Secondary hero actions — icon-only circles, no hover labels. */
-@OptIn(ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalTvMaterial3Api::class)
 @Composable
 fun MovieDetailSecondaryActions(
     showTrailer: Boolean,
@@ -45,12 +46,16 @@ fun MovieDetailSecondaryActions(
     isBookmarked: Boolean = false,
     firstFocusRequester: FocusRequester? = null,
     leftFocusRequester: FocusRequester? = null,
-    downFocusRequester: FocusRequester? = null,
-    onFirstButtonFocused: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val defaultFirstFocusRequester = remember { FocusRequester() }
+    val firstItem = firstFocusRequester ?: defaultFirstFocusRequester
+
     Row(
         modifier = modifier
+            .focusProperties {
+                enter = { firstItem }
+            }
             .focusGroup()
             .graphicsLayer { clip = false },
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -62,10 +67,8 @@ fun MovieDetailSecondaryActions(
                 onClick = onTrailerClick,
                 modifier = firstItemModifier(
                     isFirst = isFirst,
-                    firstFocusRequester = firstFocusRequester,
+                    firstFocusRequester = firstItem,
                     leftFocusRequester = leftFocusRequester,
-                    downFocusRequester = downFocusRequester,
-                    onFirstButtonFocused = onFirstButtonFocused,
                 ),
             ) {
                 Icon(
@@ -82,10 +85,8 @@ fun MovieDetailSecondaryActions(
                 onClick = onSubtitlesClick,
                 modifier = firstItemModifier(
                     isFirst = isFirst,
-                    firstFocusRequester = firstFocusRequester,
+                    firstFocusRequester = firstItem,
                     leftFocusRequester = leftFocusRequester,
-                    downFocusRequester = downFocusRequester,
-                    onFirstButtonFocused = onFirstButtonFocused,
                 ),
             ) {
                 Icon(
@@ -101,10 +102,8 @@ fun MovieDetailSecondaryActions(
             onClick = onBookmarkClick,
             modifier = firstItemModifier(
                 isFirst = isFirst,
-                firstFocusRequester = firstFocusRequester,
+                firstFocusRequester = firstItem,
                 leftFocusRequester = leftFocusRequester,
-                downFocusRequester = downFocusRequester,
-                onFirstButtonFocused = onFirstButtonFocused,
             ),
         ) {
             Icon(
@@ -137,25 +136,13 @@ private fun firstItemModifier(
     isFirst: Boolean,
     firstFocusRequester: FocusRequester?,
     leftFocusRequester: FocusRequester?,
-    downFocusRequester: FocusRequester?,
-    onFirstButtonFocused: () -> Unit,
 ): Modifier {
     if (!isFirst) return Modifier
     return Modifier
         .then(if (firstFocusRequester != null) Modifier.focusRequester(firstFocusRequester) else Modifier)
-        .onFocusChanged { state ->
-            if (state.isFocused) onFirstButtonFocused()
-        }
         .then(
             if (leftFocusRequester != null) {
                 Modifier.focusProperties { left = leftFocusRequester }
-            } else {
-                Modifier
-            },
-        )
-        .then(
-            if (downFocusRequester != null) {
-                Modifier.focusProperties { down = downFocusRequester }
             } else {
                 Modifier
             },

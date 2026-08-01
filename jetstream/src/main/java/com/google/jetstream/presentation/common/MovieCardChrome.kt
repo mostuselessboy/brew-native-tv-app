@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -165,8 +166,17 @@ fun StatusBadge(
     ) {
         when {
             isFestival -> {
+                val context = LocalContext.current
+                val wreathRequest = remember(compact) {
+                    val px = if (compact) 24 else 32
+                    ImageRequest.Builder(context)
+                        .data(FestivalWreath)
+                        .size(px, px)
+                        .crossfade(false)
+                        .build()
+                }
                 AsyncImage(
-                    model = FestivalWreath,
+                    model = wreathRequest,
                     contentDescription = null,
                     modifier = Modifier.size(wreathSize),
                     contentScale = ContentScale.Fit,
@@ -251,11 +261,16 @@ fun CommerceChromeRow(
                     .padding(horizontal = plusHPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
+                val context = LocalContext.current
+                val plusWordmarkRequest = remember(compact) {
+                    ImageRequest.Builder(context)
                         .data(BrewPlusWordmark)
-                        .size(if (compact) 180 else 240, if (compact) 40 else 52)
-                        .build(),
+                        .size(if (compact) 90 else 120, if (compact) 20 else 28)
+                        .crossfade(false)
+                        .build()
+                }
+                AsyncImage(
+                    model = plusWordmarkRequest,
                     contentDescription = "Brew Plus",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier

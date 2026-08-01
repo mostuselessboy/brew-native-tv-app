@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -52,17 +53,21 @@ private val CastCardWidth = 124.dp
 fun CastAndCrewList(
     castAndCrew: List<MovieCast>,
     firstItemFocusRequester: FocusRequester? = null,
-    upFocusRequester: FocusRequester? = null,
-    onFirstItemFocused: () -> Unit = {},
 ) {
     if (castAndCrew.isEmpty()) return
     val childPadding = rememberChildPadding()
     val members = castAndCrew.take(12)
+    val defaultFirstItemFocusRequester = remember { FocusRequester() }
+    val firstItem = firstItemFocusRequester ?: defaultFirstItemFocusRequester
 
     Column(modifier = Modifier.padding(top = 24.dp)) {
         MovieDetailSectionTitle(text = stringResource(R.string.cast_and_crew))
         LazyRow(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier
+                .padding(top = 14.dp)
+                .focusProperties {
+                    enter = { firstItem }
+                },
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
@@ -73,24 +78,14 @@ fun CastAndCrewList(
                 val isFirst = member.id == members.first().id
                 CastAndCrewItem(
                     castMember = member,
-                    modifier = Modifier.then(
-                        if (isFirst && firstItemFocusRequester != null) {
-                            Modifier
-                                .focusRequester(firstItemFocusRequester)
-                                .onFocusChanged { state ->
-                                    if (state.isFocused) onFirstItemFocused()
-                                }
-                                .then(
-                                    if (upFocusRequester != null) {
-                                        Modifier.focusProperties { up = upFocusRequester }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-                        } else {
-                            Modifier
-                        },
-                    ),
+                    modifier = Modifier
+                        .then(
+                            if (isFirst) {
+                                Modifier.focusRequester(firstItem)
+                            } else {
+                                Modifier
+                            }
+                        ),
                 )
             }
         }

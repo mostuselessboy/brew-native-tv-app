@@ -79,8 +79,6 @@ fun MoviesRow(
     onMovieSelected: (movie: Movie) -> Unit = {},
     onViewMoreClick: (() -> Unit)? = null,
     firstItemFocusRequester: FocusRequester? = null,
-    upFocusRequester: FocusRequester? = null,
-    downFocusRequester: FocusRequester? = null,
     leftFocusRequester: FocusRequester? = null,
     deferCardMount: Boolean = false,
     deferCardMountDelayMs: Long = 280,
@@ -148,12 +146,6 @@ fun MoviesRow(
                     val focusModifier = itemModifier.focusProperties {
                         if (index == 0 && leftFocusRequester != null) {
                             left = leftFocusRequester
-                        }
-                        if (index == 0 && upFocusRequester != null) {
-                            up = upFocusRequester
-                        }
-                        if (index == 0 && downFocusRequester != null) {
-                            down = downFocusRequester
                         }
                     }
 

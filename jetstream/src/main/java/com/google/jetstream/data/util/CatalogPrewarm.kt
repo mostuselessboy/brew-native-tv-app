@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 private val CatalogPages = listOf(
@@ -46,7 +47,7 @@ class CatalogPrewarm @Inject constructor(
         }
     }
 
-    private fun prefetchImages(sections: List<HomeSection>) {
+    private suspend fun prefetchImages(sections: List<HomeSection>) {
         sections.firstOrNull { it.type == HomeSectionType.Showcase }?.movies
             ?.take(4)
             ?.forEach { movie ->
@@ -57,6 +58,7 @@ class CatalogPrewarm @Inject constructor(
                         .build(),
                 )
             }
+        delay(2500)
         sections
             .asSequence()
             .filter {

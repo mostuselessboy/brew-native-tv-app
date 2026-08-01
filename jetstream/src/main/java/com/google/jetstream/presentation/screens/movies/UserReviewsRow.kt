@@ -56,8 +56,8 @@ import kotlin.math.round
 private val ReviewCardBg = Color(0xFF111111)
 private val ReviewCardShape = RoundedCornerShape(12.dp)
 private val StirYellow = Color(0xFFFFC15E)
-private val ReviewCardWidth = 272.dp
-private val ReviewCardHeight = 132.dp
+private val ReviewCardWidth = 320.dp
+private val ReviewCardHeight = 152.dp
 private val ReviewAvatarSize = 36.dp
 private val VerifiedBadgeSize = 14.dp
 
@@ -164,7 +164,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                         color = Color.White.copy(alpha = 0.8f),
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Medium,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -188,8 +188,8 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                         color = Color.White,
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        lineHeight = 15.sp,
+                        fontSize = 16.sp,
+                        lineHeight = 18.sp,
                         letterSpacing = (-0.4).sp,
                         maxLines = if (expanded) Int.MAX_VALUE else 1,
                         overflow = TextOverflow.Ellipsis,
@@ -199,8 +199,8 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                 Text(
                     text = bodyText,
                     color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp,
                     maxLines = if (expanded) Int.MAX_VALUE else 3,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -208,7 +208,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                     Text(
                         text = "read more",
                         color = StirYellow.copy(alpha = 0.9f),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(top = 2.dp),
                     )

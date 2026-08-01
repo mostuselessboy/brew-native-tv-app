@@ -14,6 +14,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +79,15 @@ fun BrewLandscapeMovieCard(
             .size(BrewImageUrl.CARD_WIDTH, BrewImageUrl.CARD_HEIGHT)
             .crossfade(false)
             .build()
+    }
+    val cardGradient = remember {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0.42f to Color.Transparent,
+                0.7f to Color.Black.copy(alpha = 0.42f),
+                1f to Color.Black.copy(alpha = 0.96f),
+            ),
+        )
     }
 
     val shape = when (style) {
@@ -144,15 +164,7 @@ fun BrewLandscapeMovieCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.42f to Color.Transparent,
-                                0.7f to Color.Black.copy(alpha = 0.42f),
-                                1f to Color.Black.copy(alpha = 0.96f),
-                            ),
-                        ),
-                    ),
+                    .background(cardGradient),
             )
 
             MovieBadgeChrome(movie = movie, compact = true)

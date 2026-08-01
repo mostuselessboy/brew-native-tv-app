@@ -63,8 +63,6 @@ fun CriticReviewsRow(
     reviews: List<MovieCriticReview>,
     modifier: Modifier = Modifier,
     firstItemFocusRequester: FocusRequester? = null,
-    upFocusRequester: FocusRequester? = null,
-    onFirstItemFocused: () -> Unit = {},
 ) {
     if (reviews.isEmpty()) return
     val childPadding = rememberChildPadding()
@@ -83,24 +81,14 @@ fun CriticReviewsRow(
                 val isFirst = review.id == reviews.first().id
                 CriticReviewCard(
                     review = review,
-                    modifier = Modifier.then(
-                        if (isFirst && firstItemFocusRequester != null) {
-                            Modifier
-                                .focusRequester(firstItemFocusRequester)
-                                .onFocusChanged { state ->
-                                    if (state.isFocused) onFirstItemFocused()
-                                }
-                                .then(
-                                    if (upFocusRequester != null) {
-                                        Modifier.focusProperties { up = upFocusRequester }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-                        } else {
-                            Modifier
-                        },
-                    ),
+                    modifier = Modifier
+                        .then(
+                            if (isFirst && firstItemFocusRequester != null) {
+                                Modifier.focusRequester(firstItemFocusRequester)
+                            } else {
+                                Modifier
+                            }
+                        ),
                 )
             }
         }
