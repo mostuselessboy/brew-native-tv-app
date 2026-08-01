@@ -167,9 +167,13 @@ fun FeaturedMoviesCarousel(
     if (movies.isEmpty()) return
 
     var slideIndex by rememberSaveable { mutableIntStateOf(0) }
+    var lastFocusedSlide by remember { mutableIntStateOf(slideIndex) }
     LaunchedEffect(initialSlideIndex, movies.size) {
         val clamped = initialSlideIndex.coerceIn(0, movies.lastIndex.coerceAtLeast(0))
-        if (slideIndex != clamped) slideIndex = clamped
+        if (slideIndex != clamped) {
+            lastFocusedSlide = clamped
+            slideIndex = clamped
+        }
     }
     val localPrimaryFocus = remember { FocusRequester() }
     val localSecondaryFocus = remember { FocusRequester() }
@@ -184,7 +188,6 @@ fun FeaturedMoviesCarousel(
     @Suppress("UNUSED_PARAMETER")
     val unusedPlayerNav = goToVideoPlayer
 
-    var lastFocusedSlide by remember { mutableIntStateOf(slideIndex) }
     LaunchedEffect(slideIndex) {
         onSlideIndexChange(slideIndex)
         if (lastFocusedSlide != slideIndex) {

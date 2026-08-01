@@ -86,7 +86,7 @@ fun BrewQrPopup(
 
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(state.qrUrl) {
-        focusRequester.requestFocus()
+        runCatching { focusRequester.requestFocus() }
     }
 
     val footerText = when (state.doneAction) {

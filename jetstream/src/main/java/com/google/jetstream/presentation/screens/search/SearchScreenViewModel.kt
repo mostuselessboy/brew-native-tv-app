@@ -44,15 +44,25 @@ class SearchScreenViewModel @Inject constructor(
 
     private suspend fun loadSuggestions() {
         internalSearchState.emit(SearchState.Searching)
-        val dice = movieRepository.getDiceSuggestions()
-        internalSearchState.emit(
-            SearchState.Done(
-                movieList = dice.movies,
-                sectionTitle = dice.title,
-                sectionSubheading = dice.subheading,
-                isSuggestions = true,
-            ),
-        )
+        runCatching {
+            val dice = movieRepository.getDiceSuggestions()
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = dice.movies,
+                    sectionTitle = dice.title,
+                    sectionSubheading = dice.subheading,
+                    isSuggestions = true,
+                ),
+            )
+        }.onFailure {
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = emptyList(),
+                    sectionTitle = "Discover",
+                    isSuggestions = true,
+                ),
+            )
+        }
     }
 
     private suspend fun postQuery(queryString: String) {
@@ -61,15 +71,26 @@ class SearchScreenViewModel @Inject constructor(
             return
         }
         internalSearchState.emit(SearchState.Searching)
-        val result = movieRepository.searchMovies(query = queryString)
-        internalSearchState.emit(
-            SearchState.Done(
-                movieList = result,
-                sectionTitle = "Results",
-                searchQuery = queryString.trim(),
-                isSuggestions = false,
-            ),
-        )
+        runCatching {
+            val result = movieRepository.searchMovies(query = queryString)
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = result,
+                    sectionTitle = "Results",
+                    searchQuery = queryString.trim(),
+                    isSuggestions = false,
+                ),
+            )
+        }.onFailure {
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = emptyList(),
+                    sectionTitle = "Results",
+                    searchQuery = queryString.trim(),
+                    isSuggestions = false,
+                ),
+            )
+        }
     }
 
     val searchState = internalSearchState.stateIn(

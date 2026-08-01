@@ -168,7 +168,6 @@ internal fun Catalog(
                                     },
                                     lastFocusedMovieId = if (lastFocusedSectionId == "continue_watching") lastFocusedMovieId else null,
                                     firstItemFocusRequester = continueWatchingFocus,
-                                    leftFocusRequester = sidebarFocusRequester,
                                 )
                             }
                         }
@@ -231,11 +230,6 @@ internal fun Catalog(
                                     },
                                     firstItemFocusRequester = if (isFirstContentRow) {
                                         firstRowFocus
-                                    } else {
-                                        null
-                                    },
-                                    leftFocusRequester = if (isFirstContentRow) {
-                                        sidebarFocusRequester
                                     } else {
                                         null
                                     },

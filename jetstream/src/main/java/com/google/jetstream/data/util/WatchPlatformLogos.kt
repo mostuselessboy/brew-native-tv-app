@@ -1,39 +1,45 @@
 package com.google.jetstream.data.util
 
-/** Brew CDN watch-platform badges — mirrors vod-frontend Footer + mobile drawer. */
+import com.google.jetstream.R
+
+/** Local watch-platform badges — copied from vod-mono-frontend `watchPlatformAssets.ts`. */
 object WatchPlatformLogos {
 
     data class Entry(
-        val url: String,
-        val widthDp: Float,
+        val drawableRes: Int,
+        /** Display height on TV footer row. */
         val heightDp: Float,
-    )
+        /** Width ÷ height — same ratio as mobile-viewer @1x PNGs. */
+        val aspectRatio: Float,
+    ) {
+        val widthDp: Float = heightDp * aspectRatio
+    }
 
     val footerRow: List<Entry> = listOf(
         Entry(
-            url = "https://createstir.b-cdn.net/stir-static/google-tv-logo.png",
-            widthDp = 72f,
+            drawableRes = R.drawable.watch_platform_google_tv,
             heightDp = 16f,
+            aspectRatio = 150f / 22f,
         ),
         Entry(
-            url = "https://createstir.b-cdn.net/stir-static/amazon-fire-tv-logo.png",
-            widthDp = 56f,
+            drawableRes = R.drawable.watch_platform_fire_tv,
             heightDp = 22f,
+            aspectRatio = 72f / 48f,
         ),
         Entry(
-            url = "https://createstir.b-cdn.net/stir-static/playstore.png",
-            widthDp = 56f,
+            drawableRes = R.drawable.watch_platform_google_play,
             heightDp = 18f,
+            aspectRatio = 150f / 28f,
         ),
         Entry(
-            url = "https://createstir.b-cdn.net/stir-static/appstore.png",
-            widthDp = 56f,
+            drawableRes = R.drawable.watch_platform_app_store,
             heightDp = 18f,
+            aspectRatio = 132f / 28f,
         ),
         Entry(
-            url = "https://createstir.b-cdn.net/stir-static/apple-tv-logo.png",
-            widthDp = 32f,
+            drawableRes = R.drawable.watch_platform_apple_tv,
             heightDp = 16f,
+            aspectRatio = 72f / 22f,
         ),
     )
 }

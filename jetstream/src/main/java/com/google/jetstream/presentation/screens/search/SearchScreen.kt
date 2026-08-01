@@ -102,6 +102,12 @@ fun SearchScreen(
     }
 
     val searchState by searchScreenViewModel.searchState.collectAsStateWithLifecycle()
+    var lastDone by remember { mutableStateOf<SearchState.Done?>(null) }
+    LaunchedEffect(searchState) {
+        if (searchState is SearchState.Done) {
+            lastDone = searchState as SearchState.Done
+        }
+    }
 
     LaunchedEffect(shouldShowTopBar) {
         onScroll(shouldShowTopBar)
@@ -112,29 +118,25 @@ fun SearchScreen(
             .fillMaxSize()
             .background(Color.Black),
     ) {
-        when (val s = searchState) {
-            SearchState.Loading,
-            SearchState.Searching -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = if (s == SearchState.Loading) "Loading…" else "Searching…",
-                        color = Color.White.copy(alpha = 0.55f),
-                        fontFamily = BrewTitle,
-                        fontSize = 14.sp,
-                    )
-                }
+        when (searchState) {
+            SearchState.Loading -> {
+                SearchLoadingPlaceholder(
+                    message = "Loading…",
+                    contentFocusRequester = contentFocusRequester,
+                )
             }
 
-            is SearchState.Done -> {
+            SearchState.Searching,
+            is SearchState.Done,
+            -> {
+                val done = searchState as? SearchState.Done ?: lastDone
                 SearchResult(
-                    movieList = s.movieList,
-                    sectionTitle = s.sectionTitle,
-                    sectionSubheading = s.sectionSubheading,
-                    searchQuery = s.searchQuery,
-                    isSuggestions = s.isSuggestions,
+                    movieList = done?.movieList ?: emptyList(),
+                    sectionTitle = done?.sectionTitle,
+                    sectionSubheading = done?.sectionSubheading,
+                    searchQuery = done?.searchQuery,
+                    isSuggestions = done?.isSuggestions == true,
+                    isSearching = searchState == SearchState.Searching,
                     searchMovies = searchScreenViewModel::query,
                     onMovieClick = onMovieClick,
                     sidebarFocusRequester = sidebarFocusRequester,
@@ -147,6 +149,37 @@ fun SearchScreen(
     }
 }
 
+@Composable
+private fun SearchLoadingPlaceholder(
+    message: String,
+    contentFocusRequester: FocusRequester?,
+) {
+    val localFocusRequester = remember { FocusRequester() }
+    val focusRequester = contentFocusRequester ?: localFocusRequester
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(
+                if (contentFocusRequester != null) {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .focusable()
+                } else {
+                    Modifier
+                }
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = message,
+            color = Color.White.copy(alpha = 0.55f),
+            fontFamily = BrewTitle,
+            fontSize = 14.sp,
+        )
+    }
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun SearchResult(
@@ -155,6 +188,7 @@ fun SearchResult(
     sectionSubheading: String?,
     searchQuery: String?,
     isSuggestions: Boolean,
+    isSearching: Boolean = false,
     searchMovies: (queryString: String) -> Unit,
     onMovieClick: (movie: Movie) -> Unit,
     modifier: Modifier = Modifier,
@@ -166,9 +200,9 @@ fun SearchResult(
     val childPadding = rememberChildPadding()
     var searchQueryText by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
-    val barFocusRequester = remember { FocusRequester() }
+    val localBarFocusRequester = remember { FocusRequester() }
+    val barFocusRequester = contentFocusRequester ?: localBarFocusRequester
     val textFocusRequester = remember { FocusRequester() }
-    val entryFocusRequester = contentFocusRequester ?: barFocusRequester
     val focusManager = LocalFocusManager.current
     val tfInteractionSource = remember { MutableInteractionSource() }
     val barInteractionSource = remember { MutableInteractionSource() }
@@ -184,7 +218,6 @@ fun SearchResult(
     LaunchedEffect(isTabVisible) {
         if (isTabVisible) {
             isSearchActive = false
-            runCatching { entryFocusRequester.requestFocus() }
         }
     }
 
@@ -287,26 +320,36 @@ fun SearchResult(
                         modifier = Modifier
                             .weight(1f)
                             .focusRequester(textFocusRequester)
-                            .onKeyEvent {
-                                if (it.nativeKeyEvent.action == KeyEvent.ACTION_UP) {
-                                    when (it.nativeKeyEvent.keyCode) {
-                                        KeyEvent.KEYCODE_DPAD_DOWN -> {
-                                            focusManager.moveFocus(FocusDirection.Down)
-                                        }
-                                        KeyEvent.KEYCODE_DPAD_UP -> {
-                                            focusManager.moveFocus(FocusDirection.Up)
-                                        }
-                                        KeyEvent.KEYCODE_BACK -> {
-                                            if (isSearchActive) {
-                                                isSearchActive = false
-                                                runCatching { barFocusRequester.requestFocus() }
-                                            } else {
-                                                focusManager.moveFocus(FocusDirection.Exit)
-                                            }
-                                        }
-                                    }
+                            .focusProperties {
+                                canFocus = isSearchActive
+                                if (sidebarFocusRequester != null) {
+                                    left = sidebarFocusRequester
                                 }
-                                true
+                            }
+                            .onKeyEvent { event ->
+                                if (event.nativeKeyEvent.action != KeyEvent.ACTION_UP) {
+                                    return@onKeyEvent false
+                                }
+                                when (event.nativeKeyEvent.keyCode) {
+                                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                        focusManager.moveFocus(FocusDirection.Down)
+                                        true
+                                    }
+                                    KeyEvent.KEYCODE_DPAD_UP -> {
+                                        focusManager.moveFocus(FocusDirection.Up)
+                                        true
+                                    }
+                                    KeyEvent.KEYCODE_BACK -> {
+                                        if (isSearchActive) {
+                                            isSearchActive = false
+                                            runCatching { barFocusRequester.requestFocus() }
+                                        } else {
+                                            focusManager.moveFocus(FocusDirection.Exit)
+                                        }
+                                        true
+                                    }
+                                    else -> false
+                                }
                             },
                         cursorBrush = Brush.verticalGradient(
                             colors = listOf(Color.White, Color.White),
@@ -334,6 +377,21 @@ fun SearchResult(
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
+            }
+        }
+
+        if (isSearching) {
+            item(key = "searching_indicator") {
+                Text(
+                    text = "Searching…",
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontFamily = BrewTitle,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(
+                        start = childPadding.start,
+                        top = 12.dp,
+                    ),
+                )
             }
         }
 

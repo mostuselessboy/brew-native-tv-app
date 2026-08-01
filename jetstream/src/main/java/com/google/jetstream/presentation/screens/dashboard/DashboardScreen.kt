@@ -165,9 +165,11 @@ fun DashboardScreen(
 
     fun navigateToTab(screen: Screens) {
         val route = screen()
+        dashboardViewModel.cancelPendingRailNavigation()
         if (tabRoute != route) {
             tabSlideDirection = tabNavTargetFor(route, tabRoute).slideDirection
             tabRoute = route
+            dashboardViewModel.onRailTabNavigated(screen)
         }
     }
 

@@ -239,9 +239,16 @@ private fun UserReviewSummaryCard(summary: MovieReviewSummary) {
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun UserReviewCard(review: MovieReviewsAndRatings) {
-    var expanded by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
     val bodyText = review.reviewBody.trim()
     var isFocused by remember { mutableStateOf(false) }
+
+    if (showDialog) {
+        UserReviewDetailDialog(
+            review = review,
+            onDismissRequest = { showDialog = false },
+        )
+    }
 
     val animatedScale by animateFloatAsState(
         targetValue = if (isFocused) ReviewCardFocusedScale else 1f,
@@ -254,9 +261,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
     )
 
     Surface(
-        onClick = {
-            if (bodyText.length > 120) expanded = !expanded
-        },
+        onClick = { showDialog = true },
         shape = ClickableSurfaceDefaults.shape(ReviewCardShape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         border = ClickableSurfaceDefaults.border(
@@ -331,7 +336,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                         fontSize = 10.sp,
                         lineHeight = 13.sp,
                         letterSpacing = (-0.1).sp,
-                        maxLines = if (expanded) Int.MAX_VALUE else 2,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 6.dp),

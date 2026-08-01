@@ -3,6 +3,7 @@ package com.google.jetstream.presentation.screens.movies
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -40,6 +42,7 @@ import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.presentation.common.BrewQrPopup
 import com.google.jetstream.presentation.common.DetailsShimmerSkeleton
 import com.google.jetstream.presentation.common.Error
+import com.google.jetstream.presentation.utils.bringIntoViewIfChildrenAreFocused
 
 object MovieDetailsScreen {
     const val MovieIdBundleKey = "movieId"
@@ -145,6 +148,14 @@ private fun Details(
     var showLanguagesDialog by remember { mutableStateOf(false) }
     var showSynopsisDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val primaryCtaFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(movieDetails.id) {
+        listState.scrollToItem(0, scrollOffset = 0)
+        kotlinx.coroutines.delay(150)
+        runCatching { primaryCtaFocusRequester.requestFocus() }
+        listState.scrollToItem(0, scrollOffset = 0)
+    }
 
     val customersAlsoWatched = remember(movieDetails) {
         filterDetailMovies(movieDetails.customersAlsoWatched, movieDetails.id)
@@ -212,7 +223,9 @@ private fun Details(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(MovieDetailTokens.DetailShowcaseHeight),
+                        .height(MovieDetailTokens.DetailShowcaseHeight)
+                        .focusGroup()
+                        .bringIntoViewIfChildrenAreFocused(),
                 ) {
                     MovieDetailShowcaseBackdrop(
                         movieDetails = movieDetails,
@@ -229,6 +242,7 @@ private fun Details(
                         isBookmarked = isBookmarked,
                         onBookmarkClick = onBookmarkClick,
                         modifier = Modifier.fillMaxSize(),
+                        primaryFocusRequester = primaryCtaFocusRequester,
                         overlay = {
                             MovieDetailBackButton(
                                 onBackPressed = {
@@ -238,6 +252,8 @@ private fun Details(
                                         else -> onBackPressed()
                                     }
                                 },
+                                downFocusRequester = primaryCtaFocusRequester,
+                                rightFocusRequester = primaryCtaFocusRequester,
                                 modifier = Modifier.align(Alignment.TopStart),
                             )
                         },
@@ -361,9 +377,9 @@ private fun MovieDetailBottomSection(
                         brush = Brush.verticalGradient(
                             colorStops = arrayOf(
                                 0f to Color.Transparent,
-                                0.42f to Color(0xFFFF7A2E).copy(alpha = 0.14f),
-                                0.78f to Color(0xFFFF9A4D).copy(alpha = 0.20f),
-                                1f to Color(0xFFFF7A2E).copy(alpha = 0.24f),
+                                0.42f to Color(0xFFE8EAED).copy(alpha = 0.10f),
+                                0.78f to Color(0xFFD0D4DA).copy(alpha = 0.14f),
+                                1f to Color(0xFFB8BEC6).copy(alpha = 0.18f),
                             ),
                         ),
                     )

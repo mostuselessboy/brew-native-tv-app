@@ -1,14 +1,19 @@
 package com.google.jetstream.presentation.screens.movies
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -27,10 +32,14 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.google.jetstream.data.entities.MovieLanguageRow
+import com.google.jetstream.data.entities.MovieReviewsAndRatings
 import com.google.jetstream.presentation.screens.profile.AccountsSectionDialogButton
 import com.google.jetstream.presentation.theme.BrewTitle
-import com.google.jetstream.presentation.theme.JetStreamCardShape
 import com.google.jetstream.tvmaterial.StandardDialog
+
+private val DialogSurface = Color(0xFF141414)
+private val DialogMuted = Color.White.copy(alpha = 0.45f)
+private val MovieDetailDialogShape = RoundedCornerShape(20.dp)
 
 /** Port of mobile-viewer `LanguagesDialog.tsx` — TV StandardDialog. */
 @OptIn(
@@ -47,8 +56,8 @@ fun MovieDetailLanguagesDialog(
     StandardDialog(
         showDialog = showDialog,
         onDismissRequest = onDismissRequest,
-        shape = JetStreamCardShape,
-        containerColor = Color(0xFF141414),
+        shape = MovieDetailDialogShape,
+        containerColor = DialogSurface,
         title = {
             Text(
                 text = "Audio & Subtitles",
@@ -64,6 +73,7 @@ fun MovieDetailLanguagesDialog(
             Column(
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
+                    .heightIn(max = 360.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
                 Row(
@@ -74,7 +84,7 @@ fun MovieDetailLanguagesDialog(
                 ) {
                     Text(
                         text = "Languages",
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = DialogMuted,
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
@@ -82,7 +92,7 @@ fun MovieDetailLanguagesDialog(
                     )
                     Text(
                         text = "Audio",
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = DialogMuted,
                         fontFamily = BrewTitle,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
@@ -90,7 +100,7 @@ fun MovieDetailLanguagesDialog(
                     )
                     Text(
                         text = "Subtitles",
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = DialogMuted,
                         fontFamily = BrewTitle,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
@@ -101,7 +111,7 @@ fun MovieDetailLanguagesDialog(
                 if (rows.isEmpty()) {
                     Text(
                         text = "No language information available.",
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = DialogMuted,
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 } else {
@@ -109,6 +119,62 @@ fun MovieDetailLanguagesDialog(
                         LanguageTableRow(row = row)
                     }
                 }
+            }
+        },
+        confirmButton = {
+            AccountsSectionDialogButton(
+                text = "Close",
+                shouldRequestFocus = true,
+                onClick = onDismissRequest,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        },
+        dismissButton = {},
+    )
+}
+
+@OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalComposeUiApi::class,
+    ExperimentalTvMaterial3Api::class,
+)
+@Composable
+fun UserReviewDetailDialog(
+    review: MovieReviewsAndRatings,
+    onDismissRequest: () -> Unit,
+) {
+    val bodyText = review.reviewBody.trim()
+    val title = review.reviewHeading.takeIf { it.isNotBlank() } ?: "Review"
+
+    StandardDialog(
+        showDialog = true,
+        onDismissRequest = onDismissRequest,
+        shape = MovieDetailDialogShape,
+        containerColor = DialogSurface,
+        title = {
+            Text(
+                text = title,
+                color = Color.White,
+                fontFamily = BrewTitle,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        },
+        text = {
+            if (bodyText.isNotBlank()) {
+                Text(
+                    text = bodyText,
+                    color = Color.White.copy(alpha = 0.86f),
+                    fontFamily = BrewTitle,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(rememberScrollState()),
+                )
             }
         },
         confirmButton = {
@@ -174,8 +240,8 @@ fun MovieDetailSynopsisDialog(
     StandardDialog(
         showDialog = showDialog,
         onDismissRequest = onDismissRequest,
-        shape = JetStreamCardShape,
-        containerColor = Color(0xFF141414),
+        shape = MovieDetailDialogShape,
+        containerColor = DialogSurface,
         title = {
             Text(
                 text = title,
@@ -196,6 +262,7 @@ fun MovieDetailSynopsisDialog(
                 lineHeight = 22.sp,
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
+                    .heightIn(max = 320.dp)
                     .verticalScroll(rememberScrollState()),
             )
         },

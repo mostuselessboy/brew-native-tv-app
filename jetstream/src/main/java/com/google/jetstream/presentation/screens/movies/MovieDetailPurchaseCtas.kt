@@ -23,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
@@ -49,6 +51,7 @@ import com.google.jetstream.data.util.DetailCtaKind
 import com.google.jetstream.data.util.DetailPurchaseCta
 import com.google.jetstream.data.util.DetailPurchaseCtaSlot
 import com.google.jetstream.presentation.theme.BrewTitle
+import com.google.jetstream.presentation.utils.suppressBringIntoViewOnFocus
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -57,6 +60,7 @@ fun MovieDetailPurchaseCtaRow(
     onPrimaryAction: () -> Unit,
     onSecondaryAction: () -> Unit,
     modifier: Modifier = Modifier,
+    primaryFocusRequester: FocusRequester? = null,
 ) {
     val slots = DetailPurchaseCta.primaryRowSlots(movie)
 
@@ -83,7 +87,15 @@ fun MovieDetailPurchaseCtaRow(
                 } else {
                     onSecondaryAction
                 },
-                modifier = Modifier.width(MovieDetailTokens.CtaFixedWidth),
+                modifier = Modifier
+                    .width(MovieDetailTokens.CtaFixedWidth)
+                    .then(
+                        if (isPrimary && primaryFocusRequester != null) {
+                            Modifier.focusRequester(primaryFocusRequester)
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
         }
     }
@@ -116,7 +128,7 @@ private fun DetailPurchaseCtaButton(
     val cornerRadius = if (compact) MovieDetailTokens.CtaHalfRowRadius else MovieDetailTokens.CtaWideRadius
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.05f else 1f,
+        targetValue = if (focused) 1.03f else 1f,
         animationSpec = spring(dampingRatio = 0.72f, stiffness = 380f),
         label = "ctaScale",
     )
@@ -125,6 +137,7 @@ private fun DetailPurchaseCtaButton(
         onClick = onClick,
         modifier = modifier
             .heightIn(min = minHeight)
+            .suppressBringIntoViewOnFocus()
             .shadow(
                 elevation = if (focused) 8.dp else 4.dp,
                 shape = RoundedCornerShape(cornerRadius),

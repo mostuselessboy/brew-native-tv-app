@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
-private const val RailSettleDebounceMs = 240L
-private const val RailSettleDebounceCachedMs = 140L
+private const val RailSettleDebounceMs = 320L
+private const val RailSettleDebounceCachedMs = 220L
 
 enum class CatalogFocusRestoreTarget {
     ShowcasePrimary,
@@ -99,6 +99,15 @@ class DashboardViewModel @Inject constructor(
         updateMemory(tabRoute) { it.copy(movieId = null) }
     }
 
+    /** Clears tray scroll memory when switching tabs so content does not steal focus from the rail. */
+    fun onRailTabNavigated(screen: Screens) {
+        val route = screen()
+        if (pendingDetailReturnRoute == route) return
+        updateMemory(route) {
+            it.copy(sectionId = null, movieId = null)
+        }
+    }
+
     fun rememberOpenMovieFromTray(tabRoute: String) {
         onOpeningMovieDetail(tabRoute, fromTray = true)
     }
@@ -139,7 +148,7 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    /** Prefetch on IO; navigate only after focus dwells (release/settle). */
+    /** Prefetch on IO; navigate only after focus dwells on a non-active tab. */
     fun onRailItemFocused(
         screen: Screens,
         selected: Boolean,
@@ -147,7 +156,11 @@ class DashboardViewModel @Inject constructor(
     ) {
         prefetchRailScreen(screen)
         if (railNavigationSuppressed) return
-        if (selected) return
+        if (selected) {
+            pendingRailScreen = null
+            railNavigateJob?.cancel()
+            return
+        }
 
         pendingRailScreen = screen
         railNavigateJob?.cancel()
@@ -162,6 +175,7 @@ class DashboardViewModel @Inject constructor(
             delay(settleMs)
             if (pendingRailScreen != screen) return@launch
             withContext(Dispatchers.Main.immediate) {
+                if (pendingRailScreen != screen) return@withContext
                 navigate(screen)
             }
         }
@@ -173,6 +187,11 @@ class DashboardViewModel @Inject constructor(
             pendingRailScreen = null
             railNavigateJob?.cancel()
         }
+    }
+
+    fun cancelPendingRailNavigation() {
+        pendingRailScreen = null
+        railNavigateJob?.cancel()
     }
 
     private fun prefetchRailScreen(screen: Screens) {

@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -93,6 +94,7 @@ fun MovieDetailShowcaseContent(
     onBookmarkClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     overlay: @Composable BoxScope.() -> Unit = {},
+    primaryFocusRequester: FocusRequester? = null,
 ) {
     val childPadding = rememberChildPadding()
     val purchaseSlots = remember(movieDetails) { DetailPurchaseCta.primaryRowSlots(movieDetails) }
@@ -221,6 +223,7 @@ fun MovieDetailShowcaseContent(
                             movie = movieDetails,
                             onPrimaryAction = onPrimaryCtaClick,
                             onSecondaryAction = onSecondaryCtaClick,
+                            primaryFocusRequester = primaryFocusRequester,
                         )
                     }
 
@@ -233,6 +236,7 @@ fun MovieDetailShowcaseContent(
                         isBookmarked = isBookmarked,
                         onBookmarkClick = onBookmarkClick,
                         modifier = Modifier.padding(top = if (hasPurchaseCtas) 8.dp else 0.dp),
+                        firstItemFocusRequester = if (!hasPurchaseCtas) primaryFocusRequester else null,
                     )
                 }
             }

@@ -16,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -41,7 +43,17 @@ fun MovieDetailSecondaryActions(
     onBookmarkClick: () -> Unit = {},
     isBookmarked: Boolean = false,
     modifier: Modifier = Modifier,
+    firstItemFocusRequester: FocusRequester? = null,
 ) {
+    var assignedInitialFocus by remember { mutableStateOf(false) }
+    fun initialFocusModifier(): Modifier {
+        if (!assignedInitialFocus && firstItemFocusRequester != null) {
+            assignedInitialFocus = true
+            return Modifier.focusRequester(firstItemFocusRequester)
+        }
+        return Modifier
+    }
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -51,6 +63,7 @@ fun MovieDetailSecondaryActions(
             SecondaryActionButton(
                 onClick = onTrailerClick,
                 contentDescription = "Trailer",
+                modifier = initialFocusModifier(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_mdi_clapperboard),
@@ -64,6 +77,7 @@ fun MovieDetailSecondaryActions(
             SecondaryActionButton(
                 onClick = onSubtitlesClick,
                 contentDescription = "Subtitles",
+                modifier = initialFocusModifier(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_mdi_subtitles),
@@ -76,6 +90,7 @@ fun MovieDetailSecondaryActions(
         SecondaryActionButton(
             onClick = onBookmarkClick,
             contentDescription = if (isBookmarked) "Saved" else "Save",
+            modifier = initialFocusModifier(),
         ) {
             Icon(
                 painter = painterResource(
@@ -90,6 +105,7 @@ fun MovieDetailSecondaryActions(
             SecondaryActionButton(
                 onClick = onShareClick,
                 contentDescription = "Share",
+                modifier = initialFocusModifier(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_fa_share),

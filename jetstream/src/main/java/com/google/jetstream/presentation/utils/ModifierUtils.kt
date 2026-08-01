@@ -126,7 +126,7 @@ fun Modifier.focusOnInitialVisibility(isVisible: MutableState<Boolean>): Modifie
     return focusRequester(focusRequester)
         .onPlaced {
             if (!isVisible.value) {
-                focusRequester.requestFocus()
+                runCatching { focusRequester.requestFocus() }
                 isVisible.value = true
             }
         }

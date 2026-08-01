@@ -64,3 +64,19 @@ fun Modifier.bringIntoViewIfChildrenAreFocused(
             .bringIntoViewResponder(responder)
     }
 )
+
+/** Stops focus from nudging parent scroll containers (e.g. LazyColumn hero CTAs). */
+@OptIn(ExperimentalFoundationApi::class)
+fun Modifier.suppressBringIntoViewOnFocus(): Modifier = composed(
+    inspectorInfo = debugInspectorInfo { name = "suppressBringIntoViewOnFocus" },
+    factory = {
+        val responder = object : BringIntoViewResponder {
+            @ExperimentalFoundationApi
+            override fun calculateRectForParent(localRect: Rect): Rect = localRect
+
+            @ExperimentalFoundationApi
+            override suspend fun bringChildIntoView(localRect: () -> Rect?) {}
+        }
+        bringIntoViewResponder(responder)
+    },
+)

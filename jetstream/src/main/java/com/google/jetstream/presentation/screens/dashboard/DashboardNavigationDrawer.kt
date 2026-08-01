@@ -1,5 +1,7 @@
 package com.google.jetstream.presentation.screens.dashboard
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
@@ -24,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -69,6 +72,7 @@ private val RailItemShape = RoundedCornerShape(11.dp)
 private val IconSize = 15.dp
 private val StoreIconSize = 13.dp
 private val RailItemSize = 40.dp
+private const val RailFocusedScale = 1.12f
 
 private data class BrewRailEntry(
     val screen: Screens,
@@ -223,6 +227,11 @@ private fun BrewRailItem(
     sidebarFocusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val animatedScale by animateFloatAsState(
+        targetValue = if (focused) RailFocusedScale else 1f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 380f),
+        label = "railItemScale",
+    )
     val pillColor = when {
         focused -> Color.White
         selected -> RailSelectedPill
@@ -248,6 +257,10 @@ private fun BrewRailItem(
         ),
         modifier = Modifier
             .size(RailItemSize)
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
             .onFocusChanged { state ->
                 focused = state.isFocused
                 if (state.isFocused) {

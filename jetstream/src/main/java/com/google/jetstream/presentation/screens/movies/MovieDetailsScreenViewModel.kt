@@ -222,6 +222,7 @@ class MovieDetailsScreenViewModel @Inject constructor(
             DetailCtaKind.Buy -> BrewWebUrls.buy(details)
             DetailCtaKind.SubscribeYearly -> BrewWebUrls.subscribeYearly()
             DetailCtaKind.SubscribeQuarterly -> BrewWebUrls.subscribeQuarterly()
+            DetailCtaKind.SupportFilmmaker -> BrewWebUrls.moviePage(details)
             else -> BrewWebUrls.moviePage(details)
         }
         val title = when (slot.kind) {
@@ -229,6 +230,7 @@ class MovieDetailsScreenViewModel @Inject constructor(
             DetailCtaKind.Buy -> "Buy on brew.tv"
             DetailCtaKind.SubscribeYearly,
             DetailCtaKind.SubscribeQuarterly -> "Subscribe on brew.tv"
+            DetailCtaKind.SupportFilmmaker -> "Support on brew.tv"
             else -> "Continue on brew.tv"
         }
         val message = when (slot.kind) {
@@ -239,15 +241,27 @@ class MovieDetailsScreenViewModel @Inject constructor(
             DetailCtaKind.SubscribeYearly,
             DetailCtaKind.SubscribeQuarterly ->
                 "Scan to subscribe to Brew+ on brew.tv with your phone or tablet."
+            DetailCtaKind.SupportFilmmaker ->
+                "Scan to support the filmmaker on brew.tv with your phone or tablet."
             else -> "Scan to continue on brew.tv."
         }
         _qrPopup.value = BrewQrPopupState(
             qrUrl = url,
             title = title,
             message = message,
+            posterUri = details.posterUri,
             icon = BrewQrPopupIcon.Brew,
             doneAction = BrewQrPopupDoneAction.RefreshPurchase,
         )
+    }
+
+    private fun opensPurchaseQrPopup(kind: DetailCtaKind): Boolean = when (kind) {
+        DetailCtaKind.Rent,
+        DetailCtaKind.Buy,
+        DetailCtaKind.SubscribeYearly,
+        DetailCtaKind.SubscribeQuarterly,
+        DetailCtaKind.SupportFilmmaker -> true
+        else -> false
     }
 
     private fun onCtaClick(
@@ -260,11 +274,13 @@ class MovieDetailsScreenViewModel @Inject constructor(
             startFeaturePlayback(details, checkPurchase)
             return
         }
+        if (opensPurchaseQrPopup(slot.kind)) {
+            showPurchaseQrPopup(details, slot)
+            return
+        }
         when (slot.kind) {
-            DetailCtaKind.Rent,
-            DetailCtaKind.Buy,
-            DetailCtaKind.SubscribeYearly,
-            DetailCtaKind.SubscribeQuarterly -> showPurchaseQrPopup(details, slot)
+            DetailCtaKind.ComingSoon,
+            DetailCtaKind.ComingSoonNotify -> showPurchaseQrPopup(details, slot)
             else -> onTrailerClick(details)
         }
     }
