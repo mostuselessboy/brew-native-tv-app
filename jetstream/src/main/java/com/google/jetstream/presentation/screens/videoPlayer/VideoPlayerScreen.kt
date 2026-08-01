@@ -60,6 +60,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.jetstream.data.playback.BrewExoPlayerFactory
@@ -186,6 +187,13 @@ fun VideoPlayerScreenContent(
     var isBuffering by remember(movieDetails.id) { mutableStateOf(true) }
     var settingsDialog by remember { mutableStateOf(VideoPlayerSettingsDialog.None) }
     var isPlaying by remember(exoPlayer) { mutableStateOf(exoPlayer.isPlaying) }
+    val view = LocalView.current
+
+    DisposableEffect(isPlaying, isBuffering) {
+        view.keepScreenOn = isPlaying || isBuffering
+        onDispose { view.keepScreenOn = false }
+    }
+
     val rootFocusRequester = remember { FocusRequester() }
     val seekFocusRequester = remember { FocusRequester() }
 

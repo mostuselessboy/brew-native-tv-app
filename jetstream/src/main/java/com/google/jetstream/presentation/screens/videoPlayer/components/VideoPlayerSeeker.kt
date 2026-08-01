@@ -160,7 +160,7 @@ fun VideoPlayerSeeker(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer { clip = false },
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(

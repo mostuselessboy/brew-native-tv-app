@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
@@ -256,9 +259,19 @@ private fun QualityDialogContent(
         mutableStateOf(VideoPlayerTrackHelper.selectedQualityHeight(player, qualities))
     }
 
-    LaunchedEffect(player.currentTracks) {
-        qualities = VideoPlayerTrackHelper.readQualityTracks(player)
-        selectedHeight = VideoPlayerTrackHelper.selectedQualityHeight(player, qualities)
+    DisposableEffect(player) {
+        fun refresh() {
+            qualities = VideoPlayerTrackHelper.readQualityTracks(player)
+            selectedHeight = VideoPlayerTrackHelper.selectedQualityHeight(player, qualities)
+        }
+        refresh()
+        val listener = object : Player.Listener {
+            override fun onTracksChanged(tracks: Tracks) = refresh()
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) = refresh()
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
     }
 
     SettingsOptionRow(

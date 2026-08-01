@@ -28,6 +28,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,7 +47,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.graphicsLayer
 import com.google.jetstream.data.util.SeekSpritePreview
 
 private val BrewAccentYellow = Color(0xFFFFC15E)
@@ -61,6 +61,8 @@ private val BarRowHeightSeeking = 32.dp
 private val BarRowHeightFocused = 24.dp
 private val BarRowHeightDefault = 20.dp
 private val PreviewGapAboveThumb = 8.dp
+
+private val PreviewTimestampBlockHeight = 37.dp
 
 @Composable
 fun VideoPlayerProgressBar(
@@ -131,9 +133,7 @@ fun VideoPlayerProgressBar(
 
     BoxWithConstraints(
         modifier = modifier
-            .fillMaxWidth()
-            .height(barRowHeight)
-            .graphicsLayer { clip = false },
+            .fillMaxWidth(),
     ) {
         val density = LocalDensity.current
         val trackWidthPx = with(density) { maxWidth.toPx() }
@@ -144,67 +144,73 @@ fun VideoPlayerProgressBar(
         val previewWidthDp = previewMeta?.let {
             with(density) { (it.previewWidth + 12f).toDp() }
         }
-        val previewAnchorY = -(barRowHeight / 2 + thumbSize / 2 + PreviewGapAboveThumb)
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(barRowHeight)
-                .align(Alignment.Center),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(trackHeight)
-                    .align(Alignment.Center),
-                onDraw = {
-                    val yOffset = size.height / 2f
-                    drawLine(
-                        color = barColor.copy(alpha = inactiveTrackAlpha),
-                        start = Offset(0f, yOffset),
-                        end = Offset(size.width, yOffset),
-                        strokeWidth = size.height,
-                        cap = StrokeCap.Round,
-                    )
-                    drawLine(
-                        color = barColor,
-                        start = Offset(0f, yOffset),
-                        end = Offset(size.width * clamped, yOffset),
-                        strokeWidth = size.height,
-                        cap = StrokeCap.Round,
-                    )
-                },
-            )
-
-            Box(
-                modifier = Modifier
-                    .offset(x = thumbOffsetX)
-                    .size(thumbSize)
-                    .align(Alignment.CenterStart),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(thumbSize)
-                        .background(thumbColor, CircleShape),
-                )
-            }
+        val previewCardHeightDp = previewMeta?.let {
+            with(density) { it.previewHeight.toDp() } + PreviewTimestampBlockHeight
         }
 
-        if (showThumbPreview && previewMeta != null && previewWidthDp != null) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (showThumbPreview && previewMeta != null && previewWidthDp != null && previewCardHeightDp != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(previewCardHeightDp + PreviewGapAboveThumb),
+                    contentAlignment = Alignment.BottomStart,
+                ) {
+                    Box(
+                        modifier = Modifier.offset(x = thumbCenterDp - previewWidthDp / 2),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        SeekThumbPreview(
+                            preview = previewMeta,
+                            timeSeconds = previewTimeSeconds,
+                        )
+                    }
+                }
+            }
+
             Box(
                 modifier = Modifier
-                    .graphicsLayer { clip = false }
-                    .align(Alignment.BottomStart)
-                    .offset(x = thumbCenterDp - previewWidthDp / 2)
-                    .offset(y = previewAnchorY),
-                contentAlignment = Alignment.BottomCenter,
+                    .fillMaxWidth()
+                    .height(barRowHeight),
+                contentAlignment = Alignment.CenterStart,
             ) {
-                SeekThumbPreview(
-                    preview = previewMeta,
-                    timeSeconds = previewTimeSeconds,
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(trackHeight)
+                        .align(Alignment.Center),
+                    onDraw = {
+                        val yOffset = size.height / 2f
+                        drawLine(
+                            color = barColor.copy(alpha = inactiveTrackAlpha),
+                            start = Offset(0f, yOffset),
+                            end = Offset(size.width, yOffset),
+                            strokeWidth = size.height,
+                            cap = StrokeCap.Round,
+                        )
+                        drawLine(
+                            color = barColor,
+                            start = Offset(0f, yOffset),
+                            end = Offset(size.width * clamped, yOffset),
+                            strokeWidth = size.height,
+                            cap = StrokeCap.Round,
+                        )
+                    },
                 )
+
+                Box(
+                    modifier = Modifier
+                        .offset(x = thumbOffsetX)
+                        .size(thumbSize)
+                        .align(Alignment.CenterStart),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(thumbSize)
+                            .background(thumbColor, CircleShape),
+                    )
+                }
             }
         }
     }
