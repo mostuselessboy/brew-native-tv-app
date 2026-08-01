@@ -120,6 +120,47 @@ object BrewMappers {
         )
     }
 
+    /** Customers-also-watched / related-movies tray cards — same meta fields as home cards. */
+    fun BrewAlsoWatchedMovieDto.toMovie(): Movie? {
+        val id = cvName?.takeIf { it.isNotBlank() } ?: return null
+        val name = projectTitle?.takeIf { it.isNotBlank() } ?: return null
+        val backgroundArt = BrewArtworkUrls.asUrl(appearance?.get("background_art"))
+        val horizontalThumbnails = BrewArtworkUrls.horizontalAlternatesFromAppearance(appearance)
+        val posterFallback = projectPoster?.takeIf { it.isNotBlank() }
+            ?: BrewArtworkUrls.asUrl(appearance?.get("poster"))
+        val landscape = DailyRotatingArtwork.pickDailyLandscape(
+            backgroundArtUrl = backgroundArt,
+            horizontalThumbnails = horizontalThumbnails,
+            fallback = posterFallback ?: BrewArtworkUrls.landscapeFromAppearance(appearance),
+        ).takeIf { it.isNotBlank() }
+            ?: posterFallback?.takeIf { it.isNotBlank() }
+            ?: return null
+        val chrome = CardCommerce.resolve(
+            monetizationModel = monetizationModel,
+            pricingData = null,
+            isSvod = isSvod,
+            isTvod = isTvod,
+            availableForBuy = availableForBuy,
+            availableForRent = availableForRent,
+            isStoreContent = isStoreContent,
+        )
+        return Movie(
+            id = id,
+            videoUri = "",
+            subtitleUri = null,
+            posterUri = landscape,
+            name = name,
+            description = shortDescription?.takeIf { it.isNotBlank() }.orEmpty(),
+            year = BrewDateUtils.formatReleaseYear(releaseDate),
+            country = country?.takeIf { it.isNotBlank() },
+            genres = genres,
+            vodTagLabel = VodTagBadge.movieCardLabel(vodTag),
+            isFestivalTag = VodTagBadge.isFestivalStyle(vodTag),
+            showStore = chrome.showStore,
+            showBrewPlus = chrome.showPlus,
+        )
+    }
+
     fun BrewHomeSectionDto.toHomeSection(): HomeSection? {
         // Always landscape art for home trays/carousel — matches brew.tv card shelves.
         val movies = content.mapNotNull { item ->

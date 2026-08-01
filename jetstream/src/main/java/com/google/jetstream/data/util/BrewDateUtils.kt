@@ -28,7 +28,14 @@ object BrewDateUtils {
                 val year = LocalDate.parse(trimmed.take(10)).year
                 if (year > 0) year.toString() else null
             } catch (_: Exception) {
-                null
+                // Also-watched / related APIs often return JS Date strings like
+                // "Fri Apr 07 1939 00:00:00 GMT+0530 (India Standard Time)".
+                Regex("""\b(19\d{2}|20\d{2})\b""")
+                    .find(trimmed)
+                    ?.value
+                    ?.toIntOrNull()
+                    ?.takeIf { it > 0 }
+                    ?.toString()
             }
         }
     }

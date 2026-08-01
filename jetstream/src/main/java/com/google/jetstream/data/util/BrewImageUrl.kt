@@ -32,8 +32,8 @@ object BrewImageUrl {
     /** Cast avatar on detail — 120dp @ 2× density, square crop. */
     const val CAST_AVATAR_PX = 240
 
-    const val CRITIC_LOGO_WIDTH = 180
-    const val CRITIC_LOGO_HEIGHT = 90
+    const val CRITIC_LOGO_WIDTH = 360
+    const val CRITIC_LOGO_HEIGHT = 180
 
     /** Watch hidden gems wordmark — splash + header lockup. */
     const val WATCH_HIDDEN_GEMS_WIDTH = 160

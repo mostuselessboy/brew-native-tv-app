@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -24,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -336,43 +336,38 @@ private fun MovieDetailBottomSection(
     relatedMovies: MovieList = emptyList(),
     onMovieSelected: (Movie) -> Unit = {},
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .drawBehind {
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to Color.Black,
-                            0.22f to Color.Black,
-                            0.55f to Color(0xFF0C0A08),
-                            0.82f to Color(0xFF141008),
-                            1f to Color(0xFF1A140C),
-                        ),
-                    ),
-                )
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFFF7A2E).copy(alpha = 0.10f),
-                            Color(0xFFFF9A4D).copy(alpha = 0.04f),
-                            Color.Transparent,
-                        ),
-                        center = Offset(size.width * 0.5f, size.height * 0.92f),
-                        radius = size.width * 0.65f,
-                    ),
-                )
-            },
+    Box(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
             if (relatedMovies.isNotEmpty()) {
                 DetailRelatedMoviesRow(
                     title = "Related Movies",
                     movieList = relatedMovies,
                     onMovieSelected = onMovieSelected,
+                    modifier = Modifier.padding(bottom = 28.dp),
                 )
             }
             MovieDetailPageFooter()
         }
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(56.dp)
+                .drawBehind {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                0.42f to Color(0xFFFF7A2E).copy(alpha = 0.14f),
+                                0.78f to Color(0xFFFF9A4D).copy(alpha = 0.20f),
+                                1f to Color(0xFFFF7A2E).copy(alpha = 0.24f),
+                            ),
+                        ),
+                    )
+                },
+        )
     }
 }

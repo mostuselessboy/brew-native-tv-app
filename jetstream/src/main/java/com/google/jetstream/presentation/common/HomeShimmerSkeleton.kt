@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +34,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.google.jetstream.R
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.common.ShowcaseHeight
 import com.google.jetstream.presentation.screens.movies.MovieDetailTokens
@@ -231,14 +235,15 @@ fun DetailsShimmerSkeleton(
                     posterUri = posterUri,
                     posterFill = shimmer,
                 )
-                Box(
+                Image(
+                    painter = painterResource(R.drawable.brew_logo),
+                    contentDescription = "Brew",
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 28.dp, end = padding.end)
-                        .width(78.dp)
                         .height(30.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(shimmer),
+                        .width(78.dp),
+                    contentScale = ContentScale.Fit,
                 )
                 Row(
                 modifier = Modifier

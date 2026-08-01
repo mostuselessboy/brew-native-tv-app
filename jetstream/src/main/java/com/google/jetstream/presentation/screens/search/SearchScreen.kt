@@ -20,6 +20,7 @@ import android.view.KeyEvent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -109,15 +110,7 @@ fun SearchScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0f to Color(0xFF0A0A0A),
-                        0.35f to Color(0xFF050505),
-                        1f to Color.Black,
-                    ),
-                ),
-            ),
+            .background(Color.Black),
     ) {
         when (val s = searchState) {
             SearchState.Loading,
@@ -172,20 +165,32 @@ fun SearchResult(
 ) {
     val childPadding = rememberChildPadding()
     var searchQueryText by remember { mutableStateOf("") }
-    val localFocusRequester = remember { FocusRequester() }
-    val tfFocusRequester = contentFocusRequester ?: localFocusRequester
+    var isSearchActive by remember { mutableStateOf(false) }
+    val barFocusRequester = remember { FocusRequester() }
+    val textFocusRequester = remember { FocusRequester() }
+    val entryFocusRequester = contentFocusRequester ?: barFocusRequester
     val focusManager = LocalFocusManager.current
     val tfInteractionSource = remember { MutableInteractionSource() }
+    val barInteractionSource = remember { MutableInteractionSource() }
 
+    val isBarFocused by barInteractionSource.collectIsFocusedAsState()
     val isTfFocused by tfInteractionSource.collectIsFocusedAsState()
+    val isBarHighlighted = isBarFocused || isTfFocused
     val borderColor by animateColorAsState(
-        targetValue = if (isTfFocused) SearchBarFocusedBorder else SearchBarIdleBorder,
+        targetValue = if (isBarHighlighted) SearchBarFocusedBorder else SearchBarIdleBorder,
         label = "searchBarBorder",
     )
 
     LaunchedEffect(isTabVisible) {
         if (isTabVisible) {
-            tfFocusRequester.requestFocus()
+            isSearchActive = false
+            runCatching { entryFocusRequester.requestFocus() }
+        }
+    }
+
+    LaunchedEffect(isTfFocused) {
+        if (!isTfFocused) {
+            isSearchActive = false
         }
     }
 
@@ -228,6 +233,31 @@ fun SearchResult(
                         .clip(SearchBarShape)
                         .background(SearchBarBg)
                         .border(1.dp, borderColor, SearchBarShape)
+                        .focusRequester(barFocusRequester)
+                        .focusable(interactionSource = barInteractionSource)
+                        .then(
+                            if (sidebarFocusRequester != null) {
+                                Modifier.focusProperties { left = sidebarFocusRequester }
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .onKeyEvent { event ->
+                            if (
+                                !isSearchActive &&
+                                event.nativeKeyEvent.action == KeyEvent.ACTION_UP &&
+                                (
+                                    event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                        event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER
+                                )
+                            ) {
+                                isSearchActive = true
+                                runCatching { textFocusRequester.requestFocus() }
+                                true
+                            } else {
+                                false
+                            }
+                        }
                         .padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -235,12 +265,13 @@ fun SearchResult(
                     Icon(
                         painter = painterResource(R.drawable.ic_lucide_search),
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = if (isTfFocused) 0.85f else 0.45f),
+                        tint = Color.White.copy(alpha = if (isBarHighlighted) 0.85f else 0.45f),
                         modifier = Modifier.size(20.dp),
                     )
                     BasicTextField(
                         value = searchQueryText,
                         onValueChange = { updatedQuery -> searchQueryText = updatedQuery },
+                        readOnly = !isSearchActive,
                         decorationBox = { innerTextField ->
                             Box {
                                 innerTextField()
@@ -255,14 +286,7 @@ fun SearchResult(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .focusRequester(tfFocusRequester)
-                            .then(
-                                if (sidebarFocusRequester != null) {
-                                    Modifier.focusProperties { left = sidebarFocusRequester }
-                                } else {
-                                    Modifier
-                                },
-                            )
+                            .focusRequester(textFocusRequester)
                             .onKeyEvent {
                                 if (it.nativeKeyEvent.action == KeyEvent.ACTION_UP) {
                                     when (it.nativeKeyEvent.keyCode) {
@@ -273,7 +297,12 @@ fun SearchResult(
                                             focusManager.moveFocus(FocusDirection.Up)
                                         }
                                         KeyEvent.KEYCODE_BACK -> {
-                                            focusManager.moveFocus(FocusDirection.Exit)
+                                            if (isSearchActive) {
+                                                isSearchActive = false
+                                                runCatching { barFocusRequester.requestFocus() }
+                                            } else {
+                                                focusManager.moveFocus(FocusDirection.Exit)
+                                            }
                                         }
                                     }
                                 }
@@ -292,6 +321,17 @@ fun SearchResult(
                         maxLines = 1,
                         interactionSource = tfInteractionSource,
                         textStyle = searchFieldStyle(),
+                    )
+                }
+                if (!isSearchActive) {
+                    Text(
+                        text = stringResource(R.string.search_screen_bar_action),
+                        color = Color.White.copy(alpha = if (isBarFocused) 0.62f else 0.42f),
+                        fontFamily = BrewTitle,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 11.sp,
+                        letterSpacing = (-0.1).sp,
+                        modifier = Modifier.padding(top = 8.dp),
                     )
                 }
             }

@@ -62,8 +62,9 @@ import com.google.jetstream.presentation.theme.BrewTitle
 
 private val CardShape = RoundedCornerShape(14.dp)
 private val CardWidth = 196.dp
-private val CardHeight = 140.dp
+private val CardHeight = 132.dp
 private val CardBgColor = Color(0xFF0C0C0C)
+private const val CriticCardFocusedScale = 1.05f
 
 /** Critic review cards — polished TV layout. */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -80,7 +81,7 @@ fun CriticReviewsRow(
     Column(modifier = modifier.padding(top = 2.dp)) {
         MovieDetailSectionTitle(text = "Critics' Reviews")
         LazyRow(
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
@@ -130,7 +131,7 @@ private fun CriticReviewCard(
     }
 
     val animatedScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.12f else 1.0f,
+        targetValue = if (isFocused) CriticCardFocusedScale else 1.0f,
         animationSpec = scaleAnimationSpec,
         label = "CriticCardScale"
     )
@@ -166,6 +167,7 @@ private fun CriticReviewCard(
             .graphicsLayer {
                 scaleX = animatedScale
                 scaleY = animatedScale
+                clip = false
             }
             .zIndex(if (isFocused) 10f else 1f),
     ) {
@@ -179,12 +181,12 @@ private fun CriticReviewCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(CardHeight)
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(24.dp),
+                        .height(26.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (!review.orgLogoUrl.isNullOrBlank()) {
@@ -200,28 +202,31 @@ private fun CriticReviewCard(
                             contentDescription = review.orgName,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(18.dp),
+                                .fillMaxWidth(0.88f)
+                                .height(22.dp),
                         )
                     }
                 }
 
-                Text(
-                    text = "\"${review.quote}\"",
-                    color = Color.White.copy(alpha = 0.92f),
-                    fontFamily = BrewDisplay,
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 13.sp,
-                    lineHeight = 15.sp,
-                    textAlign = TextAlign.Center,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = 4.dp, bottom = 4.dp),
-                )
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "\"${review.quote}\"",
+                        color = Color.White.copy(alpha = 0.92f),
+                        fontFamily = BrewDisplay,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
                 Box(
                     modifier = Modifier
@@ -250,6 +255,7 @@ private fun CriticReviewCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 4.dp),
+                    textAlign = TextAlign.Center,
                 )
 
                 Row(

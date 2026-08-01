@@ -28,24 +28,18 @@ import com.google.jetstream.data.entities.MovieCategoryList
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.entities.ThumbnailType
-import com.google.jetstream.data.remote.BrewAlsoWatchedMovieDto
-import com.google.jetstream.data.remote.BrewMappers.toReviewSummary
-import com.google.jetstream.data.remote.BrewMappers.toUserReview
 import com.google.jetstream.data.remote.BrewApiService
 import com.google.jetstream.data.remote.BrewContentDataDto
 import com.google.jetstream.data.remote.BrewHomeSectionDto
 import com.google.jetstream.data.remote.BrewMappers.toCollectionSectionDetails
 import com.google.jetstream.data.remote.BrewMappers.toHomeSection
+import com.google.jetstream.data.remote.BrewMappers.genresToCategories
 import com.google.jetstream.data.remote.BrewMappers.toMovie
 import com.google.jetstream.data.remote.BrewMappers.toMovieDetails
-import com.google.jetstream.data.remote.BrewMappers.genresToCategories
+import com.google.jetstream.data.remote.BrewMappers.toReviewSummary
+import com.google.jetstream.data.remote.BrewMappers.toUserReview
 import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.data.remote.BrewCampaignData
-import com.google.jetstream.data.util.BrewArtworkUrls
-import com.google.jetstream.data.util.BrewDateUtils
-import com.google.jetstream.data.util.CardCommerce
-import com.google.jetstream.data.util.DailyRotatingArtwork
-import com.google.jetstream.data.util.VodTagBadge
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -103,46 +97,6 @@ class MovieRepositoryImpl @Inject constructor(
         CatalogPages.forEach { page ->
             runCatching { homeSections(page) }
         }
-    }
-
-    private fun BrewAlsoWatchedMovieDto.toAlsoWatchedMovie(): Movie? {
-        val id = cvName?.takeIf { it.isNotBlank() } ?: return null
-        val name = projectTitle?.takeIf { it.isNotBlank() } ?: return null
-        val backgroundArt = BrewArtworkUrls.asUrl(appearance?.get("background_art"))
-        val horizontalThumbnails = BrewArtworkUrls.horizontalAlternatesFromAppearance(appearance)
-        val posterFallback = projectPoster?.takeIf { it.isNotBlank() }
-            ?: BrewArtworkUrls.asUrl(appearance?.get("poster"))
-        val landscape = DailyRotatingArtwork.pickDailyLandscape(
-            backgroundArtUrl = backgroundArt,
-            horizontalThumbnails = horizontalThumbnails,
-            fallback = posterFallback ?: BrewArtworkUrls.landscapeFromAppearance(appearance),
-        ).takeIf { it.isNotBlank() }
-            ?: posterFallback?.takeIf { it.isNotBlank() }
-            ?: return null
-        val chrome = CardCommerce.resolve(
-            monetizationModel = monetizationModel,
-            pricingData = null,
-            isSvod = isSvod,
-            isTvod = isTvod,
-            availableForBuy = availableForBuy,
-            availableForRent = availableForRent,
-            isStoreContent = isStoreContent,
-        )
-        return Movie(
-            id = id,
-            videoUri = "",
-            subtitleUri = null,
-            posterUri = landscape,
-            name = name,
-            description = shortDescription.orEmpty(),
-            year = BrewDateUtils.formatReleaseYear(releaseDate),
-            country = country?.takeIf { it.isNotBlank() },
-            genres = genres,
-            vodTagLabel = VodTagBadge.movieCardLabel(vodTag),
-            isFestivalTag = VodTagBadge.isFestivalStyle(vodTag),
-            showStore = chrome.showStore,
-            showBrewPlus = chrome.showPlus,
-        )
     }
 
     private suspend fun homeSections(page: String = BrewPages.HOME): List<BrewHomeSectionDto> {
@@ -336,7 +290,7 @@ class MovieRepositoryImpl @Inject constructor(
                 country = BrewPages.DEFAULT_COUNTRY,
             ).data?.relatedMovies.orEmpty()
         }.getOrDefault(emptyList())
-            .mapNotNull { it.toAlsoWatchedMovie() }
+            .mapNotNull { it.toMovie() }
             .filter { it.id != slug }
             .distinctBy { it.id }
             .take(12)
@@ -347,7 +301,7 @@ class MovieRepositoryImpl @Inject constructor(
             runCatching {
                 brewApiService.getRelatedMovies(campaignVersionId = campaignVersionId)
                     .data?.relatedMovies.orEmpty()
-                    .mapNotNull { it.toAlsoWatchedMovie() }
+                    .mapNotNull { it.toMovie() }
                     .filter { it.id != slug && it.id !in alsoWatchedIds }
                     .distinctBy { it.id }
                     .take(12)

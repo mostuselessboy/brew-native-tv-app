@@ -47,11 +47,16 @@ private const val FestivalWreath =
 
 enum class BadgeVariant { White, Yellow }
 
-/** Sales pitch first; else year • country — vod-frontend MovieCardInfoOverlay. */
+/** Sales pitch first; else year • country; else genres — vod-frontend MovieCardInfoOverlay. */
 fun movieCardMetaLine(movie: Movie): String {
     if (movie.description.isNotBlank()) return movie.description
-    return listOfNotNull(movie.year, movie.country)
+    val yearCountry = listOfNotNull(movie.year, movie.country)
         .filter { it.isNotBlank() }
+        .joinToString(" • ")
+    if (yearCountry.isNotBlank()) return yearCountry
+    return movie.genres
+        .filter { it.isNotBlank() }
+        .take(2)
         .joinToString(" • ")
 }
 

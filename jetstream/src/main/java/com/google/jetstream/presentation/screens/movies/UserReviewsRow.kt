@@ -30,10 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -60,14 +59,15 @@ import com.google.jetstream.presentation.theme.BrewTitle
 import java.util.Locale
 
 private val ReviewCardBg = Color(0xFF111111)
-private val ReviewCardShape = RoundedCornerShape(16.dp)
+private val ReviewCardShape = RoundedCornerShape(14.dp)
 private val StirYellow = Color(0xFFFFC15E)
-private val ReviewCardWidth = 280.dp
-private val ReviewCardHeight = 188.dp
-private val SummaryCardWidth = 200.dp
-private val SummaryCardHeight = 188.dp
-private val ReviewAvatarSize = 26.dp
-private val VerifiedBadgeSize = 10.dp
+private val ReviewCardWidth = 220.dp
+private val ReviewCardHeight = 128.dp
+private val SummaryCardWidth = 148.dp
+private val SummaryCardHeight = 128.dp
+private val ReviewAvatarSize = 22.dp
+private val VerifiedBadgeSize = 9.dp
+private const val ReviewCardFocusedScale = 1.04f
 
 /** Audience reviews — summary hero card + center-aligned review cards. */
 @Composable
@@ -83,7 +83,11 @@ fun UserReviewsRow(
     if (reviews.isEmpty() && !hasSummary) return
     val childPadding = rememberChildPadding()
 
-    Column(modifier = modifier.padding(top = 24.dp)) {
+    Column(
+        modifier = modifier
+            .padding(top = 24.dp)
+            .graphicsLayer { clip = false },
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -103,12 +107,12 @@ fun UserReviewsRow(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 14.dp),
+                .padding(top = 12.dp, bottom = 10.dp),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
             ),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (hasSummary) {
                 item(key = "review_summary") {
@@ -127,23 +131,61 @@ fun UserReviewsRow(
     }
 }
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun UserReviewSummaryCard(summary: MovieReviewSummary) {
     val normalized = if (summary.averageRating > 5) summary.averageRating / 2.0 else summary.averageRating
+    var isFocused by remember { mutableStateOf(false) }
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isFocused) ReviewCardFocusedScale else 1f,
+        animationSpec = if (isFocused) {
+            spring(dampingRatio = 0.85f, stiffness = 180f)
+        } else {
+            tween(durationMillis = 500, easing = LinearOutSlowInEasing)
+        },
+        label = "SummaryCardScale",
+    )
 
-    Box(
+    Surface(
+        onClick = {},
+        shape = ClickableSurfaceDefaults.shape(ReviewCardShape),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                shape = ReviewCardShape,
+            ),
+            focusedBorder = Border(
+                border = BorderStroke(1.5.dp, Color.White),
+                shape = ReviewCardShape,
+            ),
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color.White.copy(alpha = 0.24f),
+                elevation = 16.dp,
+            ),
+        ),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color(0xFF141414),
+            focusedContainerColor = Color(0xFF161616),
+        ),
         modifier = Modifier
             .width(SummaryCardWidth)
             .height(SummaryCardHeight)
-            .clip(ReviewCardShape)
-            .background(ReviewCardBg)
-            .focusProperties { canFocus = false },
+            .onFocusChanged { isFocused = it.isFocused }
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+                clip = false
+            }
+            .zIndex(if (isFocused) 10f else 1f),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(SummaryCardHeight)
-                .padding(horizontal = 22.dp, vertical = 20.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -153,40 +195,40 @@ private fun UserReviewSummaryCard(summary: MovieReviewSummary) {
                 } else {
                     "—"
                 },
-                color = StirYellow,
+                color = Color.White,
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Bold,
-                fontSize = 48.sp,
-                lineHeight = 48.sp,
-                letterSpacing = (-1.2).sp,
+                fontSize = 40.sp,
+                lineHeight = 40.sp,
+                letterSpacing = (-1.1).sp,
                 textAlign = TextAlign.Center,
             )
             if (normalized > 0) {
                 BrewStarRatingRow(
                     rating = normalized,
-                    starSize = 16.dp,
-                    spacing = 3.dp,
-                    modifier = Modifier.padding(top = 12.dp),
+                    starSize = 13.dp,
+                    spacing = 2.dp,
+                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
             Text(
                 text = "out of 5",
-                color = Color.White.copy(alpha = 0.38f),
+                color = Color.White.copy(alpha = 0.34f),
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Medium,
-                fontSize = 10.sp,
+                fontSize = 9.sp,
                 letterSpacing = 0.3.sp,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 6.dp),
             )
             summary.totalRatings.takeIf { it > 0 }?.let { total ->
                 Text(
                     text = String.format(Locale.US, "%,d ratings", total),
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = Color.White.copy(alpha = 0.48f),
                     fontFamily = BrewTitle,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 11.sp,
-                    letterSpacing = (-0.15).sp,
-                    modifier = Modifier.padding(top = 10.dp),
+                    fontSize = 10.sp,
+                    letterSpacing = (-0.1).sp,
+                    modifier = Modifier.padding(top = 6.dp),
                     textAlign = TextAlign.Center,
                 )
             }
@@ -199,23 +241,21 @@ private fun UserReviewSummaryCard(summary: MovieReviewSummary) {
 private fun UserReviewCard(review: MovieReviewsAndRatings) {
     var expanded by remember { mutableStateOf(false) }
     val bodyText = review.reviewBody.trim()
-    val showReadMore = bodyText.length > 140 && !expanded
     var isFocused by remember { mutableStateOf(false) }
 
-    val scaleAnimationSpec = if (isFocused) {
-        spring<Float>(dampingRatio = 0.85f, stiffness = 180f)
-    } else {
-        tween<Float>(durationMillis = 650, easing = LinearOutSlowInEasing)
-    }
     val animatedScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.08f else 1.0f,
-        animationSpec = scaleAnimationSpec,
+        targetValue = if (isFocused) ReviewCardFocusedScale else 1f,
+        animationSpec = if (isFocused) {
+            spring(dampingRatio = 0.85f, stiffness = 180f)
+        } else {
+            tween(durationMillis = 500, easing = LinearOutSlowInEasing)
+        },
         label = "ReviewCardScale",
     )
 
     Surface(
         onClick = {
-            if (bodyText.length > 140) expanded = !expanded
+            if (bodyText.length > 120) expanded = !expanded
         },
         shape = ClickableSurfaceDefaults.shape(ReviewCardShape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
@@ -231,8 +271,8 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
         ),
         glow = ClickableSurfaceDefaults.glow(
             focusedGlow = Glow(
-                elevationColor = Color.White.copy(alpha = 0.26f),
-                elevation = 20.dp,
+                elevationColor = Color.White.copy(alpha = 0.22f),
+                elevation = 14.dp,
             ),
         ),
         colors = ClickableSurfaceDefaults.colors(
@@ -246,6 +286,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
             .graphicsLayer {
                 scaleX = animatedScale
                 scaleY = animatedScale
+                clip = false
             }
             .zIndex(if (isFocused) 10f else 1f),
     ) {
@@ -253,7 +294,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(ReviewCardHeight)
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -267,9 +308,9 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                         color = Color.White,
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        lineHeight = 18.sp,
-                        letterSpacing = (-0.3).sp,
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                        letterSpacing = (-0.25).sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
@@ -278,22 +319,22 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                 review.reviewRating?.takeIf { it > 0 }?.let { rating ->
                     BrewStarRatingRow(
                         rating = rating,
-                        starSize = 13.dp,
+                        starSize = 11.dp,
                         spacing = 2.dp,
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.padding(top = 6.dp),
                     )
                 }
                 if (bodyText.isNotBlank()) {
                     Text(
                         text = bodyText,
-                        color = Color.White.copy(alpha = 0.68f),
-                        fontSize = 11.sp,
-                        lineHeight = 15.sp,
+                        color = Color.White.copy(alpha = 0.65f),
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp,
                         letterSpacing = (-0.1).sp,
-                        maxLines = if (expanded) Int.MAX_VALUE else 3,
+                        maxLines = if (expanded) Int.MAX_VALUE else 2,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 10.dp),
+                        modifier = Modifier.padding(top = 6.dp),
                     )
                 }
             }
@@ -313,22 +354,21 @@ private fun ReviewAuthorRow(review: MovieReviewsAndRatings) {
         ReviewAvatar(review = review)
         Text(
             text = review.reviewerName,
-            color = Color.White.copy(alpha = 0.82f),
+            color = Color.White.copy(alpha = 0.78f),
             fontFamily = BrewTitle,
             fontWeight = FontWeight.Medium,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier.padding(start = 6.dp),
         )
         if (review.createdAt.isNotBlank()) {
             Text(
                 text = "· ${formatTimeAgo(review.createdAt)}",
-                color = Color.White.copy(alpha = 0.34f),
-                fontSize = 9.sp,
+                color = Color.White.copy(alpha = 0.32f),
+                fontSize = 8.sp,
                 fontWeight = FontWeight.Medium,
-                letterSpacing = 0.3.sp,
-                modifier = Modifier.padding(start = 6.dp),
+                modifier = Modifier.padding(start = 5.dp),
             )
         }
     }
@@ -369,7 +409,7 @@ private fun ReviewAvatar(review: MovieReviewsAndRatings) {
                     color = Color.White.copy(alpha = 0.5f),
                     fontFamily = BrewTitle,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                 )
             }
         }

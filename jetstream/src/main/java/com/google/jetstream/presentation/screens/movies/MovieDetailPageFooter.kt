@@ -27,7 +27,6 @@ import com.google.jetstream.presentation.theme.BrewTitle
 @Composable
 fun MovieDetailPageFooter(modifier: Modifier = Modifier) {
     val childPadding = rememberChildPadding()
-    val context = LocalContext.current
 
     Row(
         modifier = modifier
@@ -56,19 +55,33 @@ fun MovieDetailPageFooter(modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            WatchPlatformLogos.footerRow.forEach { logo ->
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(logo.url)
-                        .crossfade(false)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .width(logo.widthDp.dp)
-                        .height(logo.heightDp.dp),
-                )
+            WatchPlatformLogos.footerRow.take(2).forEach { logo ->
+                FooterPlatformLogo(logo = logo)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                WatchPlatformLogos.footerRow.drop(2).forEach { logo ->
+                    FooterPlatformLogo(logo = logo)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun FooterPlatformLogo(logo: WatchPlatformLogos.Entry) {
+    val context = LocalContext.current
+    AsyncImage(
+        model = ImageRequest.Builder(context)
+            .data(logo.url)
+            .crossfade(false)
+            .build(),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .width(logo.widthDp.dp)
+            .height(logo.heightDp.dp),
+    )
 }
