@@ -140,17 +140,7 @@ class VideoPlayerScreenViewModel @Inject constructor(
                 userId = userId,
             ).getOrNull()?.let { return it }
         }
-        return fallbackTrailerIntent(details)
-    }
-
-    private fun fallbackTrailerIntent(details: MovieDetails): PlaybackIntent? {
-        val url = details.videoUri.takeIf { it.isNotBlank() } ?: return null
-        return PlaybackIntent(
-            movieSlug = details.id,
-            title = details.name,
-            hlsUrl = url,
-            isTrailer = true,
-        )
+        return null
     }
 }
 

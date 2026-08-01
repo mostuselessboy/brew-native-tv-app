@@ -2,15 +2,17 @@ package com.google.jetstream.presentation.screens.movies
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import com.google.jetstream.presentation.common.ShowcaseHeight
-import com.google.jetstream.presentation.utils.bringIntoViewIfChildrenAreFocused
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -18,11 +20,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,12 +36,10 @@ import coil.request.ImageRequest
 import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MovieDetails
-import com.google.jetstream.data.util.DetailPurchaseCta
+import com.google.jetstream.data.entities.MovieList
+import com.google.jetstream.presentation.common.BrewQrPopup
 import com.google.jetstream.presentation.common.DetailsShimmerSkeleton
 import com.google.jetstream.presentation.common.Error
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 object MovieDetailsScreen {
     const val MovieIdBundleKey = "movieId"
@@ -53,6 +54,7 @@ fun MovieDetailsScreen(
 ) {
     val uiState by movieDetailsScreenViewModel.uiState.collectAsStateWithLifecycle()
     val bookmarkState by movieDetailsScreenViewModel.bookmarkState.collectAsStateWithLifecycle()
+    val qrPopup by movieDetailsScreenViewModel.qrPopup.collectAsStateWithLifecycle()
 
     LaunchedEffect(movieDetailsScreenViewModel) {
         movieDetailsScreenViewModel.navigateToPlayer.collect { movieId ->
@@ -63,7 +65,10 @@ fun MovieDetailsScreen(
     when (val s = uiState) {
         is MovieDetailsScreenUiState.Loading -> {
             BackHandler(onBack = onBackPressed)
-            DetailsShimmerSkeleton(modifier = Modifier.fillMaxSize())
+            DetailsShimmerSkeleton(
+                posterUri = s.posterUri,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
 
         is MovieDetailsScreenUiState.Error -> {
@@ -85,16 +90,38 @@ fun MovieDetailsScreen(
             val onBookmarkClick = remember(movieDetailsScreenViewModel, s.movieDetails) {
                 { movieDetailsScreenViewModel.toggleBookmark(s.movieDetails) }
             }
+            val onExtraClick = remember(movieDetailsScreenViewModel, s.movieDetails) {
+                { vodAssetId: Int, title: String ->
+                    movieDetailsScreenViewModel.onExtraClick(s.movieDetails, vodAssetId, title)
+                }
+            }
+            val onShareClick = remember(movieDetailsScreenViewModel, s.movieDetails) {
+                { movieDetailsScreenViewModel.onShareClick(s.movieDetails) }
+            }
+            val onCriticReviewClick = remember(movieDetailsScreenViewModel) {
+                movieDetailsScreenViewModel::onCriticReviewClick
+            }
+            BackHandler(enabled = qrPopup != null) {
+                movieDetailsScreenViewModel.dismissQrPopup()
+            }
             Details(
                 movieDetails = s.movieDetails,
                 onPrimaryCtaClick = onPrimaryCtaClick,
                 onSecondaryCtaClick = onSecondaryCtaClick,
                 onTrailerClick = onTrailerClick,
+                onShareClick = onShareClick,
+                onCriticReviewClick = onCriticReviewClick,
                 onBackPressed = onBackPressed,
                 refreshScreenWithNewMovie = refreshScreenWithNewMovie,
                 isBookmarked = isBookmarked,
                 onBookmarkClick = onBookmarkClick,
+                onExtraClick = onExtraClick,
                 modifier = Modifier.fillMaxSize(),
+            )
+            BrewQrPopup(
+                state = qrPopup,
+                onDismissRequest = movieDetailsScreenViewModel::dismissQrPopup,
+                onDone = movieDetailsScreenViewModel::onQrPopupDone,
             )
         }
     }
@@ -106,19 +133,18 @@ private fun Details(
     onPrimaryCtaClick: () -> Unit,
     onSecondaryCtaClick: () -> Unit,
     onTrailerClick: () -> Unit,
+    onShareClick: () -> Unit = {},
+    onCriticReviewClick: (String) -> Unit = {},
     onBackPressed: () -> Unit,
     refreshScreenWithNewMovie: (Movie) -> Unit,
     isBookmarked: Boolean = false,
     onBookmarkClick: () -> Unit = {},
+    onExtraClick: (vodAssetId: Int, title: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     var showLanguagesDialog by remember { mutableStateOf(false) }
     var showSynopsisDialog by remember { mutableStateOf(false) }
-    val backFocusRequester = remember { FocusRequester() }
-    val primaryCtaFocusRequester = remember { FocusRequester() }
-    val secondaryActionsFocusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
 
     val customersAlsoWatched = remember(movieDetails) {
         filterDetailMovies(movieDetails.customersAlsoWatched, movieDetails.id)
@@ -144,21 +170,6 @@ private fun Details(
         filterDetailMovies(movieDetails.relatedMovies, movieDetails.id)
     }
 
-    val hasPurchaseCtas = remember(movieDetails) {
-        DetailPurchaseCta.slots(movieDetails).isNotEmpty()
-    }
-
-    LaunchedEffect(movieDetails.id, hasPurchaseCtas) {
-        listState.scrollToItem(0, scrollOffset = 0)
-        delay(150)
-        val target = if (hasPurchaseCtas) {
-            primaryCtaFocusRequester
-        } else {
-            secondaryActionsFocusRequester
-        }
-        runCatching { target.requestFocus() }
-    }
-
     BackHandler {
         when {
             showLanguagesDialog -> showLanguagesDialog = false
@@ -179,10 +190,13 @@ private fun Details(
         onDismissRequest = { showSynopsisDialog = false },
     )
 
-    val backDownFocusRequester = if (hasPurchaseCtas) {
-        primaryCtaFocusRequester
-    } else {
-        secondaryActionsFocusRequester
+    val scrollDimAlpha by remember {
+        derivedStateOf {
+            when {
+                listState.firstVisibleItemIndex > 0 -> 0.94f
+                else -> (listState.firstVisibleItemScrollOffset / 320f).coerceIn(0f, 0.94f)
+            }
+        }
     }
 
     Box(
@@ -190,44 +204,45 @@ private fun Details(
     ) {
         LazyColumn(
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(bottom = 56.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(bottom = 0.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
             item(key = "showcase") {
-                MovieDetailShowcaseHero(
-                    movieDetails = movieDetails,
-                    onPrimaryCtaClick = onPrimaryCtaClick,
-                    onSecondaryCtaClick = onSecondaryCtaClick,
-                    onTrailerClick = onTrailerClick,
-                    onOpenLanguages = { showLanguagesDialog = true },
-                    primaryCtaFocusRequester = primaryCtaFocusRequester,
-                    secondaryActionsFocusRequester = secondaryActionsFocusRequester,
-                    upFocusRequester = backFocusRequester,
-                    isBookmarked = isBookmarked,
-                    onBookmarkClick = onBookmarkClick,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(MovieDetailTokens.DetailShowcaseHeight)
-                        .focusGroup()
-                        .bringIntoViewIfChildrenAreFocused(),
-                    overlay = {
-                        MovieDetailBackButton(
-                            onBackPressed = {
-                                when {
-                                    showLanguagesDialog -> showLanguagesDialog = false
-                                    showSynopsisDialog -> showSynopsisDialog = false
-                                    else -> onBackPressed()
-                                }
-                            },
-                            focusRequester = backFocusRequester,
-                            downFocusRequester = backDownFocusRequester,
-                            rightFocusRequester = backDownFocusRequester,
-                            requestInitialFocus = false,
-                            modifier = Modifier.align(Alignment.TopStart),
-                        )
-                    },
-                )
+                        .height(MovieDetailTokens.DetailShowcaseHeight),
+                ) {
+                    MovieDetailShowcaseBackdrop(
+                        movieDetails = movieDetails,
+                        scrollDimAlpha = scrollDimAlpha,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    MovieDetailShowcaseContent(
+                        movieDetails = movieDetails,
+                        onPrimaryCtaClick = onPrimaryCtaClick,
+                        onSecondaryCtaClick = onSecondaryCtaClick,
+                        onTrailerClick = onTrailerClick,
+                        onShareClick = onShareClick,
+                        onOpenLanguages = { showLanguagesDialog = true },
+                        isBookmarked = isBookmarked,
+                        onBookmarkClick = onBookmarkClick,
+                        modifier = Modifier.fillMaxSize(),
+                        overlay = {
+                            MovieDetailBackButton(
+                                onBackPressed = {
+                                    when {
+                                        showLanguagesDialog -> showLanguagesDialog = false
+                                        showSynopsisDialog -> showSynopsisDialog = false
+                                        else -> onBackPressed()
+                                    }
+                                },
+                                modifier = Modifier.align(Alignment.TopStart),
+                            )
+                        },
+                    )
+                }
             }
 
             if (customersAlsoWatched.isNotEmpty()) {
@@ -236,7 +251,37 @@ private fun Details(
                         title = "Customers Also Watched",
                         movieList = customersAlsoWatched,
                         onMovieSelected = refreshScreenWithNewMovie,
-                        contentTopPadding = 2.dp,
+                        contentTopPadding = 4.dp,
+                    )
+                }
+            }
+
+            movieDetails.episodeSeasons.forEach { season ->
+                item(key = "season_${season.seasonNo}") {
+                    MovieDetailExtrasRow(
+                        title = season.title,
+                        items = season.episodes,
+                        onItemClick = { extra ->
+                            extra.vodAssetId?.let { id ->
+                                onExtraClick(id, extra.title)
+                            }
+                        },
+                        contentTopPadding = 4.dp,
+                    )
+                }
+            }
+
+            if (movieDetails.bonusClips.isNotEmpty()) {
+                item(key = "bonus_clips") {
+                    MovieDetailExtrasRow(
+                        title = "Bonus Clips",
+                        items = movieDetails.bonusClips,
+                        onItemClick = { extra ->
+                            extra.vodAssetId?.let { id ->
+                                onExtraClick(id, extra.title)
+                            }
+                        },
+                        contentTopPadding = 4.dp,
                     )
                 }
             }
@@ -245,6 +290,9 @@ private fun Details(
                 item(key = "critic_reviews") {
                     CriticReviewsRow(
                         reviews = movieDetails.criticReviews,
+                        onReviewClick = { review ->
+                            review.link?.takeIf { it.isNotBlank() }?.let { onCriticReviewClick(it) }
+                        },
                     )
                 }
             }
@@ -268,14 +316,63 @@ private fun Details(
             }
 
             if (relatedMovies.isNotEmpty()) {
-                item(key = "related_movies") {
-                    DetailRelatedMoviesRow(
-                        title = "Related Movies",
-                        movieList = relatedMovies,
+                item(key = "related_and_footer") {
+                    MovieDetailBottomSection(
+                        relatedMovies = relatedMovies,
                         onMovieSelected = refreshScreenWithNewMovie,
                     )
                 }
+            } else {
+                item(key = "detail_footer") {
+                    MovieDetailBottomSection()
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun MovieDetailBottomSection(
+    relatedMovies: MovieList = emptyList(),
+    onMovieSelected: (Movie) -> Unit = {},
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Black,
+                            0.22f to Color.Black,
+                            0.55f to Color(0xFF0C0A08),
+                            0.82f to Color(0xFF141008),
+                            1f to Color(0xFF1A140C),
+                        ),
+                    ),
+                )
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFFF7A2E).copy(alpha = 0.10f),
+                            Color(0xFFFF9A4D).copy(alpha = 0.04f),
+                            Color.Transparent,
+                        ),
+                        center = Offset(size.width * 0.5f, size.height * 0.92f),
+                        radius = size.width * 0.65f,
+                    ),
+                )
+            },
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (relatedMovies.isNotEmpty()) {
+                DetailRelatedMoviesRow(
+                    title = "Related Movies",
+                    movieList = relatedMovies,
+                    onMovieSelected = onMovieSelected,
+                )
+            }
+            MovieDetailPageFooter()
         }
     }
 }

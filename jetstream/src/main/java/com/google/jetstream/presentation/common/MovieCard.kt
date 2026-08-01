@@ -112,8 +112,8 @@ fun BrewLandscapeMovieCard(
 
     val targetScale = if (isFocused) {
         when (style) {
-            BrewMovieCardStyle.Tray -> 1.08f
-            BrewMovieCardStyle.Detail -> 1.06f
+            BrewMovieCardStyle.Tray -> 1.10f
+            BrewMovieCardStyle.Detail -> 1.08f
         }
     } else {
         1.0f
@@ -149,7 +149,7 @@ fun BrewLandscapeMovieCard(
     }
 
     val focusedBorder = Border(
-        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)),
+        border = BorderStroke(1.5.dp, Color.White),
         shape = shape,
     )
     val surfaceBorder = when (style) {

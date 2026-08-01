@@ -26,7 +26,7 @@ fun MovieDetailSectionTitle(
         fontFamily = if (useDisplayFont) BrewDisplay else BrewTitle,
         fontWeight = FontWeight.Bold,
         fontSize = MovieDetailTokens.SectionTitleSize,
-        letterSpacing = (-0.15).sp,
-        modifier = modifier.then(Modifier.padding(start = padding.start, top = 12.dp, bottom = 4.dp)),
+        letterSpacing = (-0.35).sp,
+        modifier = modifier.then(Modifier.padding(start = padding.start, top = 8.dp, bottom = 2.dp)),
     )
 }

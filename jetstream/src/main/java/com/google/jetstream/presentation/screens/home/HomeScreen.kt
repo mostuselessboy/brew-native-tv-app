@@ -2,7 +2,6 @@ package com.google.jetstream.presentation.screens.home
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -14,13 +13,12 @@ import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.presentation.common.Error
 import com.google.jetstream.presentation.common.HomeShimmerSkeleton
 
-import com.google.jetstream.presentation.screens.splash.BrewSplashScreen
-
 @Composable
 fun HomeScreen(
     onMovieClick: (movie: Movie) -> Unit,
     goToVideoPlayer: (movie: Movie) -> Unit,
     onViewMoreClick: (sectionId: String) -> Unit = {},
+    onTrayMovieOpen: () -> Unit = {},
     onScroll: (isTopBarVisible: Boolean) -> Unit,
     isTopBarVisible: Boolean,
     page: String = BrewPages.HOME,
@@ -28,6 +26,8 @@ fun HomeScreen(
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
+    showcaseSlideIndex: Int = 0,
+    onShowcaseSlideChange: (Int) -> Unit = {},
     onShowcaseOpenMovie: () -> Unit = {},
     isTabVisible: Boolean = true,
     onMovieFocused: (sectionId: String, movieId: String) -> Unit = { _, _ -> },
@@ -44,6 +44,7 @@ fun HomeScreen(
         is HomeScreenUiState.Ready -> {
             val continueWatchingState by homeScreeViewModel.continueWatchingState
                 .collectAsStateWithLifecycle()
+
             if (isTabVisible) {
                 Catalog(
                     sections = s.sections,
@@ -51,10 +52,13 @@ fun HomeScreen(
                     onMovieClick = onMovieClick,
                     goToVideoPlayer = goToVideoPlayer,
                     onViewMoreClick = onViewMoreClick,
+                    onTrayMovieOpen = onTrayMovieOpen,
                     onShowcaseOpenMovie = onShowcaseOpenMovie,
                     showcaseFocusRequester = showcaseFocusRequester,
                     firstRowFocusRequester = firstRowFocusRequester,
                     sidebarFocusRequester = sidebarFocusRequester,
+                    showcaseSlideIndex = showcaseSlideIndex,
+                    onShowcaseSlideChange = onShowcaseSlideChange,
                     onMovieFocused = onMovieFocused,
                     lastFocusedSectionId = lastFocusedSectionId,
                     lastFocusedMovieId = lastFocusedMovieId,

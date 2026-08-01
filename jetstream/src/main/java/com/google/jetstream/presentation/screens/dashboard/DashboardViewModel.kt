@@ -22,13 +22,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
-private val PrefetchCatalogPages = listOf(
-    BrewPages.HOME,
-    BrewPages.BREW_PLUS,
-    BrewPages.SHORTS,
-    BrewPages.STORE,
-)
-
 private const val RailSettleDebounceMs = 240L
 private const val RailSettleDebounceCachedMs = 140L
 
@@ -36,6 +29,14 @@ enum class CatalogFocusRestoreTarget {
     ShowcasePrimary,
     FirstTray,
 }
+
+/** Per-catalog-tab scroll/focus memory — survives movie-detail navigation. */
+data class CatalogTabMemory(
+    val focusTarget: CatalogFocusRestoreTarget = CatalogFocusRestoreTarget.ShowcasePrimary,
+    val sectionId: String? = null,
+    val movieId: String? = null,
+    val showcaseSlideIndex: Int = 0,
+)
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -49,21 +50,71 @@ class DashboardViewModel @Inject constructor(
     private val _openPlayer = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val openPlayer: SharedFlow<String> = _openPlayer.asSharedFlow()
 
-    var focusRestoreTarget: CatalogFocusRestoreTarget = CatalogFocusRestoreTarget.ShowcasePrimary
-        private set
+    private val catalogMemoryByRoute = mutableMapOf<String, CatalogTabMemory>()
 
-    var lastFocusedSectionId: String? = null
-        private set
-    var lastFocusedMovieId: String? = null
-        private set
+    /** Tab that should receive a single focus restore after movie-detail pop. */
+    private var pendingDetailReturnRoute: String? = null
 
-    fun rememberFocusTarget(target: CatalogFocusRestoreTarget) {
-        focusRestoreTarget = target
+    /** Blocks rail debounce navigation while returning from detail (prevents Home flash). */
+    private var railNavigationSuppressed = false
+
+    fun catalogMemory(tabRoute: String): CatalogTabMemory =
+        catalogMemoryByRoute[tabRoute] ?: CatalogTabMemory()
+
+    private fun updateMemory(tabRoute: String, transform: (CatalogTabMemory) -> CatalogTabMemory) {
+        catalogMemoryByRoute[tabRoute] = transform(catalogMemory(tabRoute))
     }
 
-    fun saveFocusedItem(sectionId: String?, movieId: String?) {
-        lastFocusedSectionId = sectionId
-        lastFocusedMovieId = movieId
+    fun onOpeningMovieDetail(tabRoute: String, fromTray: Boolean) {
+        railNavigateJob?.cancel()
+        pendingRailScreen = null
+        pendingDetailReturnRoute = tabRoute
+        railNavigationSuppressed = true
+        if (fromTray) {
+            updateMemory(tabRoute) {
+                it.copy(focusTarget = CatalogFocusRestoreTarget.FirstTray)
+            }
+        } else {
+            updateMemory(tabRoute) {
+                it.copy(
+                    focusTarget = CatalogFocusRestoreTarget.ShowcasePrimary,
+                    sectionId = null,
+                    movieId = null,
+                )
+            }
+        }
+    }
+
+    fun consumeDetailReturnRestore(tabRoute: String): CatalogTabMemory? {
+        if (pendingDetailReturnRoute != tabRoute) return null
+        pendingDetailReturnRoute = null
+        return catalogMemory(tabRoute)
+    }
+
+    fun endDetailReturnRestore() {
+        railNavigationSuppressed = false
+    }
+
+    fun clearFocusedMovie(tabRoute: String) {
+        updateMemory(tabRoute) { it.copy(movieId = null) }
+    }
+
+    fun rememberOpenMovieFromTray(tabRoute: String) {
+        onOpeningMovieDetail(tabRoute, fromTray = true)
+    }
+
+    fun rememberOpenMovieFromShowcase(tabRoute: String) {
+        onOpeningMovieDetail(tabRoute, fromTray = false)
+    }
+
+    fun rememberShowcaseSlide(tabRoute: String, index: Int) {
+        updateMemory(tabRoute) { it.copy(showcaseSlideIndex = index) }
+    }
+
+    fun saveFocusedItem(tabRoute: String, sectionId: String?, movieId: String?) {
+        updateMemory(tabRoute) {
+            it.copy(sectionId = sectionId, movieId = movieId)
+        }
     }
 
     private var railNavigateJob: Job? = null
@@ -95,6 +146,7 @@ class DashboardViewModel @Inject constructor(
         navigate: (Screens) -> Unit,
     ) {
         prefetchRailScreen(screen)
+        if (railNavigationSuppressed) return
         if (selected) return
 
         pendingRailScreen = screen
@@ -162,6 +214,9 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+
+    fun isHomeCatalogCached(): Boolean =
+        !movieRepository.peekHomeSections(BrewPages.HOME).isNullOrEmpty()
 }
 
 fun catalogPageKey(screen: Screens): String? = when (screen) {

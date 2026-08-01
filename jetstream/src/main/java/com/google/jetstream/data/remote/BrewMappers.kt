@@ -23,8 +23,11 @@ import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MovieAward
 import com.google.jetstream.data.entities.MovieCast
 import com.google.jetstream.data.entities.MovieCategory
+import com.google.jetstream.data.entities.MovieSubscriptionPlan
 import com.google.jetstream.data.entities.MovieCriticReview
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.MovieEpisodeSeason
+import com.google.jetstream.data.entities.MovieExtraItem
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.entities.MovieReviewsAndRatings
 import com.google.jetstream.data.entities.MovieReviewSummary
@@ -33,11 +36,13 @@ import com.google.jetstream.data.entities.ThumbnailType
 import com.google.jetstream.data.util.BrewArtworkUrls
 import com.google.jetstream.data.util.BrewDateUtils
 import com.google.jetstream.data.util.BrewTrailerUrl
+import com.google.jetstream.data.util.BrewWebUrls
 import com.google.jetstream.data.util.CardCommerce
 import com.google.jetstream.data.util.ComingSoonUtils
 import com.google.jetstream.data.util.DailyRotatingArtwork
 import com.google.jetstream.data.util.DetailPurchaseCta
 import com.google.jetstream.data.util.MovieLanguageRows
+import com.google.jetstream.data.util.RibbonLabel
 import com.google.jetstream.data.util.VodTagBadge
 
 object BrewMappers {
@@ -60,6 +65,17 @@ object BrewMappers {
             )
         }.takeIf { it.isNotBlank() } ?: return null
 
+        val heroBackdrop = if (thumbnailType == ThumbnailType.Long) {
+            DailyRotatingArtwork.pickAlternateLandscape(
+                backgroundArtUrl = backgroundArtUrl,
+                horizontalThumbnails = horizontalThumbnails,
+                cardPick = poster,
+                fallback = projectPoster ?: backgroundArtUrl,
+            ).takeIf { it.isNotBlank() }
+        } else {
+            null
+        }
+
         val chrome = CardCommerce.resolve(
             monetizationModel = monetizationModel,
             pricingData = pricingData,
@@ -79,6 +95,7 @@ object BrewMappers {
             videoUri = BrewTrailerUrl.toPlayableMp4(trailerOriginalUrl),
             subtitleUri = null,
             posterUri = poster,
+            heroBackdropUri = heroBackdrop,
             name = name,
             description = salesPitch,
             year = BrewDateUtils.formatReleaseYear(releaseDate),
@@ -90,6 +107,7 @@ object BrewMappers {
             showStore = chrome.showStore,
             showBrewPlus = chrome.showPlus,
             leavingSoon = BrewDateUtils.isLeaveDateInFuture(leaveDate),
+            ribbonLabel = RibbonLabel.resolve(ribbonLabel, projectType),
             projectType = projectType,
             isComingSoon = comingSoon,
             isFreeTier = isFreeTier == true,
@@ -166,19 +184,32 @@ object BrewMappers {
             ?: project?.projectSynopsis
             ?: ""
         val appearance = campaign?.appearance
-        val poster = listOfNotNull(
-            backgroundArt,
-            BrewArtworkUrls.asUrl(appearance?.backgroundArt),
-            BrewArtworkUrls.firstUrl(appearance?.horizontalThumbnails),
+        val backgroundArtUrl = backgroundArt ?: BrewArtworkUrls.asUrl(appearance?.backgroundArt)
+        val horizontalThumbnails = BrewArtworkUrls.collectUrlList(appearance?.horizontalThumbnails)
+        val fallback = listOfNotNull(
             verticalBackgroundArt,
             BrewArtworkUrls.asUrl(appearance?.verticalBackgroundArt),
             BrewArtworkUrls.firstUrl(appearance?.verticalThumbnails),
             project?.projectPoster,
         ).firstOrNull { it.isNotBlank() }.orEmpty()
-        val videoUri = BrewTrailerUrl.resolveFromCandidates(
-            projectTrailer.firstHttpTrailer(),
-            trailer?.trailerOriginalUrl,
-            campaign?.trailerOriginalUrl,
+
+        val poster = DailyRotatingArtwork.pickDailyLandscape(
+            backgroundArtUrl = backgroundArtUrl,
+            horizontalThumbnails = horizontalThumbnails,
+            fallback = fallback,
+        ).ifBlank { backgroundArtUrl ?: fallback }
+        val videoUri = "" // Trailers use DRM HLS via trailer vod asset — not MP4 fallback.
+        val trailerVodAssetId = trailer?.vodAssetId?.takeIf { it > 0 }
+        val trailerIsDrm = trailer?.isDrm == true
+        val trailerOriginalUrl = listOfNotNull(
+            trailer?.trailerOriginalUrl?.takeIf { it.isNotBlank() },
+            projectTrailer.firstOrNull { it.isNotBlank() },
+        ).firstOrNull()
+        val trailerIsYoutube = BrewWebUrls.isYoutube(trailerOriginalUrl)
+        val trailerIsPublic = trailer?.isPublic == true
+        val resolvedRibbonLabel = RibbonLabel.resolve(
+            ribbonLabel ?: campaign?.ribbonLabel ?: project?.ribbonLabel,
+            projectType,
         )
 
         val runtime = runtimeMinutes?.let { minutes ->
@@ -318,6 +349,10 @@ object BrewMappers {
             ?: catalogOverlay?.rentPriceFormatted?.takeIf { it.isNotBlank() }
             ?: overlayPricing?.rent?.firstOrNull()?.let { formatPrice(it) }
         val buyFormatted = overlayPricing?.buy?.firstOrNull()?.let { formatPrice(it) }
+        val buyOriginal = overlayPricing?.buy?.firstOrNull()?.perceivedPrice?.let { perceived ->
+            val symbol = overlayPricing.buy.firstOrNull()?.currencySymbol ?: "₹"
+            "$symbol${perceived.toInt()}"
+        }
         val rentOriginal = overlayPricing?.rent?.firstOrNull()?.perceivedPrice?.let { perceived ->
             val symbol = overlayPricing.rent.firstOrNull()?.currencySymbol ?: "₹"
             "$symbol${perceived.toInt()}"
@@ -338,12 +373,14 @@ object BrewMappers {
             ?: project?.rottenTomatoesLink?.takeIf { it.isNotBlank() }
             .orEmpty()
 
+        val mappedSubscriptionPlans = subscriptionPlans.map { it.toMovieSubscriptionPlan() }
         val purchaseCtaSlots = DetailPurchaseCta.mapFromApi(
             purchaseCta = purchaseCta,
             rentPriceFormatted = rentFormatted,
             buyPriceFormatted = buyFormatted,
             rentOriginalPriceFormatted = rentOriginal,
-            subscriptionPlans = subscriptionPlans,
+            buyOriginalPriceFormatted = buyOriginal,
+            subscriptionPlans = mappedSubscriptionPlans,
             comingSoonHint = if (comingSoon) {
                 ComingSoonUtils.releaseHint(
                     comingSoonReleaseInfo ?: catalogOverlay?.comingSoonReleaseInfo,
@@ -403,24 +440,90 @@ object BrewMappers {
             rentPriceFormatted = rentFormatted,
             buyPriceFormatted = buyFormatted,
             rentOriginalPriceFormatted = rentOriginal,
+            buyOriginalPriceFormatted = buyOriginal,
             languageRows = languageRows,
-            hasTrailer = videoUri.isNotBlank(),
+            hasTrailer = trailerIsYoutube || trailerVodAssetId != null,
+            trailerVodAssetId = trailerVodAssetId,
+            trailerIsDrm = trailerIsDrm,
+            trailerOriginalUrl = trailerOriginalUrl,
+            trailerIsYoutube = trailerIsYoutube,
+            trailerIsPublic = trailerIsPublic,
+            subscriptionPlans = mappedSubscriptionPlans,
+            ribbonLabel = resolvedRibbonLabel,
             purchaseCtaSlots = purchaseCtaSlots,
             vodAssetId = resolveVodAssetId(),
             cvName = resolvedCvName,
             campaignVersionId = campaign?.campaignVersionId,
             campaignId = campaign?.id?.takeIf { it > 0 },
+            bonusClips = mapBonusClips(),
+            episodeSeasons = mapEpisodeSeasons(),
         )
     }
 
+    private fun BrewCampaignData.mapBonusClips(): List<MovieExtraItem> {
+        return resolvedBonusClips().mapNotNull { clip ->
+            val title = clip.title?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            MovieExtraItem(
+                id = "bonus_${clip.vodAssetId ?: title.hashCode()}",
+                title = title,
+                thumbnailUri = clip.thumbnail?.takeIf { it.isNotBlank() }.orEmpty(),
+                vodAssetId = clip.vodAssetId?.takeIf { it > 0 },
+                subtitle = formatExtraDuration(clip.duration),
+            )
+        }
+    }
+
+    private fun BrewCampaignData.mapEpisodeSeasons(): List<MovieEpisodeSeason> {
+        val seasonMeta = resolvedVodSeriesMetadata()?.seasons.orEmpty()
+        return resolvedSeriesData().mapNotNull { season ->
+            val seasonNo = season.seasonNo ?: return@mapNotNull null
+            val meta = seasonMeta.firstOrNull { it.index == seasonNo }
+            val seasonTitle = meta?.name?.takeIf { it.isNotBlank() } ?: "Season $seasonNo"
+            val episodes = season.episodes.mapNotNull { episode ->
+                val epTitle = episode.title?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val epNo = episode.episodeNo
+                MovieExtraItem(
+                    id = "ep_${episode.vodAssetId ?: "${seasonNo}_$epNo"}",
+                    title = epTitle,
+                    thumbnailUri = episode.thumbnail?.takeIf { it.isNotBlank() }.orEmpty(),
+                    vodAssetId = episode.vodAssetId?.takeIf { it > 0 },
+                    subtitle = epNo?.takeIf { it > 0 }?.let { "E$it" }
+                        ?: formatExtraDuration(episode.duration),
+                )
+            }
+            if (episodes.isEmpty()) return@mapNotNull null
+            MovieEpisodeSeason(seasonNo = seasonNo, title = seasonTitle, episodes = episodes)
+        }
+    }
+
+    private fun formatExtraDuration(seconds: Int?): String? {
+        val total = seconds ?: return null
+        if (total <= 0) return null
+        val mins = total / 60
+        val secs = total % 60
+        return if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
+    }
+
     private fun BrewCampaignData.resolveVodAssetId(): Int? {
-        movieDetails?.vodAssetId?.takeIf { it > 0 }?.let { return it }
-        movieDetails?.movieAssetId?.takeIf { it > 0 }?.let { return it }
+        resolvedMovieDetails()?.vodAssetId?.takeIf { it > 0 }?.let { return it }
+        resolvedMovieDetails()?.movieAssetId?.takeIf { it > 0 }?.let { return it }
         vodAssetId?.takeIf { it > 0 }?.let { return it }
         campaign?.vodAssetId?.takeIf { it > 0 }?.let { return it }
         project?.vodAssetId?.takeIf { it > 0 }?.let { return it }
         return null
     }
+
+    private fun BrewCampaignData.resolvedBonusClips(): List<BrewBonusClipDto> =
+        bonusClips.ifEmpty { campaign?.bonusClips.orEmpty() }
+
+    private fun BrewCampaignData.resolvedSeriesData(): List<BrewSeriesSeasonDto> =
+        seriesData.ifEmpty { campaign?.seriesData.orEmpty() }
+
+    private fun BrewCampaignData.resolvedVodSeriesMetadata(): BrewVodSeriesMetadataDto? =
+        vodSeriesMetadata ?: campaign?.vodSeriesMetadata
+
+    private fun BrewCampaignData.resolvedMovieDetails(): BrewMovieDetailsDto? =
+        movieDetails ?: campaign?.movieDetails
 
     private fun formatPrice(option: BrewPricingOptionDto): String {
         val symbol = option.currencySymbol?.takeIf { it.isNotBlank() } ?: "₹"
@@ -455,6 +558,26 @@ object BrewMappers {
         if (raw.isNullOrBlank()) return ""
         return raw.take(10)
     }
+
+    fun BrewSubscriptionPlanDto.toMovieSubscriptionPlan(): MovieSubscriptionPlan =
+        MovieSubscriptionPlan(
+            id = id,
+            name = name,
+            price = price,
+            perceivedPrice = perceivedPrice,
+            currencySymbol = currencySymbol?.takeIf { it.isNotBlank() }
+                ?: currency?.let(::subscriptionCurrencySymbol),
+            intervalUnit = intervalUnit,
+            intervalCount = intervalCount,
+            isActive = isActive,
+        )
+
+    private fun subscriptionCurrencySymbol(currency: String): String =
+        when (currency.trim().uppercase()) {
+            "INR" -> "₹"
+            "USD" -> "$"
+            else -> currency
+        }
 
     fun BrewCommentDto.toUserReview(): MovieReviewsAndRatings? {
         val name = user?.name?.takeIf { it.isNotBlank() } ?: return null

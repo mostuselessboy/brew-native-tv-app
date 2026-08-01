@@ -1,7 +1,8 @@
 package com.google.jetstream.data.repositories
 
-import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.EndScreenRecommendation
+import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.MovieSubscriptionPlan
 import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.data.remote.BrewCheckPurchaseResponse
 import com.google.jetstream.data.util.DetailCtaKind
@@ -19,7 +20,7 @@ interface PlaybackRepository {
         userId: Int,
     ): Result<PlaybackIntent>
 
-    suspend fun prepareTrailerPlayback(movie: MovieDetails): PlaybackIntent?
+    suspend fun prepareTrailerPlayback(movie: MovieDetails, userId: Int): PlaybackIntent?
 
     suspend fun prepareDirectPlayback(
         userId: Int,
@@ -36,6 +37,8 @@ interface PlaybackRepository {
         userId: Int?,
         country: String,
     ): List<EndScreenRecommendation>
+
+    suspend fun fetchSubscriptionPlans(country: String): List<MovieSubscriptionPlan>
 
     fun isWatchCta(kind: DetailCtaKind): Boolean
 }

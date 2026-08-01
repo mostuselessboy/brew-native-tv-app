@@ -16,6 +16,8 @@
 
 package com.google.jetstream.data.repositories
 
+import android.net.Uri
+import com.google.jetstream.data.entities.DiceSuggestions
 import com.google.jetstream.data.entities.CollectionSectionDetails
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.HomeSectionType
@@ -40,6 +42,7 @@ import com.google.jetstream.data.remote.BrewMappers.genresToCategories
 import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.data.remote.BrewCampaignData
 import com.google.jetstream.data.util.BrewArtworkUrls
+import com.google.jetstream.data.util.BrewDateUtils
 import com.google.jetstream.data.util.CardCommerce
 import com.google.jetstream.data.util.DailyRotatingArtwork
 import com.google.jetstream.data.util.VodTagBadge
@@ -132,6 +135,9 @@ class MovieRepositoryImpl @Inject constructor(
             posterUri = landscape,
             name = name,
             description = shortDescription.orEmpty(),
+            year = BrewDateUtils.formatReleaseYear(releaseDate),
+            country = country?.takeIf { it.isNotBlank() },
+            genres = genres,
             vodTagLabel = VodTagBadge.movieCardLabel(vodTag),
             isFestivalTag = VodTagBadge.isFestivalStyle(vodTag),
             showStore = chrome.showStore,
@@ -198,6 +204,24 @@ class MovieRepositoryImpl @Inject constructor(
 
     override fun peekHomeSections(page: String): List<HomeSection>? =
         cachedMappedSectionsByPage[page]
+
+    override fun peekMovieFromCatalog(movieId: String): Movie? {
+        val trimmed = movieId.trim()
+        if (trimmed.isBlank()) return null
+        val decoded = Uri.decode(trimmed)
+        val resolvedSlug = resolveSlug(decoded)
+        return cachedMappedSectionsByPage.values
+            .asSequence()
+            .flatten()
+            .flatMap { section -> section.movies }
+            .firstOrNull { movie ->
+                movie.id == trimmed ||
+                    movie.id == decoded ||
+                    movie.id == resolvedSlug ||
+                    movie.id.equals(trimmed, ignoreCase = true) ||
+                    movie.id.equals(decoded, ignoreCase = true)
+            }
+    }
 
     private fun resolveSlug(movieId: String): String {
         val trimmed = movieId.trim()
@@ -359,10 +383,32 @@ class MovieRepositoryImpl @Inject constructor(
 
     override suspend fun searchMovies(query: String): MovieList {
         if (query.isBlank()) return emptyList()
-        return allMovies().filter {
-            it.name.contains(query, ignoreCase = true) ||
-                it.description.contains(query, ignoreCase = true)
-        }
+        warmHomeCache()
+        val q = query.trim()
+        return allMovies(ThumbnailType.Long).filter { movie ->
+            movie.name.contains(q, ignoreCase = true) ||
+                movie.description.contains(q, ignoreCase = true) ||
+                movie.country?.contains(q, ignoreCase = true) == true ||
+                movie.year?.contains(q, ignoreCase = true) == true ||
+                movie.genres.any { it.contains(q, ignoreCase = true) }
+        }.distinctBy { it.id }
+    }
+
+    override suspend fun getDiceSuggestions(): DiceSuggestions {
+        val section = runCatching {
+            brewApiService.getDiceData(
+                country = BrewPages.DEFAULT_COUNTRY,
+                lang = "en",
+            ).firstOrNull()
+        }.getOrNull()
+        val movies = section?.content
+            ?.mapNotNull { it.contentData?.toMovie(ThumbnailType.Long) }
+            .orEmpty()
+        return DiceSuggestions(
+            title = section?.name?.takeIf { it.isNotBlank() } ?: "Discover",
+            subheading = section?.subheading?.takeIf { it.isNotBlank() },
+            movies = movies,
+        )
     }
 
     override fun getMoviesWithLongThumbnail(): Flow<MovieList> = flow {

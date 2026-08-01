@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.media3.common.Player
+import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.data.entities.MovieDetails
 
 /**
@@ -31,16 +32,31 @@ import com.google.jetstream.data.entities.MovieDetails
 fun VideoPlayerControls(
     player: Player,
     movieDetails: MovieDetails,
+    playback: PlaybackIntent?,
     focusRequester: FocusRequester,
     onShowControls: () -> Unit = {},
 ) {
+    val metaLine = buildString {
+        movieDetails.releaseYear.takeIf { it.isNotBlank() }?.let { append(it) }
+        if (isNotEmpty() && movieDetails.duration.isNotBlank() && movieDetails.duration != "—") {
+            append("  •  ")
+        }
+        if (movieDetails.duration.isNotBlank() && movieDetails.duration != "—") {
+            append(movieDetails.duration)
+        }
+    }
+
     VideoPlayerMainFrame(
         mediaTitle = {
             VideoPlayerMediaTitle(
-                title = movieDetails.name,
-                secondaryText = movieDetails.releaseDate,
-                tertiaryText = movieDetails.director,
-                type = VideoPlayerMediaTitleType.DEFAULT
+                title = playback?.title?.takeIf { it.isNotBlank() } ?: movieDetails.name,
+                secondaryText = metaLine,
+                tertiaryText = "",
+                type = if (playback?.isTrailer == true) {
+                    VideoPlayerMediaTitleType.TRAILER
+                } else {
+                    VideoPlayerMediaTitleType.DEFAULT
+                },
             )
         },
         mediaActions = null,
@@ -48,6 +64,8 @@ fun VideoPlayerControls(
             VideoPlayerSeeker(
                 player = player,
                 focusRequester = focusRequester,
+                bunnyVideoId = playback?.bunnyVideoId,
+                bunnyCdnZone = playback?.bunnyCdnZone,
                 onShowControls = onShowControls,
             )
         },

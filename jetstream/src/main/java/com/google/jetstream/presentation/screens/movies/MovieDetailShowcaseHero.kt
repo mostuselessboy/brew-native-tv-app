@@ -1,5 +1,6 @@
 package com.google.jetstream.presentation.screens.movies
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -11,48 +12,89 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
+import com.google.jetstream.R
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.util.DetailPurchaseCta
+import com.google.jetstream.presentation.common.RibbonLabelBadge
+import com.google.jetstream.presentation.common.RibbonLabelBadgeSize
 import com.google.jetstream.presentation.common.ShowcaseHeroBackdrop
 import com.google.jetstream.presentation.common.ShowcaseHeroStyles
-import com.google.jetstream.presentation.common.ShowcaseHeight
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 
 private val StirYellow = MovieDetailTokens.AccentYellow
 
-@OptIn(ExperimentalComposeUiApi::class)
+/** Backdrop inside the scrolling hero — dims as user scrolls down. */
 @Composable
-fun MovieDetailShowcaseHero(
+fun MovieDetailShowcaseBackdrop(
+    movieDetails: MovieDetails,
+    scrollDimAlpha: Float,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .drawBehind {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFFF9A4D).copy(alpha = 0.10f),
+                            Color(0xFFFF7A2E).copy(alpha = 0.04f),
+                            Color.Transparent,
+                        ),
+                        center = Offset(0f, 0f),
+                        radius = size.width * 0.72f,
+                    ),
+                )
+            }
+            .background(Color.Black),
+    ) {
+        ShowcaseHeroBackdrop(
+            posterUri = movieDetails.posterUri,
+            contentDescription = movieDetails.name,
+            modifier = Modifier.fillMaxSize(),
+            backdropHeightFraction = 0.92f,
+        )
+        if (scrollDimAlpha > 0.01f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = scrollDimAlpha)),
+            )
+        }
+    }
+}
+
+@Composable
+fun MovieDetailShowcaseContent(
     movieDetails: MovieDetails,
     onPrimaryCtaClick: () -> Unit,
     onSecondaryCtaClick: () -> Unit,
     onTrailerClick: () -> Unit,
+    onShareClick: () -> Unit = {},
     onOpenLanguages: () -> Unit,
-    primaryCtaFocusRequester: FocusRequester? = null,
-    secondaryActionsFocusRequester: FocusRequester? = null,
-    upFocusRequester: FocusRequester? = null,
     isBookmarked: Boolean = false,
     onBookmarkClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val childPadding = rememberChildPadding()
-    val secondaryFocusRequester = secondaryActionsFocusRequester ?: remember { FocusRequester() }
     val purchaseSlots = remember(movieDetails) { DetailPurchaseCta.primaryRowSlots(movieDetails) }
     val hasPurchaseCtas = purchaseSlots.isNotEmpty()
     val shortLine = movieDetails.tagline.takeIf { it.isNotBlank() }
@@ -66,14 +108,17 @@ fun MovieDetailShowcaseHero(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(MovieDetailTokens.DetailShowcaseHeight)
-            .clipToBounds()
-            .background(Color.Black),
+            .height(MovieDetailTokens.DetailShowcaseHeight),
     ) {
-        ShowcaseHeroBackdrop(
-            posterUri = movieDetails.posterUri,
-            contentDescription = movieDetails.name,
-            modifier = Modifier.fillMaxSize(),
+        Image(
+            painter = painterResource(R.drawable.brew_logo),
+            contentDescription = "Brew",
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 28.dp, end = childPadding.end)
+                .height(30.dp)
+                .width(78.dp),
+            contentScale = ContentScale.Fit,
         )
 
         Row(
@@ -93,16 +138,32 @@ fun MovieDetailShowcaseHero(
                     .widthIn(max = 420.dp),
                 verticalArrangement = Arrangement.Bottom,
             ) {
+                movieDetails.ribbonLabel?.let { ribbon ->
+                    RibbonLabelBadge(
+                        label = ribbon,
+                        size = RibbonLabelBadgeSize.Sm,
+                        modifier = Modifier.padding(bottom = 10.dp),
+                    )
+                }
                 val dynamicTitleSize = when {
-                    movieDetails.name.length <= 10 -> 40.sp
-                    movieDetails.name.length <= 18 -> 34.sp
-                    movieDetails.name.length <= 28 -> 28.sp
-                    else -> 24.sp
+                    movieDetails.name.length <= 10 -> 62.sp
+                    movieDetails.name.length <= 18 -> 52.sp
+                    movieDetails.name.length <= 28 -> 42.sp
+                    else -> 34.sp
+                }
+                val dynamicTitleLine = when {
+                    movieDetails.name.length <= 10 -> 58.sp
+                    movieDetails.name.length <= 18 -> 48.sp
+                    movieDetails.name.length <= 28 -> 38.sp
+                    else -> 30.sp
                 }
                 Text(
                     text = movieDetails.name,
                     color = Color.White,
-                    style = ShowcaseHeroStyles.Title.copy(fontSize = dynamicTitleSize),
+                    style = ShowcaseHeroStyles.Title.copy(
+                        fontSize = dynamicTitleSize,
+                        lineHeight = dynamicTitleLine,
+                    ),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -113,8 +174,8 @@ fun MovieDetailShowcaseHero(
                         color = StirYellow,
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
                         letterSpacing = (-0.35).sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -127,21 +188,24 @@ fun MovieDetailShowcaseHero(
                         averageRating = averageRating,
                         ratingCount = ratingCount,
                         modifier = Modifier.padding(top = 6.dp),
-                        starSize = 12.dp,
+                        starSize = 16.dp,
                     )
                 }
 
                 if (movieDetails.description.isNotBlank()) {
                     Text(
                         text = movieDetails.description,
-                        color = Color.White.copy(alpha = 0.72f),
+                        color = Color.White,
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Normal,
                         fontSize = 10.sp,
                         lineHeight = 14.sp,
+                        letterSpacing = (-0.35).sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 6.dp),
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .widthIn(max = 380.dp),
                     )
                 }
 
@@ -157,8 +221,6 @@ fun MovieDetailShowcaseHero(
                             movie = movieDetails,
                             onPrimaryAction = onPrimaryCtaClick,
                             onSecondaryAction = onSecondaryCtaClick,
-                            primaryFocusRequester = primaryCtaFocusRequester,
-                            upFocusRequester = upFocusRequester,
                         )
                     }
 
@@ -167,7 +229,7 @@ fun MovieDetailShowcaseHero(
                         showSubtitles = movieDetails.languageRows.isNotEmpty(),
                         onTrailerClick = onTrailerClick,
                         onSubtitlesClick = onOpenLanguages,
-                        firstFocusRequester = secondaryFocusRequester,
+                        onShareClick = onShareClick,
                         isBookmarked = isBookmarked,
                         onBookmarkClick = onBookmarkClick,
                         modifier = Modifier.padding(top = if (hasPurchaseCtas) 8.dp else 0.dp),
@@ -178,7 +240,7 @@ fun MovieDetailShowcaseHero(
             Column(
                 modifier = Modifier
                     .weight(0.46f)
-                    .padding(start = 12.dp, bottom = 12.dp)
+                    .padding(start = 12.dp, bottom = 4.dp)
                     .widthIn(max = 340.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.Start,
@@ -186,9 +248,7 @@ fun MovieDetailShowcaseHero(
                 if (movieDetails.awards.isNotEmpty()) {
                     ShowcaseDetailAwardsRail(
                         awards = movieDetails.awards,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }

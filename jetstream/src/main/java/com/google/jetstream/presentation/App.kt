@@ -17,6 +17,9 @@
 package com.google.jetstream.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -173,7 +176,13 @@ fun App(
                     },
                 )
             }
-            composable(route = Screens.Dashboard()) {
+            composable(
+                route = Screens.Dashboard(),
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) {
                 DashboardScreen(
                     openCategoryMovieList = { categoryId ->
                         navController.navigate(

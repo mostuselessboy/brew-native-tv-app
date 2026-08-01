@@ -24,10 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusProperties
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -41,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -59,8 +57,6 @@ fun MovieDetailPurchaseCtaRow(
     onPrimaryAction: () -> Unit,
     onSecondaryAction: () -> Unit,
     modifier: Modifier = Modifier,
-    primaryFocusRequester: FocusRequester? = null,
-    upFocusRequester: FocusRequester? = null,
 ) {
     val slots = DetailPurchaseCta.primaryRowSlots(movie)
 
@@ -77,33 +73,20 @@ fun MovieDetailPurchaseCtaRow(
     ) {
         slots.forEachIndexed { index, slot ->
             val isPrimary = index == 0
-            val ctaModifier = Modifier
-                .width(MovieDetailTokens.CtaFixedWidth)
-                .then(
-                    if (isPrimary && primaryFocusRequester != null) {
-                        Modifier
-                            .focusRequester(primaryFocusRequester)
-                            .ctaFocusLinks { linkUp(upFocusRequester) }
-                    } else {
-                        Modifier
-                    },
-                )
-
             DetailPurchaseCtaButton(
                 slot = slot,
                 compact = false,
-                onClick = if (isPrimary) onPrimaryAction else onSecondaryAction,
-                modifier = ctaModifier,
+                onClick = if (slot.kind == DetailCtaKind.NotAvailable) {
+                    {}
+                } else if (isPrimary) {
+                    onPrimaryAction
+                } else {
+                    onSecondaryAction
+                },
+                modifier = Modifier.width(MovieDetailTokens.CtaFixedWidth),
             )
         }
     }
-}
-
-private fun Modifier.ctaFocusLinks(block: FocusProperties.() -> Unit): Modifier =
-    focusProperties(block)
-
-private fun FocusProperties.linkUp(requester: FocusRequester?) {
-    if (requester != null) up = requester
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -142,6 +125,13 @@ private fun DetailPurchaseCtaButton(
         onClick = onClick,
         modifier = modifier
             .heightIn(min = minHeight)
+            .shadow(
+                elevation = if (focused) 8.dp else 4.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = Color.White.copy(alpha = 0.14f),
+                spotColor = Color.White.copy(alpha = 0.22f),
+                clip = false,
+            )
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -167,6 +157,16 @@ private fun DetailPurchaseCtaButton(
                 shape = RoundedCornerShape(cornerRadius),
             ),
         ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = if (onYellow) {
+                    MovieDetailTokens.AccentYellow.copy(alpha = 0.34f)
+                } else {
+                    Color.White.copy(alpha = 0.28f)
+                },
+                elevation = 18.dp,
+            ),
+        ),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = style.background,
             focusedContainerColor = style.background,
@@ -188,47 +188,19 @@ private fun DetailPurchaseCtaButton(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 8.dp),
+                        .padding(end = 2.dp),
                 ) {
-                    if (slot.showBrewPlusLogo) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Text(
-                                text = slot.title,
-                                color = style.text,
-                                fontFamily = BrewTitle,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = titleSize,
-                                lineHeight = titleLine,
-                                letterSpacing = (-0.72).sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "Brew+",
-                                color = Color.Black,
-                                fontFamily = BrewTitle,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = (titleSize.value - 2f).sp,
-                                letterSpacing = (-0.5).sp,
-                                maxLines = 1,
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = slot.title,
-                            color = style.text,
-                            fontFamily = BrewTitle,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = titleSize,
-                            lineHeight = titleLine,
-                            letterSpacing = (-0.72).sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Text(
+                        text = if (slot.showBrewPlusLogo) "${slot.title} Brew+" else slot.title,
+                        color = style.text,
+                        fontFamily = BrewTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = titleSize,
+                        lineHeight = titleLine,
+                        letterSpacing = (-0.4).sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     slot.sublabel?.takeIf { it.isNotBlank() }?.let { sub ->
                         Text(
                             text = sub,
@@ -301,6 +273,7 @@ private fun shouldShowRightIcon(slot: DetailPurchaseCtaSlot): Boolean {
         DetailCtaKind.Rent,
         DetailCtaKind.Buy,
         DetailCtaKind.SupportFilmmaker -> true
+        DetailCtaKind.NotAvailable,
         DetailCtaKind.SubscribeYearly,
         DetailCtaKind.SubscribeQuarterly -> false
         else -> false

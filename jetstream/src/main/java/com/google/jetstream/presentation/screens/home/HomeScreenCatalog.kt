@@ -80,10 +80,13 @@ internal fun Catalog(
     onMovieClick: (movie: Movie) -> Unit,
     goToVideoPlayer: (movie: Movie) -> Unit,
     onViewMoreClick: (sectionId: String) -> Unit = {},
+    onTrayMovieOpen: () -> Unit = {},
     onShowcaseOpenMovie: () -> Unit = {},
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
+    showcaseSlideIndex: Int = 0,
+    onShowcaseSlideChange: (Int) -> Unit = {},
     onMovieFocused: (sectionId: String, movieId: String) -> Unit = { _, _ -> },
     lastFocusedSectionId: String? = null,
     lastFocusedMovieId: String? = null,
@@ -106,19 +109,6 @@ internal fun Catalog(
     val showContinueWatchingSlot = continueWatchingState !is ContinueWatchingTrayState.Hidden
     val catalogItems = remember(sections, showContinueWatchingSlot) {
         buildCatalogItems(sections, showContinueWatchingSlot)
-    }
-    val rowOrdinalBySectionIndex = remember(sections) {
-        var ordinal = 0
-        buildMap {
-            sections.forEachIndexed { index, section ->
-                if (section.type == HomeSectionType.Row ||
-                    section.type == HomeSectionType.Immersive
-                ) {
-                    put(index, ordinal)
-                    ordinal++
-                }
-            }
-        }
     }
     val firstContentSectionIndex = remember(sections) {
         sections.indexOfFirst {
@@ -169,6 +159,7 @@ internal fun Catalog(
                                         if (movie.libraryClickAction == com.google.jetstream.data.util.LibraryClickAction.Play) {
                                             goToVideoPlayer(movie)
                                         } else {
+                                            onTrayMovieOpen()
                                             onMovieClick(movie)
                                         }
                                     },
@@ -191,6 +182,8 @@ internal fun Catalog(
                                 FeaturedMoviesCarousel(
                                     movies = section.movies,
                                     padding = childPadding,
+                                    initialSlideIndex = showcaseSlideIndex,
+                                    onSlideIndexChange = onShowcaseSlideChange,
                                     onMovieClick = {
                                         onShowcaseOpenMovie()
                                         onMovieClick(it)
@@ -211,10 +204,7 @@ internal fun Catalog(
 
                             HomeSectionType.Immersive,
                             HomeSectionType.Row -> {
-                                  val rowOrdinal = rowOrdinalBySectionIndex[sectionIndex] ?: 0
-                                  val isFirstContentRow = sectionIndex == firstContentSectionIndex
-                                  val deferCards = !isFirstContentRow
-                                  val deferDelayMs = if (isFirstContentRow) 0L else 40L + (rowOrdinal * 50L)
+                                val isFirstContentRow = sectionIndex == firstContentSectionIndex
                                 MoviesRow(
                                     modifier = Modifier.focusGroup(),
                                     movieList = section.movies,
@@ -222,12 +212,16 @@ internal fun Catalog(
                                     titleStyle = MaterialTheme.typography.titleMedium.copy(
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        letterSpacing = (-0.15).sp,
+                                        color = Color.White,
+                                        letterSpacing = (-0.35).sp,
                                     ),
                                     itemDirection = ItemDirection.Horizontal,
                                     showIndexOverImage = section.showRanking ||
                                         section.type == HomeSectionType.Immersive,
-                                    onMovieSelected = onMovieClick,
+                                    onMovieSelected = { movie ->
+                                        onTrayMovieOpen()
+                                        onMovieClick(movie)
+                                    },
                                     onMovieFocused = { movie ->
                                         onMovieFocused(section.id, movie.id)
                                     },
@@ -235,8 +229,6 @@ internal fun Catalog(
                                     onViewMoreClick = {
                                         onViewMoreClick(section.slug ?: section.id)
                                     },
-                                    deferCardMount = deferCards,
-                                    deferCardMountDelayMs = deferDelayMs,
                                     firstItemFocusRequester = if (isFirstContentRow) {
                                         firstRowFocus
                                     } else {

@@ -1,9 +1,9 @@
 package com.google.jetstream.data.util
 
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.MovieSubscriptionPlan
 import com.google.jetstream.data.remote.BrewPurchaseCtaDto
 import com.google.jetstream.data.remote.BrewPurchaseCtaSlotDto
-import com.google.jetstream.data.remote.BrewSubscriptionPlanDto
 import java.util.Locale
 
 /** Mirrors mobile-viewer `purchase-ctas/tokens` + slot kinds. */
@@ -55,24 +55,46 @@ object DetailPurchaseCta {
         rentPriceFormatted: String?,
         buyPriceFormatted: String?,
         rentOriginalPriceFormatted: String?,
-        subscriptionPlans: List<BrewSubscriptionPlanDto> = emptyList(),
+        buyOriginalPriceFormatted: String? = null,
+        subscriptionPlans: List<MovieSubscriptionPlan> = emptyList(),
         comingSoonHint: String?,
     ): List<DetailPurchaseCtaSlot> {
         val apiSlots = purchaseCta?.slots.orEmpty()
         if (apiSlots.isEmpty()) return emptyList()
         val yearlyPlan = pickYearlySubscriptionPlan(subscriptionPlans)
         val quarterlyPlan = pickQuarterlySubscriptionPlan(subscriptionPlans)
-        return apiSlots.mapNotNull { dto ->
+        val mapped = apiSlots.mapNotNull { dto ->
             mapApiSlot(
                 dto = dto,
                 rentPriceFormatted = rentPriceFormatted,
                 buyPriceFormatted = buyPriceFormatted,
                 rentOriginalPriceFormatted = rentOriginalPriceFormatted,
+                buyOriginalPriceFormatted = buyOriginalPriceFormatted,
                 yearlyPlan = yearlyPlan,
                 quarterlyPlan = quarterlyPlan,
                 comingSoonHint = comingSoonHint,
             )
         }
+        if (mapped.isNotEmpty()) return mapped
+        val notAvailable = apiSlots.firstOrNull { it.kind == "not_available" }
+        if (notAvailable != null) {
+            return listOf(notAvailableSlot(notAvailable.reason))
+        }
+        return emptyList()
+    }
+
+    private fun notAvailableSlot(reason: String?): DetailPurchaseCtaSlot {
+        val sublabel = when (reason?.lowercase()) {
+            "location" -> "Not available in your region"
+            null, "" -> "Not available"
+            else -> reason.replace('_', ' ').replaceFirstChar { it.uppercase() }
+        }
+        return DetailPurchaseCtaSlot(
+            kind = DetailCtaKind.NotAvailable,
+            color = DetailCtaColor.White,
+            title = "Not available",
+            sublabel = sublabel,
+        )
     }
 
     private fun mapApiSlot(
@@ -80,8 +102,9 @@ object DetailPurchaseCta {
         rentPriceFormatted: String?,
         buyPriceFormatted: String?,
         rentOriginalPriceFormatted: String?,
-        yearlyPlan: BrewSubscriptionPlanDto?,
-        quarterlyPlan: BrewSubscriptionPlanDto?,
+        buyOriginalPriceFormatted: String?,
+        yearlyPlan: MovieSubscriptionPlan?,
+        quarterlyPlan: MovieSubscriptionPlan?,
         comingSoonHint: String?,
     ): DetailPurchaseCtaSlot? {
         if (dto.kind == "not_available") return null
@@ -117,6 +140,7 @@ object DetailPurchaseCta {
             },
             originalPrice = when (kind) {
                 DetailCtaKind.Rent -> rentOriginalPriceFormatted?.takeIf { it.isNotBlank() }
+                DetailCtaKind.Buy -> buyOriginalPriceFormatted?.takeIf { it.isNotBlank() }
                 DetailCtaKind.SubscribeYearly -> formatSubscriptionOriginalPrice(yearlyPlan)
                 DetailCtaKind.SubscribeQuarterly -> formatSubscriptionOriginalPrice(quarterlyPlan)
                 else -> null
@@ -255,8 +279,8 @@ object DetailPurchaseCta {
         )
 
     private fun pickYearlySubscriptionPlan(
-        plans: List<BrewSubscriptionPlanDto>,
-    ): BrewSubscriptionPlanDto? =
+        plans: List<MovieSubscriptionPlan>,
+    ): MovieSubscriptionPlan? =
         activeSubscriptionPlans(plans).firstOrNull { plan ->
             val unit = plan.intervalUnit?.lowercase().orEmpty()
             unit.startsWith("year") || unit == "annual" || unit == "annually" ||
@@ -264,8 +288,8 @@ object DetailPurchaseCta {
         }
 
     private fun pickQuarterlySubscriptionPlan(
-        plans: List<BrewSubscriptionPlanDto>,
-    ): BrewSubscriptionPlanDto? =
+        plans: List<MovieSubscriptionPlan>,
+    ): MovieSubscriptionPlan? =
         activeSubscriptionPlans(plans).firstOrNull { plan ->
             val unit = plan.intervalUnit?.lowercase().orEmpty()
             val count = plan.intervalCount ?: 0
@@ -275,20 +299,20 @@ object DetailPurchaseCta {
         }
 
     private fun activeSubscriptionPlans(
-        plans: List<BrewSubscriptionPlanDto>,
-    ): List<BrewSubscriptionPlanDto> {
+        plans: List<MovieSubscriptionPlan>,
+    ): List<MovieSubscriptionPlan> {
         val seen = mutableSetOf<Int>()
         return plans.filter { plan ->
             plan.isActive && plan.price > 0 && seen.add(plan.id)
         }
     }
 
-    private fun formatSubscriptionPrice(plan: BrewSubscriptionPlanDto): String {
+    private fun formatSubscriptionPrice(plan: MovieSubscriptionPlan): String {
         val symbol = plan.currencySymbol?.takeIf { it.isNotBlank() } ?: "₹"
         return "$symbol${formatSubscriptionAmount(plan.price)}"
     }
 
-    private fun formatSubscriptionOriginalPrice(plan: BrewSubscriptionPlanDto?): String? {
+    private fun formatSubscriptionOriginalPrice(plan: MovieSubscriptionPlan?): String? {
         if (plan == null) return null
         val perceived = plan.perceivedPrice ?: return null
         if (perceived <= plan.price) return null

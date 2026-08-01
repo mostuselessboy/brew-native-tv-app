@@ -21,9 +21,9 @@ val BrewCardFocusShape = RoundedCornerShape(9.dp)
 
 /** TV Material default focus scales — no custom spring animation. */
 object BrewFocusMotion {
-    const val CardScale = 1.06f
-    const val ButtonScale = 1.06f
-    const val RailScale = 1.06f
+    const val CardScale = 1.10f
+    const val ButtonScale = 1.10f
+    const val RailScale = 1.10f
 }
 
 private val BrewFocusedBorder = Border(

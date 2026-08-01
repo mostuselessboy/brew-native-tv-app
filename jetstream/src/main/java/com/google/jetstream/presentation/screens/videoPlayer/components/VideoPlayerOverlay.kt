@@ -117,10 +117,10 @@ fun CinematicBackground(modifier: Modifier = Modifier) {
         modifier.background(
             Brush.verticalGradient(
                 listOf(
-                    Color.Black.copy(alpha = 0.55f),
+                    Color.Black.copy(alpha = 0.72f),
                     Color.Transparent,
                     Color.Transparent,
-                    Color.Black.copy(alpha = 0.85f),
+                    Color.Black.copy(alpha = 0.92f),
                 )
             )
         )

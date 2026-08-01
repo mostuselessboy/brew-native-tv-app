@@ -38,7 +38,11 @@ import androidx.tv.material3.Text
 import com.google.jetstream.R
 import com.google.jetstream.presentation.theme.JetStreamTheme
 
-enum class VideoPlayerMediaTitleType { AD, LIVE, DEFAULT }
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.google.jetstream.presentation.theme.BrewTitle
+
+enum class VideoPlayerMediaTitleType { AD, LIVE, TRAILER, DEFAULT }
 
 @Composable
 fun VideoPlayerMediaTitle(
@@ -54,46 +58,74 @@ fun VideoPlayerMediaTitle(
         append(tertiaryText)
     }
     Column(modifier.fillMaxWidth()) {
-        Text(title, style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(4.dp))
-        Row {
-            // TODO: Replaced with Badge component once developed
-            when (type) {
-                VideoPlayerMediaTitleType.AD -> {
-                    Text(
-                        text = stringResource(R.string.ad),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.Black,
-                        modifier = Modifier
-                            .background(Color(0xFFFBC02D), shape = RoundedCornerShape(12.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .alignByBaseline()
-                    )
-                    Spacer(Modifier.width(8.dp))
+        Text(
+            text = title,
+            color = Color.White,
+            fontFamily = BrewTitle,
+            fontWeight = FontWeight.Bold,
+            fontSize = 28.sp,
+            letterSpacing = (-1.2).sp,
+            lineHeight = 30.sp,
+        )
+        if (subTitle.isNotBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Row {
+                when (type) {
+                    VideoPlayerMediaTitleType.AD -> {
+                        Text(
+                            text = stringResource(R.string.ad),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.Black,
+                            modifier = Modifier
+                                .background(Color(0xFFFBC02D), shape = RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                .alignByBaseline()
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+
+                    VideoPlayerMediaTitleType.LIVE -> {
+                        Text(
+                            text = stringResource(R.string.live),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.inverseSurface,
+                            modifier = Modifier
+                                .background(Color(0xFFCC0000), shape = RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                .alignByBaseline()
+                        )
+
+                        Spacer(Modifier.width(8.dp))
+                    }
+
+                    VideoPlayerMediaTitleType.TRAILER -> {
+                        Text(
+                            text = "TRAILER",
+                            color = Color.Black,
+                            fontFamily = BrewTitle,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier
+                                .background(Color(0xFFFFC15E), shape = RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .alignByBaseline()
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+
+                    VideoPlayerMediaTitleType.DEFAULT -> {}
                 }
 
-                VideoPlayerMediaTitleType.LIVE -> {
-                    Text(
-                        text = stringResource(R.string.live),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.inverseSurface,
-                        modifier = Modifier
-                            .background(Color(0xFFCC0000), shape = RoundedCornerShape(12.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .alignByBaseline()
-                    )
-
-                    Spacer(Modifier.width(8.dp))
-                }
-
-                VideoPlayerMediaTitleType.DEFAULT -> {}
+                Text(
+                    text = subTitle,
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontFamily = BrewTitle,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    modifier = Modifier.alignByBaseline(),
+                )
             }
-
-            Text(
-                text = subTitle,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.alignByBaseline()
-            )
         }
     }
 }

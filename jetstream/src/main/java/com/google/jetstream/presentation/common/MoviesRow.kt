@@ -79,7 +79,8 @@ fun MoviesRow(
     titleStyle: TextStyle = MaterialTheme.typography.titleMedium.copy(
         fontSize = 15.sp,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFFD1D5DB),
+        color = Color.White,
+        letterSpacing = (-0.35).sp,
     ),
     showItemTitle: Boolean = true,
     showIndexOverImage: Boolean = false,
@@ -106,11 +107,13 @@ fun MoviesRow(
     }
 
     val targetItem = remember { FocusRequester() }
+    var restoredMovieId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(cardsReady, lastFocusedMovieId) {
-        if (cardsReady && lastFocusedMovieId != null) {
-            delay(160)
-            runCatching { targetItem.requestFocus() }
-        }
+        if (!cardsReady || lastFocusedMovieId == null) return@LaunchedEffect
+        if (restoredMovieId == lastFocusedMovieId) return@LaunchedEffect
+        delay(160)
+        runCatching { targetItem.requestFocus() }
+        restoredMovieId = lastFocusedMovieId
     }
 
     val lazyListState = rememberLazyListState()
@@ -195,7 +198,10 @@ fun MoviesRow(
                         }
 
                     if (!cardsReady) {
-                        TrayCardPlaceholder(modifier = focusModifier)
+                        TrayCardPlaceholder(
+                            posterUri = movie.posterUri,
+                            modifier = focusModifier,
+                        )
                     } else if (showIndexOverImage) {
                         RankedMovieItem(
                             rank = index + 1,
@@ -279,16 +285,33 @@ fun MoviesRow(
 private val TrayCardShape = RoundedCornerShape(9.dp)
 private val TrayPlaceholderColor = Color(0xFF141414)
 
-/** Lightweight shelf slot — defers image decode until row is ready. */
+/** Lightweight shelf slot — shows poster when known, else flat placeholder. */
 @Composable
-fun TrayCardPlaceholder(modifier: Modifier = Modifier) {
+fun TrayCardPlaceholder(
+    modifier: Modifier = Modifier,
+    posterUri: String? = null,
+) {
+    val context = LocalContext.current
     Box(
         modifier = modifier
             .width(BrewLandscapeCardWidth)
             .aspectRatio(16f / 9f)
             .clip(TrayCardShape)
             .background(TrayPlaceholderColor),
-    )
+    ) {
+        if (!posterUri.isNullOrBlank()) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(BrewImageUrl.forCard(posterUri))
+                    .size(BrewImageUrl.CARD_WIDTH, BrewImageUrl.CARD_HEIGHT)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
 }
 
 private val TrayEdgeFadeWidth = 48.dp
@@ -368,11 +391,11 @@ private fun ViewMoreTrayCard(
                 shape = TrayCardShape,
             ),
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(0.8.dp, Color.White.copy(alpha = 0.50f)),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.White),
                 shape = TrayCardShape,
             ),
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.08f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.10f),
         glow = ClickableSurfaceDefaults.glow(
             focusedGlow = Glow(
                 elevationColor = Color.White.copy(alpha = 0.30f),

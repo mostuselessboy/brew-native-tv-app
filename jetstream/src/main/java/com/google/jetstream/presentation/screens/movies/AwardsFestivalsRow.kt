@@ -115,7 +115,7 @@ fun AwardsFestivalsRow(
                 }
 
                 val animatedScale by animateFloatAsState(
-                    targetValue = if (isFocused) 1.10f else 1.0f,
+                    targetValue = if (isFocused) 1.12f else 1.0f,
                     animationSpec = scaleAnimationSpec,
                     label = "AwardCardScale"
                 )
@@ -130,7 +130,7 @@ fun AwardsFestivalsRow(
                             shape = AwardCardShape,
                         ),
                         focusedBorder = Border(
-                            border = BorderStroke(1.2.dp, AccentGold.copy(alpha = 0.88f)),
+                            border = BorderStroke(1.5.dp, Color.White),
                             shape = AwardCardShape,
                         ),
                     ),

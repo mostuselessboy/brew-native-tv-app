@@ -56,8 +56,8 @@ import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 
-private val CastAvatarSize = 130.dp
-private val CastCardWidth = 134.dp
+private val CastAvatarSize = 100.dp
+private val CastCardWidth = 104.dp
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalTvMaterial3Api::class)
 @Composable
@@ -71,11 +71,11 @@ fun CastAndCrewList(
     val defaultFirstItemFocusRequester = remember { FocusRequester() }
     val firstItem = firstItemFocusRequester ?: defaultFirstItemFocusRequester
 
-    Column(modifier = Modifier.padding(top = 24.dp)) {
+    Column(modifier = Modifier.padding(top = 8.dp)) {
         MovieDetailSectionTitle(text = stringResource(R.string.cast_and_crew))
         LazyRow(
             modifier = Modifier
-                .padding(top = 14.dp)
+                .padding(top = 8.dp)
                 .focusRestorer(),
             contentPadding = PaddingValues(
                 start = childPadding.start,
@@ -111,7 +111,7 @@ private fun CastAndCrewItem(
     }
 
     val animatedScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
+        targetValue = if (isFocused) 1.12f else 1.0f,
         animationSpec = scaleAnimationSpec,
         label = "CastCardScale"
     )
@@ -126,7 +126,7 @@ private fun CastAndCrewItem(
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
             border = ClickableSurfaceDefaults.border(
                 focusedBorder = Border(
-                    border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)),
+                    border = BorderStroke(1.5.dp, Color.White),
                     shape = CircleShape,
                 ),
             ),
@@ -185,8 +185,8 @@ private fun CastAndCrewItem(
             color = Color.White,
             fontFamily = BrewTitle,
             fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            letterSpacing = (-0.5).sp,
+            fontSize = 12.sp,
+            letterSpacing = (-0.3).sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

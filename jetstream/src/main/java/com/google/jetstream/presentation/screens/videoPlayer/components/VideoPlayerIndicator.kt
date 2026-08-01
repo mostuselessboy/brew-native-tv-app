@@ -46,6 +46,8 @@ fun RowScope.VideoPlayerControllerIndicator(
     progress: Float,
     onSeek: (seekProgress: Float) -> Unit,
     onShowControls: () -> Unit = {},
+    onScrubbingChanged: (Boolean) -> Unit = {},
+    onSeekProgressChanged: (Float) -> Unit = {},
     progressColor: Color? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -66,12 +68,24 @@ fun RowScope.VideoPlayerControllerIndicator(
 
     LaunchedEffect(isSelected) {
         onShowControls()
+        onScrubbingChanged(isSelected)
+        if (!isSelected) {
+            onSeekProgressChanged(progress)
+        }
+    }
+
+    LaunchedEffect(isSelected, seekProgress) {
+        if (isSelected) {
+            onSeekProgressChanged(seekProgress)
+        }
     }
 
     val handleSeekEventModifier = Modifier.handleDPadKeyEvents(
         onEnter = {
             isSelected = !isSelected
-            onSeek(seekProgress)
+            if (!isSelected) {
+                onSeek(seekProgress)
+            }
         },
         onLeft = {
             seekProgress = (seekProgress - 0.1f).coerceAtLeast(0f)

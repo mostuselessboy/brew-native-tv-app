@@ -19,16 +19,13 @@ package com.google.jetstream.presentation.screens.home
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.imageLoader
-import coil.request.ImageRequest
 import com.google.jetstream.data.entities.HomeSection
-import com.google.jetstream.data.entities.HomeSectionType
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.data.repositories.LibraryRepository
 import com.google.jetstream.data.auth.AuthSessionStore
 import com.google.jetstream.data.repositories.MovieRepository
-import com.google.jetstream.data.util.BrewImageUrl
+import com.google.jetstream.data.util.CatalogImagePrefetch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -45,7 +42,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 
 sealed interface ContinueWatchingTrayState {
     data object Hidden : ContinueWatchingTrayState
@@ -122,7 +118,10 @@ class HomeScreeViewModel @Inject constructor(
         }
         .onEach { state ->
             if (state is HomeScreenUiState.Ready) {
-                prefetchImages(state.sections)
+                val pageKey = page.value ?: return@onEach
+                viewModelScope.launch(Dispatchers.IO) {
+                    CatalogImagePrefetch.warmPage(context, pageKey, state.sections)
+                }
             }
         }
         .catch { emit(HomeScreenUiState.Error) }
@@ -132,36 +131,6 @@ class HomeScreeViewModel @Inject constructor(
             initialValue = HomeScreenUiState.Loading,
         )
 
-    private fun prefetchImages(sections: List<HomeSection>) {
-        viewModelScope.launch(Dispatchers.IO) {
-            sections.firstOrNull { it.type == HomeSectionType.Showcase }?.movies
-                ?.take(4)
-                ?.forEach { movie ->
-                    context.imageLoader.enqueue(
-                        ImageRequest.Builder(context)
-                            .data(BrewImageUrl.forShowcase(movie.posterUri))
-                            .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
-                            .build()
-                    )
-                }
-            delay(2500)
-            sections
-                .asSequence()
-                .filter {
-                    it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
-                }
-                .take(4)
-                .flatMap { it.movies.asSequence().take(8) }
-                .forEach { movie ->
-                    context.imageLoader.enqueue(
-                        ImageRequest.Builder(context)
-                            .data(BrewImageUrl.forCard(movie.posterUri))
-                            .size(BrewImageUrl.CARD_WIDTH, BrewImageUrl.CARD_HEIGHT)
-                            .build()
-                    )
-                }
-        }
-    }
 }
 
 sealed interface HomeScreenUiState {

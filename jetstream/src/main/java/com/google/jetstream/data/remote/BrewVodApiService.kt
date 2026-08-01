@@ -35,4 +35,10 @@ interface BrewVodApiService {
         @Query("user_id") userId: Int? = null,
         @Query("country") country: String = "in",
     ): BrewWrappedResponse<BrewEndscreenRecommendationsResponse>
+
+    @GET("api/v1/vod/subscription-plans")
+    suspend fun getSubscriptionPlans(
+        @Query("country") country: String? = null,
+        @Query("original_currency") originalCurrency: String? = null,
+    ): BrewWrappedResponse<BrewSubscriptionPlansResponse>
 }

@@ -22,6 +22,10 @@ object BrewImageUrl {
     const val DETAIL_WIDTH = 854
     const val DETAIL_HEIGHT = 480
 
+    /** Collection / hero backdrops — full-bleed, higher quality. */
+    const val COLLECTION_HERO_WIDTH = 1280
+    const val COLLECTION_HERO_HEIGHT = 720
+
     const val CAST_WIDTH = 200
     const val CAST_HEIGHT = 267
 
@@ -48,6 +52,9 @@ object BrewImageUrl {
     fun forShowcase(url: String): String = withDimensions(url, SHOWCASE_WIDTH, SHOWCASE_HEIGHT)
 
     fun forDetail(url: String): String = withDimensions(url, DETAIL_WIDTH, DETAIL_HEIGHT)
+
+    fun forCollectionHero(url: String): String =
+        withDimensions(url, COLLECTION_HERO_WIDTH, COLLECTION_HERO_HEIGHT, quality = "90")
 
     fun forCast(url: String): String = withDimensions(url, CAST_WIDTH, CAST_HEIGHT)
 

@@ -17,7 +17,9 @@
 package com.google.jetstream.data.repositories
 
 import com.google.jetstream.data.entities.CollectionSectionDetails
+import com.google.jetstream.data.entities.DiceSuggestions
 import com.google.jetstream.data.entities.HomeSection
+import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MovieCategoryDetails
 import com.google.jetstream.data.entities.MovieCategoryList
 import com.google.jetstream.data.entities.MovieDetails
@@ -35,9 +37,12 @@ interface MovieRepository {
     suspend fun warmHomeCache()
     suspend fun prefetchHomePage(page: String)
     fun peekHomeSections(page: String): List<HomeSection>?
+    /** Best-effort lookup from warmed catalog caches (poster for detail skeleton, etc.). */
+    fun peekMovieFromCatalog(movieId: String): Movie?
     suspend fun getMovieDetails(movieId: String): MovieDetails
     suspend fun getCollectionSection(sectionId: String, page: Int = 1): CollectionSectionDetails
     suspend fun searchMovies(query: String): MovieList
+    suspend fun getDiceSuggestions(): DiceSuggestions
     fun getMoviesWithLongThumbnail(): Flow<MovieList>
     fun getMovies(): Flow<MovieList>
     fun getPopularFilmsThisWeek(): Flow<MovieList>

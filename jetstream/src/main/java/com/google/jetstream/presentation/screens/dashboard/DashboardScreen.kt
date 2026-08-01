@@ -82,8 +82,9 @@ fun DashboardScreen(
     val tabTarget = remember(tabRoute, tabSlideDirection) {
         TabNavTarget(route = tabRoute, slideDirection = tabSlideDirection)
     }
-    val homeShowcaseFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
-    val homeFirstTrayFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
+    val catalogFocusHandles = remember {
+        CatalogTabRoutes.associateWith { CatalogTabFocusHandles() }
+    }
     val sidebarFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val profileContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val libraryContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
@@ -92,7 +93,14 @@ fun DashboardScreen(
 
     var showSplash by rememberSaveable { mutableStateOf(true) }
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(2200)
+        val minSplashMs = 500L
+        val maxSplashMs = 2500L
+        val start = System.currentTimeMillis()
+        kotlinx.coroutines.delay(minSplashMs)
+        while (System.currentTimeMillis() - start < maxSplashMs) {
+            if (dashboardViewModel.isHomeCatalogCached()) break
+            kotlinx.coroutines.delay(50)
+        }
         showSplash = false
     }
 
@@ -101,7 +109,7 @@ fun DashboardScreen(
         Screens.BrewPlus(),
         Screens.Shorts(),
         Screens.Store(),
-        -> homeShowcaseFocusRequester
+        -> catalogFocusHandles[tabRoute]?.showcase
         Screens.Profile() -> profileContentFocusRequester
         Screens.Favourites() -> libraryContentFocusRequester
         Screens.Search() -> searchContentFocusRequester
@@ -110,22 +118,39 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
         if (!didStartupFocus) {
-            runCatching { homeShowcaseFocusRequester.requestFocus() }
+            catalogFocusHandles[Screens.Home()]?.showcase?.let { requester ->
+                runCatching { requester.requestFocus() }
+            }
             didStartupFocus = true
         }
     }
 
     LaunchedEffect(isComingBackFromDifferentScreen) {
         if (!isComingBackFromDifferentScreen) return@LaunchedEffect
-        kotlinx.coroutines.delay(120)
-        if (dashboardViewModel.lastFocusedMovieId == null) {
-            when (dashboardViewModel.focusRestoreTarget) {
-                CatalogFocusRestoreTarget.ShowcasePrimary ->
-                    runCatching { homeShowcaseFocusRequester.requestFocus() }
-                CatalogFocusRestoreTarget.FirstTray ->
-                    runCatching { homeFirstTrayFocusRequester.requestFocus() }
+        // Wait for movie-detail pop transition before restoring catalog focus.
+        kotlinx.coroutines.delay(380)
+        val route = tabRoute
+        val memory = dashboardViewModel.consumeDetailReturnRestore(route)
+        if (memory != null && isCatalogDestination(route)) {
+            val handles = catalogFocusHandles[route]
+            if (handles != null) {
+                when (memory.focusTarget) {
+                    CatalogFocusRestoreTarget.ShowcasePrimary ->
+                        runCatching { handles.showcase.requestFocus() }
+                    CatalogFocusRestoreTarget.FirstTray -> {
+                        if (memory.movieId == null) {
+                            runCatching { handles.firstTray.requestFocus() }
+                        }
+                        // When movieId is set, MoviesRow restores the card once via targetItem.
+                    }
+                }
+            }
+            if (memory.focusTarget == CatalogFocusRestoreTarget.FirstTray && memory.movieId != null) {
+                kotlinx.coroutines.delay(450)
+                dashboardViewModel.clearFocusedMovie(route)
             }
         }
+        dashboardViewModel.endDetailReturnRestore()
         resetIsComingBackFromDifferentScreen()
     }
 
@@ -161,6 +186,8 @@ fun DashboardScreen(
             ) {
                 Body(
                     tabTarget = tabTarget,
+                    dashboardViewModel = dashboardViewModel,
+                    catalogFocusHandles = catalogFocusHandles,
                     openMovieDetailsScreen = openMovieDetailsScreen,
                     openCollectionScreen = openCollectionScreen,
                     onPlayMovie = dashboardViewModel::playMovie,
@@ -171,22 +198,10 @@ fun DashboardScreen(
                     openSignInEmail = openSignInEmail,
                     onBrowseHome = { navigateToTab(Screens.Home) },
                     onBrowseStore = { navigateToTab(Screens.Store) },
-                    homeShowcaseFocusRequester = homeShowcaseFocusRequester,
-                    homeFirstTrayFocusRequester = homeFirstTrayFocusRequester,
                     sidebarFocusRequester = sidebarFocusRequester,
                     profileContentFocusRequester = profileContentFocusRequester,
                     libraryContentFocusRequester = libraryContentFocusRequester,
                     searchContentFocusRequester = searchContentFocusRequester,
-                    activeTabRoute = tabTarget.route,
-                    onOpenMovieFromTray = {
-                        dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.FirstTray)
-                    },
-                    onOpenMovieFromShowcase = {
-                        dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.ShowcasePrimary)
-                    },
-                    onMovieFocused = dashboardViewModel::saveFocusedItem,
-                    lastFocusedSectionId = dashboardViewModel.lastFocusedSectionId,
-                    lastFocusedMovieId = dashboardViewModel.lastFocusedMovieId,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -226,6 +241,11 @@ private val CatalogTabRoutes = listOf(
     Screens.Store(),
 )
 
+private class CatalogTabFocusHandles {
+    val showcase = FocusRequester()
+    val firstTray = FocusRequester()
+}
+
 private fun catalogPageForRoute(route: String): String? = when (route) {
     Screens.Home() -> BrewPages.HOME
     Screens.BrewPlus() -> BrewPages.BREW_PLUS
@@ -243,6 +263,8 @@ private val NonCatalogTabRoutes = listOf(
 @Composable
 private fun Body(
     tabTarget: TabNavTarget,
+    dashboardViewModel: DashboardViewModel,
+    catalogFocusHandles: Map<String, CatalogTabFocusHandles>,
     openMovieDetailsScreen: (movieId: String) -> Unit,
     openCollectionScreen: (sectionId: String) -> Unit,
     onPlayMovie: (Movie) -> Unit,
@@ -251,18 +273,10 @@ private fun Body(
     openSignInEmail: () -> Unit,
     onBrowseHome: () -> Unit,
     onBrowseStore: () -> Unit,
-    homeShowcaseFocusRequester: FocusRequester,
-    homeFirstTrayFocusRequester: FocusRequester,
     sidebarFocusRequester: FocusRequester,
     profileContentFocusRequester: FocusRequester,
     libraryContentFocusRequester: FocusRequester,
     searchContentFocusRequester: FocusRequester,
-    activeTabRoute: String,
-    onOpenMovieFromTray: () -> Unit,
-    onOpenMovieFromShowcase: () -> Unit,
-    onMovieFocused: (sectionId: String, movieId: String) -> Unit,
-    lastFocusedSectionId: String?,
-    lastFocusedMovieId: String?,
     modifier: Modifier = Modifier,
 ) {
     val route = tabTarget.route
@@ -278,6 +292,8 @@ private fun Body(
             if (catalogRoute !in visitedRoutes) return@forEach
             val page = catalogPageForRoute(catalogRoute) ?: return@forEach
             val visible = route == catalogRoute
+            val tabMemory = dashboardViewModel.catalogMemory(catalogRoute)
+            val focusHandles = catalogFocusHandles[catalogRoute] ?: return@forEach
             androidx.compose.runtime.key(catalogRoute) {
                 PrimeTabReveal(
                     active = visible,
@@ -285,22 +301,30 @@ private fun Body(
                 ) {
                     HomeScreen(
                         page = page,
-                        onMovieClick = {
-                            onOpenMovieFromTray()
-                            openMovieDetailsScreen(it.id)
+                        onTrayMovieOpen = {
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = true)
                         },
+                        onMovieClick = { movie -> openMovieDetailsScreen(movie.id) },
                         onViewMoreClick = openCollectionScreen,
-                        onShowcaseOpenMovie = onOpenMovieFromShowcase,
+                        onShowcaseOpenMovie = {
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = false)
+                        },
                         goToVideoPlayer = onPlayMovie,
                         onScroll = { },
                         isTopBarVisible = true,
-                        showcaseFocusRequester = homeShowcaseFocusRequester,
-                        firstRowFocusRequester = homeFirstTrayFocusRequester,
+                        showcaseFocusRequester = focusHandles.showcase,
+                        firstRowFocusRequester = focusHandles.firstTray,
                         sidebarFocusRequester = sidebarFocusRequester,
+                        showcaseSlideIndex = tabMemory.showcaseSlideIndex,
+                        onShowcaseSlideChange = { index ->
+                            dashboardViewModel.rememberShowcaseSlide(catalogRoute, index)
+                        },
                         isTabVisible = visible,
-                        onMovieFocused = onMovieFocused,
-                        lastFocusedSectionId = lastFocusedSectionId,
-                        lastFocusedMovieId = lastFocusedMovieId,
+                        onMovieFocused = { sectionId, movieId ->
+                            dashboardViewModel.saveFocusedItem(catalogRoute, sectionId, movieId)
+                        },
+                        lastFocusedSectionId = tabMemory.sectionId,
+                        lastFocusedMovieId = tabMemory.movieId,
                     )
                 }
             }

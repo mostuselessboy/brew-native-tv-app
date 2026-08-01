@@ -38,8 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.common.C
-import androidx.media3.common.MediaItem
+import com.google.jetstream.data.playback.BrewExoPlayerFactory
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -128,10 +127,16 @@ fun VideoPlayerScreenContent(
     val initialTimeMs = playback?.initialTimeMs ?: 0L
     var showEnterOverlay by remember(movieDetails.id) { mutableStateOf(true) }
 
-    LaunchedEffect(exoPlayer, streamUrl, initialTimeMs) {
+    LaunchedEffect(exoPlayer, streamUrl, playback, initialTimeMs) {
         exoPlayer.clearMediaItems()
         if (streamUrl.isNotBlank()) {
-            exoPlayer.setMediaItem(movieDetails.intoMediaItem(streamUrl))
+            exoPlayer.setMediaItem(
+                BrewExoPlayerFactory.buildMediaItem(
+                    streamUrl = streamUrl,
+                    playback = playback,
+                    subtitleUri = movieDetails.subtitleUri,
+                ),
+            )
             exoPlayer.prepare()
             if (initialTimeMs > 0L) {
                 exoPlayer.seekTo(initialTimeMs)
@@ -224,6 +229,7 @@ fun VideoPlayerScreenContent(
                 VideoPlayerControls(
                     player = exoPlayer,
                     movieDetails = movieDetails,
+                    playback = playback,
                     focusRequester = focusRequester,
                     onShowControls = { videoPlayerState.showControls(exoPlayer.isPlaying) },
                 )
@@ -280,22 +286,3 @@ private fun Modifier.dPadEvents(
         videoPlayerState.showControls(isPlaying = exoPlayer.isPlaying)
     }
 )
-
-private fun MovieDetails.intoMediaItem(streamUrl: String): MediaItem {
-    return MediaItem.Builder()
-        .setUri(streamUrl)
-        .setSubtitleConfigurations(
-            if (subtitleUri == null) {
-                emptyList()
-            } else {
-                listOf(
-                    MediaItem.SubtitleConfiguration
-                        .Builder(Uri.parse(subtitleUri))
-                        .setMimeType("application/vtt")
-                        .setLanguage("en")
-                        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                        .build()
-                )
-            }
-        ).build()
-}

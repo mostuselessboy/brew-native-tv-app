@@ -67,6 +67,12 @@ data class BrewVodAssetProgress(
 )
 
 @Serializable
+data class BrewSubscriptionPlansResponse(
+    val plans: List<BrewSubscriptionPlanDto> = emptyList(),
+    @SerialName("user_country") val userCountry: String? = null,
+)
+
+@Serializable
 data class BrewEndscreenRecommendationsResponse(
     val flow: String? = null,
     @SerialName("primary_card") val primaryCard: BrewEndscreenRecommendationCard? = null,

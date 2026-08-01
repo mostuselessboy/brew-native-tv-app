@@ -55,13 +55,12 @@ fun movieCardMetaLine(movie: Movie): String {
         .joinToString(" • ")
 }
 
-/** Showcase meta: genre • year • duration — vod-frontend buildShowcaseInfoLine. */
+/** Showcase meta: genre • year • duration; when no pitch, year • country — vod-frontend. */
 fun showcaseInfoLine(movie: Movie): String {
-    return listOfNotNull(
-        movie.genres.firstOrNull(),
-        movie.year,
-        movie.duration,
-    ).filter { it.isNotBlank() }.joinToString("  •  ")
+    if (movie.description.isNotBlank()) return movie.description
+    return listOfNotNull(movie.year, movie.country)
+        .filter { it.isNotBlank() }
+        .joinToString("  •  ")
 }
 
 /** Top-left Store / Brew Plus + top-right vod_tag — cards only (not showcase). */

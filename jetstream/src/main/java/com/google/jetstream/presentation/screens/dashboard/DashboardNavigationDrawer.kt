@@ -1,9 +1,5 @@
 package com.google.jetstream.presentation.screens.dashboard
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
@@ -28,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -228,35 +223,18 @@ private fun BrewRailItem(
     sidebarFocusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (focused) 1.14f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.68f,
-            stiffness = 420f,
-        ),
-        label = "railScale",
-    )
-    val pillColor by animateColorAsState(
-        targetValue = when {
-            focused -> Color.White
-            selected -> RailSelectedPill
-            else -> Color.Transparent
-        },
-        animationSpec = tween(120),
-        label = "railPill",
-    )
-    val tint by animateColorAsState(
-        targetValue = when {
-            focused -> Color.Black
-            selected -> Color.White.copy(alpha = 0.92f)
-            else -> Color.White.copy(alpha = 0.5f)
-        },
-        animationSpec = tween(120),
-        label = "railTint",
-    )
+    val pillColor = when {
+        focused -> Color.White
+        selected -> RailSelectedPill
+        else -> Color.Transparent
+    }
+    val tint = when {
+        focused -> Color.Black
+        selected -> Color.White.copy(alpha = 0.92f)
+        else -> Color.White.copy(alpha = 0.5f)
+    }
 
-    Box(modifier = Modifier.scale(scale)) {
-        Surface(
+    Surface(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(RailItemShape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
@@ -310,7 +288,6 @@ private fun BrewRailItem(
                 tint = tint,
                 modifier = Modifier.size(iconSize),
             )
-        }
         }
     }
 }

@@ -27,6 +27,13 @@ interface BrewApiService {
         @Query("page") page: String = BrewPages.HOME,
     ): List<BrewHomeSectionDto>
 
+    /** Dice / surprise-me catalog for search suggestions. */
+    @GET("api/v1/vod/dice-data")
+    suspend fun getDiceData(
+        @Query("country") country: String = BrewPages.DEFAULT_COUNTRY,
+        @Query("lang") lang: String = "en",
+    ): List<BrewHomeSectionDto>
+
     @GET("api/v1/vod/home-sections/{sectionId}")
     suspend fun getHomeSectionById(
         @Path("sectionId") sectionId: String,

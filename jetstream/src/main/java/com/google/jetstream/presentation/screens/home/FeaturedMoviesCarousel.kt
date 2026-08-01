@@ -87,6 +87,8 @@ import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.data.util.ShowcaseCta
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import com.google.jetstream.presentation.common.RibbonLabelBadge
+import com.google.jetstream.presentation.common.RibbonLabelBadgeSize
 import com.google.jetstream.presentation.common.ShowcaseHeroBackdrop
 import com.google.jetstream.presentation.common.ShowcaseHeroFrame
 import com.google.jetstream.presentation.common.ShowcaseHeroMetaRow
@@ -159,10 +161,16 @@ fun FeaturedMoviesCarousel(
     primaryFocusRequester: FocusRequester? = null,
     secondaryFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
+    initialSlideIndex: Int = 0,
+    onSlideIndexChange: (Int) -> Unit = {},
 ) {
     if (movies.isEmpty()) return
 
     var slideIndex by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(initialSlideIndex, movies.size) {
+        val clamped = initialSlideIndex.coerceIn(0, movies.lastIndex.coerceAtLeast(0))
+        if (slideIndex != clamped) slideIndex = clamped
+    }
     val localPrimaryFocus = remember { FocusRequester() }
     val localSecondaryFocus = remember { FocusRequester() }
     val primaryFocus = primaryFocusRequester ?: localPrimaryFocus
@@ -178,6 +186,7 @@ fun FeaturedMoviesCarousel(
 
     var lastFocusedSlide by remember { mutableIntStateOf(slideIndex) }
     LaunchedEffect(slideIndex) {
+        onSlideIndexChange(slideIndex)
         if (lastFocusedSlide != slideIndex) {
             runCatching { primaryFocus.requestFocus() }
             lastFocusedSlide = slideIndex
@@ -257,6 +266,13 @@ fun FeaturedMoviesCarousel(
 @Composable
 private fun ShowcaseCopy(movie: Movie) {
     Column {
+        movie.ribbonLabel?.let { ribbon ->
+            RibbonLabelBadge(
+                label = ribbon,
+                size = RibbonLabelBadgeSize.Md,
+                modifier = Modifier.padding(bottom = 10.dp),
+            )
+        }
         Text(
             text = movie.name,
             color = Color.White,
@@ -266,7 +282,15 @@ private fun ShowcaseCopy(movie: Movie) {
         )
 
         ShowcaseHeroMetaRow(
-            infoLine = showcaseInfoLine(movie),
+            infoLine = if (movie.description.isBlank()) {
+                showcaseInfoLine(movie)
+            } else {
+                listOfNotNull(
+                    movie.genres.firstOrNull(),
+                    movie.year,
+                    movie.duration,
+                ).filter { it.isNotBlank() }.joinToString("  •  ")
+            },
             showStore = movie.showStore,
         )
 

@@ -18,45 +18,45 @@ internal object MovieDetailTokens {
     /** `CTA_WIDE_BORDER_RADIUS` — mobile uses 12; TV half-rows use 10 to avoid pill shape. */
     val CtaWideRadius = 8.dp
     val CtaHalfRowRadius = 8.dp
-    val CtaIconBoxRadius = 12.dp
+    val CtaIconBoxRadius = 6.dp
 
-    val CtaFixedWidth = 210.dp
-    val CtaHalfRowFixedWidth = 210.dp
+    val CtaFixedWidth = 224.dp
+    val CtaHalfRowFixedWidth = 224.dp
 
-    val CtaMinHeight = 38.dp
-    val CtaHalfRowMinHeight = 36.dp
-    val CtaSubscribeMinHeight = 38.dp
-    val CtaHalfRowSubscribeMinHeight = 36.dp
+    val CtaMinHeight = 40.dp
+    val CtaHalfRowMinHeight = 38.dp
+    val CtaSubscribeMinHeight = 40.dp
+    val CtaHalfRowSubscribeMinHeight = 38.dp
 
     val CtaPadH = 10.dp
-    val CtaPadTop = 12.dp
-    val CtaPadBottom = 10.dp
-    val CtaHalfRowPadTop = 12.dp
+    val CtaPadTop = 11.dp
+    val CtaPadBottom = 11.dp
+    val CtaHalfRowPadTop = 10.dp
     val CtaHalfRowPadBottom = 10.dp
 
     val CtaIconBox = 26.dp
     val CtaHalfRowIconBox = 30.dp
 
-    val CtaTitleSize = 14.sp
-    val CtaTitleLine = 17.sp
-    val CtaHalfRowTitleSize = 14.sp
-    val CtaHalfRowTitleLine = 17.sp
+    val CtaTitleSize = 12.sp
+    val CtaTitleLine = 14.sp
+    val CtaHalfRowTitleSize = 12.sp
+    val CtaHalfRowTitleLine = 14.sp
 
-    val CtaSublabelSize = 9.sp
-    val CtaSublabelLine = 12.sp
+    val CtaSublabelSize = 8.sp
+    val CtaSublabelLine = 10.sp
     val CtaHalfRowSublabelSize = 8.sp
-    val CtaHalfRowSublabelLine = 11.sp
+    val CtaHalfRowSublabelLine = 10.sp
 
-    val CtaPriceSize = 13.sp
-    val CtaHalfRowPriceSize = 12.sp
-    val CtaPriceColumnWidth = 80.dp
+    val CtaPriceSize = 12.sp
+    val CtaHalfRowPriceSize = 11.sp
+    val CtaPriceColumnWidth = 68.dp
     val CtaHalfRowPriceColumnWidth = 70.dp
 
     /** Stacked subscribe wordmark — sized to fit CTA row without dominating. */
     val BrewPlusLogoWidth = 52.dp
     val BrewPlusLogoCompactWidth = 44.dp
 
-    val SecondaryActionSize = 36.dp
+    val SecondaryActionSize = 32.dp
     val SecondaryActionBorder = Color.White.copy(alpha = 0.22f)
 
     val CtaFocusBorderGray = Color(0xFF9CA3AF)
@@ -71,9 +71,10 @@ internal object MovieDetailTokens {
     val TaglineSize = 16.sp
     val SynopsisSize = 10.sp
     val MetaSize = 12.sp
-    val DetailShowcaseHeight = 410.dp
+    val DetailShowcaseHeight = 480.dp
+    val DetailBackdropHeight = 520.dp
     val SectionTitleSize = 17.sp
-    val SectionTitleColor = Color(0xFFD1D5DB)
+    val SectionTitleColor = Color.White
 
     val YellowTextPrimary = Color.Black
     val YellowTextSecondary = Color(0xB3000000)

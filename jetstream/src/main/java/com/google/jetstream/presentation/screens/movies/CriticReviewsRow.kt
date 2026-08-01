@@ -62,9 +62,8 @@ import com.google.jetstream.presentation.theme.BrewTitle
 
 private val CardShape = RoundedCornerShape(14.dp)
 private val CardWidth = 196.dp
-private val CardHeight = 164.dp
-private val CardGradientTop = Color(0xFF1C1C1E)
-private val CardGradientBottom = Color(0xFF0A0A0A)
+private val CardHeight = 140.dp
+private val CardBgColor = Color(0xFF0C0C0C)
 
 /** Critic review cards — polished TV layout. */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -73,6 +72,7 @@ fun CriticReviewsRow(
     reviews: List<MovieCriticReview>,
     modifier: Modifier = Modifier,
     firstItemFocusRequester: FocusRequester? = null,
+    onReviewClick: (MovieCriticReview) -> Unit = {},
 ) {
     if (reviews.isEmpty()) return
     val childPadding = rememberChildPadding()
@@ -91,6 +91,12 @@ fun CriticReviewsRow(
                 val isFirst = review.id == reviews.first().id
                 CriticReviewCard(
                     review = review,
+                    onClick = {
+                        val link = review.link?.takeIf { it.isNotBlank() }
+                        if (link != null) {
+                            onReviewClick(review)
+                        }
+                    },
                     modifier = Modifier
                         .then(
                             if (isFirst && firstItemFocusRequester != null) {
@@ -108,6 +114,7 @@ fun CriticReviewsRow(
 @Composable
 private fun CriticReviewCard(
     review: MovieCriticReview,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -123,13 +130,13 @@ private fun CriticReviewCard(
     }
 
     val animatedScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.10f else 1.0f,
+        targetValue = if (isFocused) 1.12f else 1.0f,
         animationSpec = scaleAnimationSpec,
         label = "CriticCardScale"
     )
 
     Surface(
-        onClick = {},
+        onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(CardShape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         border = ClickableSurfaceDefaults.border(
@@ -138,7 +145,7 @@ private fun CriticReviewCard(
                 shape = CardShape,
             ),
             focusedBorder = Border(
-                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)),
+                border = BorderStroke(1.5.dp, Color.White),
                 shape = CardShape,
             ),
         ),
@@ -166,22 +173,18 @@ private fun CriticReviewCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(CardHeight)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(CardGradientTop, CardGradientBottom),
-                    ),
-                ),
+                .background(CardBgColor),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(CardHeight)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(28.dp),
+                        .height(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (!review.orgLogoUrl.isNullOrBlank()) {
@@ -198,7 +201,7 @@ private fun CriticReviewCard(
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(22.dp),
+                                .height(18.dp),
                         )
                     }
                 }
@@ -209,7 +212,7 @@ private fun CriticReviewCard(
                     fontFamily = BrewDisplay,
                     fontStyle = FontStyle.Italic,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     lineHeight = 15.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 3,
@@ -217,7 +220,7 @@ private fun CriticReviewCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(top = 8.dp, bottom = 6.dp),
+                        .padding(top = 4.dp, bottom = 4.dp),
                 )
 
                 Box(
@@ -240,19 +243,19 @@ private fun CriticReviewCard(
                     color = Color.White.copy(alpha = 0.75f),
                     fontFamily = BrewTitle,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
+                    fontSize = 7.sp,
                     letterSpacing = 1.2.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = 4.dp),
                 )
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
+                        .padding(top = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -260,7 +263,7 @@ private fun CriticReviewCard(
                         Text(
                             text = review.dateLabel,
                             color = Color.White.copy(alpha = 0.45f),
-                            fontSize = 9.sp,
+                            fontSize = 7.sp,
                             fontWeight = FontWeight.Medium,
                         )
                     } else {
@@ -276,11 +279,11 @@ private fun CriticReviewCard(
                                 text = "Read article",
                                 color = Color.White.copy(alpha = 0.55f),
                                 fontFamily = BrewTitle,
-                                fontSize = 9.sp,
+                                fontSize = 7.sp,
                                 fontWeight = FontWeight.Medium,
                             )
                             Icon(
-                                painter = painterResource(R.drawable.ic_lucide_external_link),
+                                painter = painterResource(R.drawable.ic_lucide_qr_code),
                                 contentDescription = null,
                                 tint = Color.White.copy(alpha = 0.55f),
                                 modifier = Modifier.size(10.dp),

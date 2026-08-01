@@ -36,7 +36,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.common.ShowcaseHeight
-import kotlinx.coroutines.launch
+import com.google.jetstream.presentation.screens.movies.MovieDetailTokens
 
 private val Bone = Color(0xFF141414)
 private val CardShape = RoundedCornerShape(9.dp)
@@ -120,9 +120,45 @@ private fun SkeletonTrayRow(
     }
 }
 
+/** Collection page skeleton — hero + horizontal card row. */
+@Composable
+fun CollectionShimmerSkeleton(modifier: Modifier = Modifier) {
+    val padding = rememberChildPadding()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+                .background(Bone),
+        )
+        Row(
+            modifier = Modifier
+                .padding(top = 56.dp, start = padding.start)
+                .height(CardHeight),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            repeat(4) {
+                Box(
+                    modifier = Modifier
+                        .width(BrewLandscapeCardWidth)
+                        .aspectRatio(16f / 9f)
+                        .clip(CardShape)
+                        .background(Bone),
+                )
+            }
+        }
+    }
+}
 
 @Composable
-fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
+fun DetailsShimmerSkeleton(
+    modifier: Modifier = Modifier,
+    posterUri: String? = null,
+) {
     val padding = rememberChildPadding()
 
     // Shared shimmer — one infinite transition driving a fraction 0→1
@@ -136,8 +172,8 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
         label = "shimmerFraction",
     )
 
-    // Per-block visibility — 5 sections appear one by one
-    val delays = listOf(0, 80, 160, 240, 320)
+    // Per-block visibility — hero only; bottom trays are static
+    val delays = listOf(0)
     val alphas = delays.map { delayMs ->
         val anim = remember(delayMs) { androidx.compose.animation.core.Animatable(0f) }
         LaunchedEffect(delayMs) {
@@ -176,122 +212,165 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
             .background(Color.Black),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        // BLOCK 0 — Hero backdrop (with top + side margins)
+        // BLOCK 0 — Hero skeleton: same backdrop layout as MovieDetailShowcaseBackdrop
         androidx.compose.foundation.layout.BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(MovieDetailTokens.DetailShowcaseHeight)
                 .graphicsLayer {
                     this.alpha = alphas[0]
                     translationY = offsets[0].dp.toPx()
-                }
-                .padding(horizontal = padding.start, vertical = 0.dp)
-                .padding(top = 2.dp),
+                },
         ) {
             val w = constraints.maxWidth.toFloat()
-            Box(
+            val shimmer = shimmerBrush(w)
+            Box(modifier = Modifier.fillMaxSize()) {
+                ShowcaseHeroShimmerBackdrop(
+                    modifier = Modifier.fillMaxSize(),
+                    backdropHeightFraction = 0.92f,
+                    posterUri = posterUri,
+                    posterFill = shimmer,
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 28.dp, end = padding.end)
+                        .width(78.dp)
+                        .height(30.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(shimmer),
+                )
+                Row(
                 modifier = Modifier
+                    .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .height(com.google.jetstream.presentation.screens.movies.MovieDetailTokens.DetailShowcaseHeight)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(shimmerBrush(w)),
-            )
-        }
+                    .padding(
+                        start = padding.start,
+                        end = padding.end,
+                        bottom = 4.dp,
+                    ),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Column(
+                    modifier = Modifier.weight(0.54f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(220.dp)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(shimmerBrush(w)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(160.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush(w)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush(w)),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .width(MovieDetailTokens.CtaFixedWidth)
+                                .height(MovieDetailTokens.CtaMinHeight)
+                                .clip(RoundedCornerShape(MovieDetailTokens.CtaWideRadius))
+                                .background(shimmer),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(MovieDetailTokens.CtaFixedWidth)
+                                .height(MovieDetailTokens.CtaMinHeight)
+                                .clip(RoundedCornerShape(MovieDetailTokens.CtaWideRadius))
+                                .background(shimmer),
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        repeat(4) {
+                            Box(
+                                modifier = Modifier
+                                    .size(MovieDetailTokens.SecondaryActionSize)
+                                    .clip(RoundedCornerShape(MovieDetailTokens.SecondaryActionSize / 2))
+                                    .background(shimmer),
+                            )
+                        }
+                    }
+                }
 
-        // BLOCK 1 — Title + meta + CTAs
-        androidx.compose.foundation.layout.BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    this.alpha = alphas[1]
-                    translationY = offsets[1].dp.toPx()
-                }
-                .padding(horizontal = padding.start)
-                .padding(top = 22.dp),
-        ) {
-            val w = constraints.maxWidth.toFloat()
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(modifier = Modifier.width(220.dp).height(28.dp).clip(RoundedCornerShape(6.dp)).background(shimmerBrush(w)))
-                Box(modifier = Modifier.width(140.dp).height(13.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush(w)))
-                Box(modifier = Modifier.width(180.dp).height(11.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush(w)))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(modifier = Modifier.width(148.dp).height(44.dp).clip(RoundedCornerShape(10.dp)).background(shimmerBrush(w)))
-                    Box(modifier = Modifier.width(148.dp).height(44.dp).clip(RoundedCornerShape(10.dp)).background(shimmerBrush(w)))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    repeat(4) {
-                        Box(modifier = Modifier.size(38.dp).clip(RoundedCornerShape(19.dp)).background(shimmerBrush(w)))
+                Column(
+                    modifier = Modifier
+                        .weight(0.46f)
+                        .padding(start = 12.dp, bottom = 4.dp),
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(shimmerBrush(w)),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(80.dp)
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(shimmerBrush(w)),
+                        )
                     }
                 }
             }
+            }
         }
 
-        // BLOCK 2 — Customers also watched tray
+        // BLOCK 1 — Customers also watched tray
         androidx.compose.foundation.layout.BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer {
-                    this.alpha = alphas[2]
-                    translationY = offsets[2].dp.toPx()
-                }
                 .padding(start = padding.start)
-                .padding(top = 30.dp),
+                .padding(top = 16.dp),
         ) {
             val w = constraints.maxWidth.toFloat()
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(modifier = Modifier.width(160.dp).height(15.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush(w)))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     repeat(5) {
-                        Box(modifier = Modifier.width(BrewLandscapeCardWidth).height(BrewLandscapeCardWidth * 9f / 16f).clip(CardShape).background(shimmerBrush(w)))
+                        Box(
+                            modifier = Modifier
+                                .width(BrewLandscapeCardWidth)
+                                .height(BrewLandscapeCardWidth * 9f / 16f)
+                                .clip(CardShape)
+                                .background(shimmerBrush(w)),
+                        )
                     }
                 }
             }
         }
 
-        // BLOCK 3 — Cast avatars
+        // BLOCK 2 — Reviews row
         androidx.compose.foundation.layout.BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer {
-                    this.alpha = alphas[3]
-                    translationY = offsets[3].dp.toPx()
-                }
                 .padding(start = padding.start)
-                .padding(top = 30.dp),
-        ) {
-            val w = constraints.maxWidth.toFloat()
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(modifier = Modifier.width(100.dp).height(15.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush(w)))
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    repeat(6) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Box(modifier = Modifier.size(66.dp).clip(RoundedCornerShape(33.dp)).background(shimmerBrush(w)))
-                            Box(modifier = Modifier.width(52.dp).height(10.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush(w)))
-                        }
-                    }
-                }
-            }
-        }
-
-        // BLOCK 4 — Reviews row
-        androidx.compose.foundation.layout.BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    this.alpha = alphas[4]
-                    translationY = offsets[4].dp.toPx()
-                }
-                .padding(start = padding.start)
-                .padding(top = 30.dp),
+                .padding(top = 16.dp),
         ) {
             val w = constraints.maxWidth.toFloat()
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(modifier = Modifier.width(120.dp).height(15.dp).clip(RoundedCornerShape(4.dp)).background(shimmerBrush(w)))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    repeat(3) {
-                        Box(modifier = Modifier.width(220.dp).height(130.dp).clip(RoundedCornerShape(12.dp)).background(shimmerBrush(w)))
+                    repeat(4) {
+                        Box(modifier = Modifier.width(200.dp).height(100.dp).clip(RoundedCornerShape(12.dp)).background(shimmerBrush(w)))
                     }
                 }
             }

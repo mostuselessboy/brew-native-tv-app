@@ -3,13 +3,16 @@ package com.google.jetstream.data.repositories
 import com.google.jetstream.data.entities.EndScreenAction
 import com.google.jetstream.data.entities.EndScreenRecommendation
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.MovieSubscriptionPlan
 import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.data.remote.BrewCheckPurchaseResponse
 import com.google.jetstream.data.remote.BrewEndscreenRecommendationCard
+import com.google.jetstream.data.remote.BrewMappers.toMovieSubscriptionPlan
 import com.google.jetstream.data.remote.BrewStartPlaybackRequest
 import com.google.jetstream.data.remote.BrewVodApiService
 import com.google.jetstream.data.remote.BrewVodAssetData
 import com.google.jetstream.data.util.DetailCtaKind
+import com.google.jetstream.data.util.BunnyStream
 import com.google.jetstream.data.util.VodPlaybackUrl
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -82,18 +85,42 @@ class PlaybackRepositoryImpl @Inject constructor(
             isTrailer = false,
             vodAssetId = vodAssetId,
             bunnyVideoId = asset.bunnyVideoId.takeIf { it.isNotBlank() },
+            bunnyLibraryId = asset.bunnyLibraryId.takeIf { it.isNotBlank() },
+            bunnyCdnZone = asset.bunnyCdnZone.takeIf { it.isNotBlank() },
+            licenseServerUrl = asset.licenseServerUrl?.takeIf { it.isNotBlank() }
+                ?: BunnyStream.widevineLicenseUrl(asset.bunnyLibraryId, asset.bunnyVideoId),
             isDrm = asset.isDrm,
         )
     }
 
-    override suspend fun prepareTrailerPlayback(movie: MovieDetails): PlaybackIntent? {
-        val trailerUrl = movie.videoUri.takeIf { it.isNotBlank() } ?: return null
+    override suspend fun prepareTrailerPlayback(movie: MovieDetails, userId: Int): PlaybackIntent? {
+        val assetId = movie.trailerVodAssetId?.takeIf { it > 0 } ?: return null
+
+        val asset = fetchVodAsset(
+            userId = userId.coerceAtLeast(0),
+            vodAssetId = assetId,
+            cvName = movie.cvName.ifBlank { movie.id },
+            campaignVersionId = movie.campaignVersionId,
+        ) ?: return null
+
+        val hlsUrl = VodPlaybackUrl.buildHlsUrl(asset)
+        if (hlsUrl.isBlank()) return null
+
+        val licenseUrl = asset.licenseServerUrl?.takeIf { it.isNotBlank() }
+            ?: BunnyStream.widevineLicenseUrl(asset.bunnyLibraryId, asset.bunnyVideoId)
+
         return PlaybackIntent(
             movieSlug = movie.id,
-            title = movie.name,
-            hlsUrl = trailerUrl,
+            title = "${movie.name} - Trailer",
+            hlsUrl = hlsUrl,
             initialTimeMs = 0L,
             isTrailer = true,
+            vodAssetId = assetId,
+            bunnyVideoId = asset.bunnyVideoId.takeIf { it.isNotBlank() },
+            bunnyLibraryId = asset.bunnyLibraryId.takeIf { it.isNotBlank() },
+            bunnyCdnZone = asset.bunnyCdnZone.takeIf { it.isNotBlank() },
+            licenseServerUrl = licenseUrl,
+            isDrm = movie.trailerIsDrm || asset.isDrm,
         )
     }
 
@@ -140,6 +167,10 @@ class PlaybackRepositoryImpl @Inject constructor(
             isTrailer = false,
             vodAssetId = vodAssetId,
             bunnyVideoId = asset.bunnyVideoId.takeIf { it.isNotBlank() },
+            bunnyLibraryId = asset.bunnyLibraryId.takeIf { it.isNotBlank() },
+            bunnyCdnZone = asset.bunnyCdnZone.takeIf { it.isNotBlank() },
+            licenseServerUrl = asset.licenseServerUrl?.takeIf { it.isNotBlank() }
+                ?: BunnyStream.widevineLicenseUrl(asset.bunnyLibraryId, asset.bunnyVideoId),
             isDrm = asset.isDrm,
         )
     }
@@ -162,6 +193,13 @@ class PlaybackRepositoryImpl @Inject constructor(
             data.secondaryCard?.toRecommendation(),
         )
     }.getOrDefault(emptyList())
+
+    override suspend fun fetchSubscriptionPlans(country: String): List<MovieSubscriptionPlan> =
+        runCatching {
+            vodApi.getSubscriptionPlans(
+                country = country.lowercase().ifBlank { "in" },
+            ).data?.plans.orEmpty().map { it.toMovieSubscriptionPlan() }
+        }.getOrDefault(emptyList())
 
     private fun BrewEndscreenRecommendationCard.toRecommendation(): EndScreenRecommendation? {
         val card = cardData ?: return null

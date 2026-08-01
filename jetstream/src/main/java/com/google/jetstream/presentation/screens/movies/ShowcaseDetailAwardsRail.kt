@@ -61,7 +61,7 @@ fun ShowcaseDetailAwardsRail(
                 scrollState.animateScrollTo(
                     value = 0,
                     animationSpec = tween(
-                        durationMillis = repeatedAwards.size * 2200,
+                        durationMillis = repeatedAwards.size * 7000,
                         easing = LinearEasing
                     )
                 )
@@ -72,8 +72,8 @@ fun ShowcaseDetailAwardsRail(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp),
-        contentAlignment = Alignment.CenterStart
+            .height(58.dp),
+        contentAlignment = Alignment.CenterStart,
     ) {
         Row(
             modifier = Modifier
@@ -125,28 +125,33 @@ fun ShowcaseDetailAwardsRail(
             }
         }
 
-        // Subtle black gradient overlays on the left and right edges
+        // Edge scrims — wide left fade blends marquee into black hero background
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .width(28.dp)
+                .width(56.dp)
                 .fillMaxHeight()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(Color.Black, Color.Transparent)
-                    )
-                )
+                        colorStops = arrayOf(
+                            0f to Color.Black,
+                            0.35f to Color.Black.copy(alpha = 0.85f),
+                            0.7f to Color.Transparent,
+                            1f to Color.Transparent,
+                        ),
+                    ),
+                ),
         )
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .width(28.dp)
+                .width(36.dp)
                 .fillMaxHeight()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(Color.Transparent, Color.Black)
-                    )
-                )
+                        colors = listOf(Color.Transparent, Color.Black),
+                    ),
+                ),
         )
     }
 }
