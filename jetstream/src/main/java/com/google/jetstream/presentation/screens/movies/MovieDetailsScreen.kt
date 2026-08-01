@@ -27,6 +27,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
+import coil.imageLoader
+import coil.request.ImageRequest
+import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.util.DetailPurchaseCta
@@ -118,6 +122,17 @@ private fun Details(
 
     val customersAlsoWatched = remember(movieDetails) {
         filterDetailMovies(movieDetails.customersAlsoWatched, movieDetails.id)
+    }
+    val context = LocalContext.current
+    LaunchedEffect(customersAlsoWatched) {
+        val loader = context.imageLoader
+        customersAlsoWatched.take(6).forEach { movie ->
+            val request = ImageRequest.Builder(context)
+                .data(BrewImageUrl.forCard(movie.posterUri))
+                .size(BrewImageUrl.CARD_WIDTH, BrewImageUrl.CARD_HEIGHT)
+                .build()
+            loader.enqueue(request)
+        }
     }
     val relatedMovies = remember(movieDetails) {
         filterDetailMovies(movieDetails.relatedMovies, movieDetails.id)

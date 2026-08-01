@@ -1,0 +1,17 @@
+EXECUTING: /opt/homebrew/share/android-commandlinetools/platform-tools/adb -H localhost -P 5037 -s emulator-5554 shell am get-current-user
+CURRENT_WORKING_DIRECTORY: /Users/hamzarizvi/Desktop/native tv app
+START_TIME: 2026-08-01 12:26:49.397
+START_TIME-NANOS: 2026-08-01 12:26:49.397495000
+ENVIRONMENT:
+ANDROID_SDK_HOME=/opt/homebrew/share/android-commandlinetools
+ANDROID_ADB=/opt/homebrew/share/android-commandlinetools/platform-tools/adb
+*****************************************
+STDOUT/STDERR BELOW
+===================
+0
+
+===================
+END_TIME: 2026-08-01 12:26:49.644
+END_TIME-NANOS: 2026-08-01 12:26:49.644833000
+DURATION: 247ms
+EXIT CODE: 0

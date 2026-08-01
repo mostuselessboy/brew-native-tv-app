@@ -250,12 +250,12 @@ private fun RankedMovieItem(
     modifier: Modifier = Modifier,
 ) {
     val isDoubleDigit = rank > 9
-    val numberWidth = if (isDoubleDigit) 58.dp else 42.dp
+    val numberWidth = if (isDoubleDigit) 72.dp else 52.dp
 
     Box(
         modifier = modifier
-            .height(cardHeight)
-            .padding(start = if (isDoubleDigit) 20.dp else 14.dp),
+            .height(cardHeight + 12.dp)
+            .padding(start = if (isDoubleDigit) 28.dp else 20.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(
@@ -263,13 +263,13 @@ private fun RankedMovieItem(
             color = Color.White.copy(alpha = 0.92f),
             fontFamily = BrewTitle,
             fontWeight = FontWeight.Bold,
-            fontSize = if (isDoubleDigit) 68.sp else 80.sp,
-            letterSpacing = (-3).sp,
-            lineHeight = if (isDoubleDigit) 68.sp else 80.sp,
+            fontSize = if (isDoubleDigit) 100.sp else 125.sp,
+            letterSpacing = (-5).sp,
+            lineHeight = if (isDoubleDigit) 100.sp else 125.sp,
             maxLines = 1,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(x = (-6).dp)
+                .offset(x = (-10).dp)
                 .widthIn(min = numberWidth)
                 .zIndex(0f),
         )

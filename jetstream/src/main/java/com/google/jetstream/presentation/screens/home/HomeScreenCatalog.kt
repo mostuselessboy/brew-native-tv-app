@@ -204,10 +204,10 @@ internal fun Catalog(
 
                             HomeSectionType.Immersive,
                             HomeSectionType.Row -> {
-                                 val rowOrdinal = rowOrdinalBySectionIndex[sectionIndex] ?: 0
-                                 val isFirstContentRow = sectionIndex == firstContentSectionIndex
-                                 val deferCards = true
-                                 val deferDelayMs = 40L + (rowOrdinal * 50L)
+                                  val rowOrdinal = rowOrdinalBySectionIndex[sectionIndex] ?: 0
+                                  val isFirstContentRow = sectionIndex == firstContentSectionIndex
+                                  val deferCards = !isFirstContentRow
+                                  val deferDelayMs = if (isFirstContentRow) 0L else 40L + (rowOrdinal * 50L)
                                 MoviesRow(
                                     modifier = Modifier.focusGroup(),
                                     movieList = section.movies,

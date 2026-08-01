@@ -30,6 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -118,19 +124,36 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
     val bodyText = review.reviewBody.trim()
     val showReadMore = bodyText.length > 120 && !expanded
 
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scaleAnimationSpec = if (isFocused) {
+        spring<Float>(
+            dampingRatio = 0.76f,
+            stiffness = 380f
+        )
+    } else {
+        tween<Float>(durationMillis = 500, easing = LinearOutSlowInEasing)
+    }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.10f else 1.0f,
+        animationSpec = scaleAnimationSpec,
+        label = "ReviewCardScale"
+    )
+
     Surface(
         onClick = {
             if (bodyText.length > 120) expanded = !expanded
         },
         shape = ClickableSurfaceDefaults.shape(ReviewCardShape),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         border = ClickableSurfaceDefaults.border(
             border = Border(
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
                 shape = ReviewCardShape,
             ),
             focusedBorder = Border(
-                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.85f)),
+                border = BorderStroke(1.2.dp, Color.White.copy(alpha = 0.85f)),
                 shape = ReviewCardShape,
             ),
         ),
@@ -140,7 +163,13 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
         ),
         modifier = Modifier
             .width(ReviewCardWidth)
-            .height(ReviewCardHeight),
+            .height(ReviewCardHeight)
+            .onFocusChanged { isFocused = it.isFocused }
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
+            .zIndex(if (isFocused) 10f else 1f),
     ) {
         Row(
             modifier = Modifier

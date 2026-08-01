@@ -16,6 +16,16 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -101,17 +111,34 @@ private fun CriticReviewCard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scaleAnimationSpec = if (isFocused) {
+        spring<Float>(
+            dampingRatio = 0.76f,
+            stiffness = 380f
+        )
+    } else {
+        tween<Float>(durationMillis = 500, easing = LinearOutSlowInEasing)
+    }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.10f else 1.0f,
+        animationSpec = scaleAnimationSpec,
+        label = "CriticCardScale"
+    )
+
     Surface(
         onClick = {},
         shape = ClickableSurfaceDefaults.shape(CardShape),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         border = ClickableSurfaceDefaults.border(
             border = Border(
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
                 shape = CardShape,
             ),
             focusedBorder = Border(
-                border = BorderStroke(2.dp, AccentLine.copy(alpha = 0.9f)),
+                border = BorderStroke(1.2.dp, AccentLine.copy(alpha = 0.9f)),
                 shape = CardShape,
             ),
         ),
@@ -121,7 +148,13 @@ private fun CriticReviewCard(
         ),
         modifier = modifier
             .width(CardWidth)
-            .height(CardHeight),
+            .height(CardHeight)
+            .onFocusChanged { isFocused = it.isFocused }
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
+            .zIndex(if (isFocused) 10f else 1f),
     ) {
         Box(
             modifier = Modifier

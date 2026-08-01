@@ -101,39 +101,41 @@ fun FavouritesScreen(
             .fillMaxSize()
             .background(LibraryBackground),
     ) {
-        when (val state = uiState) {
-            MyLibraryUiState.Loading -> Loading(modifier = Modifier.fillMaxSize())
-            MyLibraryUiState.Guest -> LibraryGuestState(
-                onSignInClick = onSignInClick,
-                focusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
-            is MyLibraryUiState.Error -> LibraryErrorState(
-                message = state.message,
-                onRetry = viewModel::refresh,
-                focusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
-            is MyLibraryUiState.Empty -> LibraryEmptyState(
-                userName = state.userName,
-                avatarUrl = state.avatarUrl,
-                onBrowse = onBrowseHome,
-                focusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
-            is MyLibraryUiState.Ready -> MyLibraryContent(
-                userName = state.userName,
-                avatarUrl = state.avatarUrl,
-                shelves = state.page.shelves,
-                loadingShelfId = state.loadingShelfId,
-                onMovieClick = onMovieClick,
-                onLibraryItemClick = onLibraryItemClick,
-                onLoadMore = viewModel::loadMoreShelf,
-                onBrowseHome = onBrowseHome,
-                onBrowseStore = onBrowseStore,
-                firstContentFocusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
+        if (isTabVisible) {
+            when (val state = uiState) {
+                MyLibraryUiState.Loading -> Loading(modifier = Modifier.fillMaxSize())
+                MyLibraryUiState.Guest -> LibraryGuestState(
+                    onSignInClick = onSignInClick,
+                    focusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+                is MyLibraryUiState.Error -> LibraryErrorState(
+                    message = state.message,
+                    onRetry = viewModel::refresh,
+                    focusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+                is MyLibraryUiState.Empty -> LibraryEmptyState(
+                    userName = state.userName,
+                    avatarUrl = state.avatarUrl,
+                    onBrowse = onBrowseHome,
+                    focusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+                is MyLibraryUiState.Ready -> MyLibraryContent(
+                    userName = state.userName,
+                    avatarUrl = state.avatarUrl,
+                    shelves = state.page.shelves,
+                    loadingShelfId = state.loadingShelfId,
+                    onMovieClick = onMovieClick,
+                    onLibraryItemClick = onLibraryItemClick,
+                    onLoadMore = viewModel::loadMoreShelf,
+                    onBrowseHome = onBrowseHome,
+                    onBrowseStore = onBrowseStore,
+                    firstContentFocusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+            }
         }
     }
 }

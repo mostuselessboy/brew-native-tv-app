@@ -1,0 +1,10 @@
+EXECUTING: /opt/homebrew/share/android-commandlinetools/platform-tools/adb -H localhost -P 5037 -s emulator-5554 shell am instrument -w -r -e androidx.benchmark.suppressErrors EMULATOR -e androidx.benchmark.targetPackageName com.google.jetstream -e androidx.benchmark.enabledRules baselineprofile -e additionalTestOutputDir /sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output -e testTimeoutSeconds 31536000 com.google.jetstream.benchmark/androidx.test.runner.AndroidJUnitRunner
+CURRENT_WORKING_DIRECTORY: /Users/hamzarizvi/Desktop/native tv app
+START_TIME: 2026-08-01 12:27:27.964
+START_TIME-NANOS: 2026-08-01 12:27:27.964697000
+ENVIRONMENT:
+ANDROID_SDK_HOME=/opt/homebrew/share/android-commandlinetools
+ANDROID_ADB=/opt/homebrew/share/android-commandlinetools/platform-tools/adb
+*****************************************
+STDOUT/STDERR BELOW
+===================

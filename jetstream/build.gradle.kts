@@ -128,3 +128,9 @@ dependencies {
     // For baseline profile generation
     baselineProfile(project(":benchmark"))
 }
+
+composeCompiler {
+    stabilityConfigurationFile.set(rootProject.file("jetstream/stability_config.conf"))
+    reportsDestination.set(layout.buildDirectory.dir("compose_compiler"))
+    metricsDestination.set(layout.buildDirectory.dir("compose_compiler"))
+}

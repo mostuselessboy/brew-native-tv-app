@@ -92,11 +92,12 @@ fun ProfileScreen(
     val focusManager = LocalFocusManager.current
     var isLeftColumnFocused by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = childPadding.start, vertical = childPadding.top)
-    ) {
+    if (isTabVisible) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = childPadding.start, vertical = childPadding.top)
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth(fraction = sidebarWidthFraction)
@@ -238,6 +239,7 @@ fun ProfileScreen(
                 }
             }
         )
+    }
     }
 }
 
