@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -60,15 +61,33 @@ class HomeScreeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
+    private var lastSeenUserId: Int? = authSessionStore.currentUserId()
+    private val page = MutableStateFlow<String?>(null)
+    private val refreshToken = MutableStateFlow(0)
+
     init {
         viewModelScope.launch {
             playbackProgressNotifier.events.collect {
                 refreshContinueWatching()
             }
         }
+        viewModelScope.launch {
+            authSessionStore.currentUser.collect { user ->
+                val newUserId = user?.id
+                if (newUserId == lastSeenUserId) return@collect
+                lastSeenUserId = newUserId
+                // Home sections were only ever cached by page key, not by
+                // user, so a profile switch would keep serving the previous
+                // user's rows (Continue Watching, personalized recs, etc.)
+                // until process death. Force a real refetch here.
+                movieRepository.clearHomeCache()
+                refreshToken.value += 1
+                refreshContinueWatching()
+                refreshShowcaseAccess()
+            }
+        }
     }
 
-    private val page = MutableStateFlow<String?>(null)
     private val _continueWatchingState =
         MutableStateFlow<ContinueWatchingTrayState>(ContinueWatchingTrayState.Hidden)
     val continueWatchingState: StateFlow<ContinueWatchingTrayState> =
@@ -141,7 +160,7 @@ class HomeScreeViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<HomeScreenUiState> = page
+    val uiState: StateFlow<HomeScreenUiState> = combine(page, refreshToken) { pageKey, _ -> pageKey }
         .filterNotNull()
         .flatMapLatest { pageKey ->
             flow {

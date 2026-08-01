@@ -163,6 +163,11 @@ class MovieRepositoryImpl @Inject constructor(
     override fun peekHomeSections(page: String): List<HomeSection>? =
         cachedMappedSectionsByPage[page]
 
+    override fun clearHomeCache() {
+        cachedSectionsByPage.clear()
+        cachedMappedSectionsByPage.clear()
+    }
+
     override fun peekMovieFromCatalog(movieId: String): Movie? {
         val trimmed = movieId.trim()
         if (trimmed.isBlank()) return null

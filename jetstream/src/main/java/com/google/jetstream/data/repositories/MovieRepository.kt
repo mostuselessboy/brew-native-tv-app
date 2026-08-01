@@ -37,6 +37,8 @@ interface MovieRepository {
     suspend fun warmHomeCache()
     suspend fun prefetchHomePage(page: String)
     fun peekHomeSections(page: String): List<HomeSection>?
+    /** Clears cached, potentially per-user-personalized home sections. Call on account/profile switch. */
+    fun clearHomeCache()
     /** Best-effort lookup from warmed catalog caches (poster for detail skeleton, etc.). */
     fun peekMovieFromCatalog(movieId: String): Movie?
     suspend fun getMovieDetails(movieId: String): MovieDetails

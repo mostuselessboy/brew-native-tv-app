@@ -28,10 +28,20 @@ class MyLibraryViewModel @Inject constructor(
 
     private var cachedPage: MyLibraryPage? = null
 
+    private var lastSeenUserId: Int? = authSessionStore.currentUserId()
+
     init {
         refresh()
         viewModelScope.launch {
             playbackProgressNotifier.events.collect {
+                refresh()
+            }
+        }
+        viewModelScope.launch {
+            authSessionStore.currentUser.collect { user ->
+                val newUserId = user?.id
+                if (newUserId == lastSeenUserId) return@collect
+                lastSeenUserId = newUserId
                 refresh()
             }
         }

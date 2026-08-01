@@ -25,7 +25,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import android.view.KeyEvent
@@ -66,7 +68,8 @@ private val SettingsDialogGradient = Brush.verticalGradient(
 private val SettingsPillShape = RoundedCornerShape(20.dp)
 private val SettingsOptionShape = RoundedCornerShape(10.dp)
 
-@OptIn(UnstableApi::class)
+@androidx.annotation.OptIn(UnstableApi::class)
+@kotlin.OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun VideoPlayerSettingsOverlay(
     dialog: VideoPlayerSettingsDialog,
@@ -88,6 +91,13 @@ fun VideoPlayerSettingsOverlay(
         modifier = modifier
             .fillMaxSize()
             .focusRequester(overlayFocus)
+            .focusProperties {
+                // Block DPAD navigation from ever leaving the dialog's focus
+                // group — without this, reaching the top/bottom row and
+                // pressing Up/Down hands focus to the (still-composed, just
+                // visually hidden) player controls behind the dialog.
+                exit = { FocusRequester.Cancel }
+            }
             .focusable()
             .background(Color.Black.copy(alpha = 0.88f))
             .onPreviewKeyEvent { event ->
