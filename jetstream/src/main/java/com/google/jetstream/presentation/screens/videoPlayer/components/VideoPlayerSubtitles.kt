@@ -55,7 +55,7 @@ fun VideoPlayerSubtitles(
     if (cueText.isBlank()) return
 
     val bottomPadding by animateDpAsState(
-        targetValue = if (controlsVisible) 162.dp else 88.dp,
+        targetValue = if (controlsVisible) 162.dp else 48.dp,
         animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing),
         label = "subtitleBottomPadding",
     )

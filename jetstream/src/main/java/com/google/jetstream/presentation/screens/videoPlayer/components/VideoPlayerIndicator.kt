@@ -53,7 +53,7 @@ private val BrewAccentYellow = Color(0xFFFFC15E)
 
 private val ThumbSizeSeeking = 18.dp
 private val ThumbSizeFocused = 14.dp
-private val ThumbSizeDefault = 2.dp
+private val ThumbSizeDefault = 1.dp
 private val TrackHeightSeeking = 8.dp
 private val TrackHeightFocused = 5.dp
 private val TrackHeightDefault = 3.dp
@@ -124,7 +124,7 @@ fun VideoPlayerProgressBar(
                 videoId = videoId,
                 cdnZone = cdnZone,
                 maxPreviewWidthPx = if (isSeeking) 300 else SeekSpritePreview.DEFAULT_PREVIEW_WIDTH_PX,
-                maxPreviewHeightPx = if (isSeeking) 188 else SeekSpritePreview.DEFAULT_PREVIEW_HEIGHT_PX,
+                maxPreviewHeightPx = if (isSeeking) 220 else SeekSpritePreview.DEFAULT_PREVIEW_HEIGHT_PX,
             )
         }
     }

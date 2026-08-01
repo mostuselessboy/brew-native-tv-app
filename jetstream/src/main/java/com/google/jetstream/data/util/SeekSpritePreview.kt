@@ -2,7 +2,7 @@ package com.google.jetstream.data.util
 
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.round
 
 /** Bunny seek sprite sheets — mirrors tv-app `calculateSpriteInfo` / mobile `seekSpritePrefetch`. */
@@ -17,7 +17,7 @@ object SeekSpritePreview {
     const val CDN_SPRITE_HEIGHT = 270
 
     const val DEFAULT_PREVIEW_WIDTH_PX = 280
-    const val DEFAULT_PREVIEW_HEIGHT_PX = 176
+    const val DEFAULT_PREVIEW_HEIGHT_PX = 200
 
     fun normalizeVideoId(raw: String?): String =
         raw.orEmpty().trim().removePrefix("/")
@@ -88,10 +88,17 @@ object SeekSpritePreview {
 
         val frameW = spriteWidth.toFloat() / SPRITE_COLUMNS
         val frameH = spriteHeight.toFloat() / SPRITE_ROWS
+        val frameAspectRatio = frameW / frameH
 
-        val targetW = maxPreviewWidthPx.toFloat()
-        val targetH = maxPreviewHeightPx.toFloat()
-        val scale = max(targetW / frameW, targetH / frameH)
+        // Match mobile-viewer `buildSpritePreviewInfo`: fit one frame inside max bounds (contain).
+        var fitW = maxPreviewWidthPx.toFloat()
+        var fitH = fitW / frameAspectRatio
+        if (fitH > maxPreviewHeightPx) {
+            fitH = maxPreviewHeightPx.toFloat()
+            fitW = fitH * frameAspectRatio
+        }
+
+        val scale = min(fitW / frameW, fitH / frameH)
 
         val offsetX = round(-(col * frameW) * scale)
         val offsetY = round(-(row * frameH) * scale)
@@ -103,8 +110,8 @@ object SeekSpritePreview {
             offsetY = offsetY,
             sheetWidth = spriteWidth.toFloat(),
             sheetHeight = spriteHeight.toFloat(),
-            previewWidth = targetW,
-            previewHeight = targetH,
+            previewWidth = round(frameW * scale),
+            previewHeight = round(frameH * scale),
             scale = scale,
         )
     }

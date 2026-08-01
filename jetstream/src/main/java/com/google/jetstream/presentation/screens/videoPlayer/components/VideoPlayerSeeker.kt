@@ -228,14 +228,14 @@ fun VideoPlayerPlayPauseIcon(
     val iconTint = when {
         !controlsChromeVisible -> Color.Black
         highlighted -> Color.Black
-        else -> Color.White
+        else -> Color.White.copy(alpha = 0.92f)
     }
 
     if (controlsChromeVisible) {
         val backgroundColor = if (highlighted) {
             Color.White
         } else {
-            Color.White.copy(alpha = 0.05f)
+            Color.White.copy(alpha = 0.18f)
         }
         Box(
             modifier = modifier
