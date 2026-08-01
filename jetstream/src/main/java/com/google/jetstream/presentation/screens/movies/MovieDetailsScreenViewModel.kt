@@ -57,12 +57,34 @@ class MovieDetailsScreenViewModel @Inject constructor(
     )
     val uiState: StateFlow<MovieDetailsScreenUiState> = _uiState.asStateFlow()
 
+    private val _selectedCastMemberDetails = MutableStateFlow<com.google.jetstream.data.remote.BrewCastMemberDetailDto?>(null)
+    val selectedCastMemberDetails: StateFlow<com.google.jetstream.data.remote.BrewCastMemberDetailDto?> = _selectedCastMemberDetails.asStateFlow()
+
+    private val _castLoading = MutableStateFlow(false)
+    val castLoading: StateFlow<Boolean> = _castLoading.asStateFlow()
+
+    fun loadCastMemberDetails(castMemberId: String) {
+        viewModelScope.launch {
+            _castLoading.value = true
+            _selectedCastMemberDetails.value = repository.getCastMember(castMemberId)
+            _castLoading.value = false
+        }
+    }
+
+    fun dismissCastDialog() {
+        _selectedCastMemberDetails.value = null
+    }
+
     private val movieIdFlow = savedStateHandle
         .getStateFlow<String?>(MovieDetailsScreen.MovieIdBundleKey, null)
 
     init {
         viewModelScope.launch {
-            movieIdFlow.collect { rawId -> loadMovie(rawId) }
+            kotlinx.coroutines.flow.combine(movieIdFlow, authSessionStore.currentUser) { rawId, _ ->
+                rawId
+            }.collect { rawId ->
+                loadMovie(rawId)
+            }
         }
     }
 

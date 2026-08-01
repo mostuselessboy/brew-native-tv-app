@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,6 +37,7 @@ enum class Screens(
     val isTabItem: Boolean = false,
     val tabIcon: ImageVector? = null,
 ) {
+    Account(tabIcon = Icons.Outlined.Person),
     Profile(tabIcon = Icons.Outlined.Settings),
     Search(isTabItem = true, tabIcon = Icons.Outlined.Search),
     Home(isTabItem = true, tabIcon = Icons.Outlined.GridView),

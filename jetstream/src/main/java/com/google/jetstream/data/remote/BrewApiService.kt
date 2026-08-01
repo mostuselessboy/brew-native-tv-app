@@ -67,4 +67,12 @@ interface BrewApiService {
         @Query("limit") limit: Int = 5,
         @Query("country") country: String = BrewPages.DEFAULT_COUNTRY,
     ): BrewCommentsResponse
+
+    /** Cast member details endpoint. */
+    @GET("api/v1/vod/cast-member/{id}")
+    suspend fun getCastMember(
+        @Path("id") id: String,
+        @Query("lang") lang: String = "en",
+    ): BrewCastMemberProfileResponse
 }
+

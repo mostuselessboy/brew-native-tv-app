@@ -2,6 +2,7 @@ package com.google.jetstream.presentation.screens.home
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -34,7 +35,7 @@ fun HomeScreen(
     lastFocusedSectionId: String? = null,
     lastFocusedMovieId: String? = null,
 ) {
-    SideEffect { homeScreeViewModel.setPage(page) }
+    LaunchedEffect(page) { homeScreeViewModel.setPage(page) }
 
     val uiState by homeScreeViewModel.uiState.collectAsStateWithLifecycle(
         initialValue = homeScreeViewModel.peekInitialState(page),

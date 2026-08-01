@@ -483,3 +483,45 @@ data class BrewTrailerDto(
     val thumbnail: String? = null,
     val duration: Int? = null,
 )
+
+@Serializable
+data class BrewCastMemberProfileResponse(
+    val success: Boolean = false,
+    val data: BrewCastMemberDetailDto? = null,
+)
+
+@Serializable
+data class BrewCastMemberMovieDto(
+    val id: String? = null,
+    val title: String? = null,
+    val slug: String? = null,
+    @SerialName("poster") val poster: String? = null,
+    @SerialName("poster_path") val posterPath: String? = null,
+    @SerialName("poster_uri") val posterUri: String? = null,
+    @SerialName("project_poster") val projectPoster: String? = null,
+    @SerialName("thumbnail") val thumbnail: String? = null,
+    @SerialName("backdrop") val backdrop: String? = null,
+    @SerialName("release_date") val releaseDate: String? = null,
+    @SerialName("release_year") val releaseYear: Int? = null,
+    val year: String? = null,
+    val character: String? = null,
+    val role: String? = null,
+)
+
+@Serializable
+data class BrewCastMemberDetailDto(
+    val id: Int,
+    @SerialName("full_name") val fullName: String? = null,
+    val dob: String? = null,
+    @SerialName("place_of_birth") val placeOfBirth: String? = null,
+    val gender: String? = null,
+    val bio: String? = null,
+    @SerialName("profile_image_url") val profileImageUrl: String? = null,
+    @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("known_for") val knownFor: String? = null,
+    @SerialName("total_productions") val totalProductions: Int? = null,
+    @SerialName("top_work") val topWork: List<BrewCastMemberMovieDto>? = null,
+    @SerialName("upcoming_work") val upcomingWork: List<BrewCastMemberMovieDto>? = null,
+)
+

@@ -207,15 +207,8 @@ fun ProfileScreen(
                     false
                 },
             navController = profileNavController,
-            startDestination = ProfileScreens.Accounts(),
+            startDestination = ProfileScreens.About(),
             builder = {
-                composable(ProfileScreens.Accounts()) {
-                    AccountsSection(
-                        onSignInPhone = openSignInPhone,
-                        onSignInEmail = openSignInEmail,
-                        panelFocusRequester = panelFocusRequester,
-                    )
-                }
                 composable(ProfileScreens.About()) {
                     AboutSection()
                 }

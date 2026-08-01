@@ -408,4 +408,9 @@ class MovieRepositoryImpl @Inject constructor(
         return section.toCollectionSectionDetails()
             ?: throw IllegalStateException("Collection section empty: $sectionId")
     }
+
+    override suspend fun getCastMember(id: String): com.google.jetstream.data.remote.BrewCastMemberDetailDto? {
+        return runCatching { brewApiService.getCastMember(id).data }.getOrNull()
+    }
 }
+

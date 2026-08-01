@@ -273,7 +273,12 @@ object BrewMappers {
                 ?: member.profileImageUrl?.takeIf { it.isNotBlank() }
                 ?: ""
             MovieCast(
-                id = member.id?.toString() ?: member.slug.orEmpty().ifBlank { displayName },
+                id = member.id?.let { mid ->
+                    val slug = member.slug.orEmpty()
+                    if (slug.startsWith("$mid-")) slug
+                    else if (slug.isNotBlank()) "$mid-$slug"
+                    else mid.toString()
+                } ?: member.slug.orEmpty().ifBlank { displayName },
                 characterName = member.characters.firstOrNull()
                     ?: member.job.firstOrNull()?.replace('_', ' ')?.replaceFirstChar { it.uppercase() }
                     ?: "",

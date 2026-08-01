@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -141,7 +142,8 @@ fun DashboardNavigationDrawer(
                     Screens.Store() -> "Store"
                     Screens.Search() -> "Search"
                     Screens.Favourites() -> "My Library"
-                    Screens.Profile() -> "Profile"
+                    Screens.Profile() -> "Settings"
+                    Screens.Account() -> "Account"
                     else -> "Brew"
                 }
                 Text(
@@ -184,10 +186,28 @@ fun DashboardNavigationDrawer(
             }
 
             BrewRailItem(
-                screen = Screens.Profile,
-                label = "Profile",
-                selected = selectedRoute == Screens.Profile(),
+                screen = Screens.Account,
+                label = "Account",
+                selected = selectedRoute == Screens.Account(),
                 iconRes = R.drawable.ic_lucide_profile,
+                onClick = { onNavigateTo(Screens.Account) },
+                onRailFocus = onRailFocus,
+                onRailBlur = onRailBlur,
+                contentFocusRequester = contentFocusRequester,
+                sidebarFocusRequester = if (selectedRoute == Screens.Account()) {
+                    sidebarFocusRequester
+                } else {
+                    null
+                },
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            BrewRailItem(
+                screen = Screens.Profile,
+                label = "Settings",
+                selected = selectedRoute == Screens.Profile(),
+                iconRes = R.drawable.ic_brew_settings,
                 onClick = { onNavigateTo(Screens.Profile) },
                 onRailFocus = onRailFocus,
                 onRailBlur = onRailBlur,

@@ -63,6 +63,7 @@ private val CastCardWidth = 104.dp
 @Composable
 fun CastAndCrewList(
     castAndCrew: List<MovieCast>,
+    onCastMemberClick: (MovieCast) -> Unit,
     firstItemFocusRequester: FocusRequester? = null,
 ) {
     if (castAndCrew.isEmpty()) return
@@ -86,6 +87,7 @@ fun CastAndCrewList(
             items(members, key = { it.id }) { member ->
                 CastAndCrewItem(
                     castMember = member,
+                    onCastMemberClick = onCastMemberClick,
                 )
             }
         }
@@ -96,6 +98,7 @@ fun CastAndCrewList(
 @Composable
 private fun CastAndCrewItem(
     castMember: MovieCast,
+    onCastMemberClick: (MovieCast) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -121,7 +124,7 @@ private fun CastAndCrewItem(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Surface(
-            onClick = {},
+            onClick = { onCastMemberClick(castMember) },
             shape = ClickableSurfaceDefaults.shape(CircleShape),
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
             border = ClickableSurfaceDefaults.border(

@@ -37,6 +37,7 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.data.entities.Movie
+import com.google.jetstream.data.entities.MovieCast
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.presentation.common.BrewQrPopup
@@ -58,6 +59,10 @@ fun MovieDetailsScreen(
     val uiState by movieDetailsScreenViewModel.uiState.collectAsStateWithLifecycle()
     val bookmarkState by movieDetailsScreenViewModel.bookmarkState.collectAsStateWithLifecycle()
     val qrPopup by movieDetailsScreenViewModel.qrPopup.collectAsStateWithLifecycle()
+    val selectedCastMemberDetails by movieDetailsScreenViewModel.selectedCastMemberDetails.collectAsStateWithLifecycle()
+    val castLoading by movieDetailsScreenViewModel.castLoading.collectAsStateWithLifecycle()
+
+    var selectedCastMember by remember { mutableStateOf<MovieCast?>(null) }
 
     LaunchedEffect(movieDetailsScreenViewModel) {
         movieDetailsScreenViewModel.navigateToPlayer.collect { movieId ->
@@ -104,8 +109,20 @@ fun MovieDetailsScreen(
             val onCriticReviewClick = remember(movieDetailsScreenViewModel) {
                 movieDetailsScreenViewModel::onCriticReviewClick
             }
-            BackHandler(enabled = qrPopup != null) {
-                movieDetailsScreenViewModel.dismissQrPopup()
+            val onCastMemberClick = remember(movieDetailsScreenViewModel) {
+                { castMember: MovieCast ->
+                    selectedCastMember = castMember
+                    movieDetailsScreenViewModel.loadCastMemberDetails(castMember.id)
+                }
+            }
+
+            BackHandler(enabled = qrPopup != null || selectedCastMember != null) {
+                if (qrPopup != null) {
+                    movieDetailsScreenViewModel.dismissQrPopup()
+                } else {
+                    selectedCastMember = null
+                    movieDetailsScreenViewModel.dismissCastDialog()
+                }
             }
             Details(
                 movieDetails = s.movieDetails,
@@ -114,6 +131,7 @@ fun MovieDetailsScreen(
                 onTrailerClick = onTrailerClick,
                 onShareClick = onShareClick,
                 onCriticReviewClick = onCriticReviewClick,
+                onCastMemberClick = onCastMemberClick,
                 onBackPressed = onBackPressed,
                 refreshScreenWithNewMovie = refreshScreenWithNewMovie,
                 isBookmarked = isBookmarked,
@@ -126,6 +144,19 @@ fun MovieDetailsScreen(
                 onDismissRequest = movieDetailsScreenViewModel::dismissQrPopup,
                 onDone = movieDetailsScreenViewModel::onQrPopupDone,
             )
+            selectedCastMember?.let { castMember ->
+                MovieDetailCastDialog(
+                    castMember = castMember,
+                    castDetails = selectedCastMemberDetails,
+                    isLoading = castLoading,
+                    currentMovieName = s.movieDetails.name,
+                    currentMovieReleaseDateOrYear = s.movieDetails.releaseYear.takeIf { it.isNotBlank() } ?: s.movieDetails.releaseDate,
+                    onDismissRequest = {
+                        selectedCastMember = null
+                        movieDetailsScreenViewModel.dismissCastDialog()
+                    }
+                )
+            }
         }
     }
 }
@@ -138,6 +169,7 @@ private fun Details(
     onTrailerClick: () -> Unit,
     onShareClick: () -> Unit = {},
     onCriticReviewClick: (String) -> Unit = {},
+    onCastMemberClick: (MovieCast) -> Unit = {},
     onBackPressed: () -> Unit,
     refreshScreenWithNewMovie: (Movie) -> Unit,
     isBookmarked: Boolean = false,
@@ -317,6 +349,7 @@ private fun Details(
                 item(key = "cast") {
                     CastAndCrewList(
                         castAndCrew = movieDetails.castAndCrew,
+                        onCastMemberClick = onCastMemberClick,
                     )
                 }
             }

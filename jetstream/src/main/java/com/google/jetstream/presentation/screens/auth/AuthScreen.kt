@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,10 +26,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -42,31 +46,25 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.R
+import com.google.jetstream.data.auth.QrCodeGenerator
+import com.google.jetstream.data.auth.AuthCountries
 import com.google.jetstream.data.auth.AuthSignInMethod
 import com.google.jetstream.data.auth.AuthSignInStep
-import com.google.jetstream.data.auth.AuthValidation
-import com.google.jetstream.data.auth.QrCodeGenerator
 import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.common.Loading
 import com.google.jetstream.presentation.theme.BrewTitle
+import kotlinx.coroutines.delay
 
+private val AccentYellow = Color(0xFFFFC15E)
 private const val WatchHiddenGemsUrl =
     "https://createstir.b-cdn.net/stir-static/watch-hidden-gems.png"
 
-private val SeparatorGray = Color(0xFF5C5C5C)
-private val AccentYellow = Color(0xFFFFC15E)
-
-object AuthScreenRoute {
-    const val MethodBundleKey = "authMethod"
-}
-
-/** Landscape onboarding-style sign in — QR primary, phone/email alternate. */
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun AuthScreen(
     onSignedIn: () -> Unit,
@@ -74,15 +72,50 @@ fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val inputFormFocusRequester = remember { FocusRequester() }
+    val otpFormFocusRequester = remember { FocusRequester() }
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
 
-    BackHandler(onBack = onBackPressed)
+    BackHandler(onBack = {
+        when {
+            uiState.method != AuthSignInMethod.Qr && uiState.step == AuthSignInStep.Otp -> {
+                viewModel.resetOtpStep()
+            }
+            uiState.method != AuthSignInMethod.Qr && uiState.step == AuthSignInStep.Input -> {
+                viewModel.selectMethod(AuthSignInMethod.Qr)
+            }
+            else -> {
+                onBackPressed()
+            }
+        }
+    })
 
     LaunchedEffect(uiState.isSignedIn) {
         if (uiState.isSignedIn) onSignedIn()
     }
 
+    LaunchedEffect(uiState.method, uiState.step) {
+        if (uiState.method != AuthSignInMethod.Qr) {
+            delay(200)
+            if (uiState.step == AuthSignInStep.Input) {
+                runCatching { inputFormFocusRequester.requestFocus() }
+            } else {
+                keyboardController?.hide()
+                runCatching { otpFormFocusRequester.requestFocus() }
+            }
+        }
+    }
+
     if (uiState.isLoggingIn) {
-        Loading(modifier = Modifier.fillMaxSize())
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Loading(modifier = Modifier.size(50.dp))
+        }
         return
     }
 
@@ -90,171 +123,386 @@ fun AuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF3D2410),
-                            Color(0xFF120A04),
-                            Color.Black,
-                        ),
-                        radius = 1400f,
-                    ),
-                ),
-        )
-
-        BrewAuthBrandRow(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 48.dp, top = 36.dp),
-        )
-
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 56.dp, vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .width(680.dp)
+                .wrapContentHeight()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF1E1E1E),
+                            Color(0xFF121212),
+                            Color(0xFF0A0A0A),
+                        ),
+                    ),
+                    RoundedCornerShape(20.dp)
+                )
+                .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(20.dp))
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(72.dp))
-
-            Text(
-                text = "Get Started",
-                color = Color.White,
-                fontFamily = BrewTitle,
-                fontWeight = FontWeight.Bold,
-                fontSize = 52.sp,
-                letterSpacing = (-1.2).sp,
-            )
-
-            Text(
-                text = "Cinema for intelligent folks.",
-                color = Color.White.copy(alpha = 0.65f),
-                fontFamily = BrewTitle,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(top = 6.dp, bottom = 36.dp),
-            )
-
-            when {
-                uiState.step == AuthSignInStep.Otp -> PhoneEmailOnboardingContent(
-                    method = uiState.otpIssueChannel ?: uiState.method,
-                    step = uiState.step,
-                    phoneDigits = uiState.phoneDigits,
-                    email = uiState.email,
-                    countryLabel = "+${uiState.selectedCountry.dialCode} ${uiState.selectedCountry.name}",
-                    otp = uiState.otp,
-                    otpDisplay = uiState.otpSentDisplay,
-                    otpIssueChannel = uiState.otpIssueChannel,
-                    isLoading = uiState.isLoading,
-                    resendCountdown = uiState.resendCountdown,
-                    resendAttempts = uiState.resendAttempts,
-                    onPhoneChange = viewModel::updatePhoneDigits,
-                    onEmailChange = viewModel::updateEmail,
-                    onOtpChange = viewModel::updateOtp,
-                    onContinue = viewModel::sendOtp,
-                    onResend = viewModel::resendOtp,
-                    onBackToInput = { viewModel.resetOtpStep() },
-                    onCycleCountry = viewModel::cycleCountry,
-                    onSwitchMode = viewModel::switchInputMode,
-                )
-                uiState.method == AuthSignInMethod.Email -> PhoneEmailOnboardingContent(
-                    method = uiState.method,
-                    step = uiState.step,
-                    phoneDigits = uiState.phoneDigits,
-                    email = uiState.email,
-                    countryLabel = "+${uiState.selectedCountry.dialCode} ${uiState.selectedCountry.name}",
-                    otp = uiState.otp,
-                    otpDisplay = uiState.otpSentDisplay,
-                    otpIssueChannel = uiState.otpIssueChannel,
-                    isLoading = uiState.isLoading,
-                    resendCountdown = uiState.resendCountdown,
-                    resendAttempts = uiState.resendAttempts,
-                    onPhoneChange = viewModel::updatePhoneDigits,
-                    onEmailChange = viewModel::updateEmail,
-                    onOtpChange = viewModel::updateOtp,
-                    onContinue = viewModel::sendOtp,
-                    onResend = viewModel::resendOtp,
-                    onBackToInput = { viewModel.resetOtpStep() },
-                    onCycleCountry = viewModel::cycleCountry,
-                    onSwitchMode = viewModel::switchInputMode,
-                )
-                uiState.method == AuthSignInMethod.Phone -> PhoneEmailOnboardingContent(
-                    method = uiState.method,
-                    step = uiState.step,
-                    phoneDigits = uiState.phoneDigits,
-                    email = uiState.email,
-                    countryLabel = "+${uiState.selectedCountry.dialCode} ${uiState.selectedCountry.name}",
-                    otp = uiState.otp,
-                    otpDisplay = uiState.otpSentDisplay,
-                    otpIssueChannel = uiState.otpIssueChannel,
-                    isLoading = uiState.isLoading,
-                    resendCountdown = uiState.resendCountdown,
-                    resendAttempts = uiState.resendAttempts,
-                    onPhoneChange = viewModel::updatePhoneDigits,
-                    onEmailChange = viewModel::updateEmail,
-                    onOtpChange = viewModel::updateOtp,
-                    onContinue = viewModel::sendOtp,
-                    onResend = viewModel::resendOtp,
-                    onBackToInput = { viewModel.resetOtpStep() },
-                    onCycleCountry = viewModel::cycleCountry,
-                    onSwitchMode = viewModel::switchInputMode,
-                )
-                else -> QrOnboardingContent(
-                    qrUrl = uiState.qrUrl,
-                    qrCode = uiState.qrCode,
-                    qrExpired = uiState.qrExpired,
-                    isLoading = uiState.isLoading,
-                    onRefreshQr = viewModel::generateQrCode,
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            if (uiState.method != AuthSignInMethod.Qr) {
-                AuthAlternateMethodsRow(
-                    onQr = { viewModel.selectMethod(AuthSignInMethod.Qr) },
-                    onPhone = {
-                        if (uiState.method != AuthSignInMethod.Phone) {
-                            viewModel.selectMethod(AuthSignInMethod.Phone)
+            when (uiState.method) {
+                AuthSignInMethod.Qr -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(32.dp)
+                    ) {
+                        // Left Column: QR Code steps
+                        Column(
+                            modifier = Modifier.weight(1.3f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            QrOnboardingContent(
+                                qrUrl = uiState.qrUrl,
+                                qrCode = uiState.qrCode,
+                                qrExpired = uiState.qrExpired,
+                                isLoading = uiState.isLoading,
+                                onRefreshQr = viewModel::generateQrCode,
+                            )
                         }
-                    },
-                    onEmail = {
-                        if (uiState.method != AuthSignInMethod.Email) {
-                            viewModel.selectMethod(AuthSignInMethod.Email)
-                        }
-                    },
-                    highlight = uiState.method,
-                    showQr = true,
-                )
-            }
 
-            uiState.errorMessage?.let { error ->
-                Text(
-                    text = error,
-                    color = Color(0xFFFF6B6B),
-                    fontFamily = BrewTitle,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .fillMaxWidth(0.7f),
-                )
+                        // Vertical Divider
+                        Box(
+                            modifier = Modifier
+                                .height(240.dp)
+                                .width(1.dp)
+                                .background(Color.White.copy(alpha = 0.1f))
+                        )
+
+                        // Right Column: Sign in header & buttons
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            BrewAuthBrandRow()
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Sign in to Brew",
+                                color = Color.White,
+                                fontFamily = BrewTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 26.sp,
+                                letterSpacing = (-0.8).sp,
+                            )
+
+                            Text(
+                                text = "Cinema for intelligent folks.",
+                                color = Color.White.copy(alpha = 0.65f),
+                                fontFamily = BrewTitle,
+                                fontSize = 12.sp,
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Or sign in using:",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontFamily = BrewTitle,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.5.sp
+                            )
+
+                            AuthPrimaryButton(
+                                label = "Sign in with Email",
+                                onClick = { viewModel.selectMethod(AuthSignInMethod.Email) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            AuthSecondaryButton(
+                                label = "Sign in with Phone",
+                                onClick = { viewModel.selectMethod(AuthSignInMethod.Phone) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            uiState.errorMessage?.let { error ->
+                                Text(
+                                    text = error,
+                                    color = Color(0xFFFF6B6B),
+                                    fontFamily = BrewTitle,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+                AuthSignInMethod.Email, AuthSignInMethod.Phone -> {
+                    val isEmail = uiState.method == AuthSignInMethod.Email
+                    if (uiState.step == AuthSignInStep.Input) {
+                        // Input Step
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            BrewAuthBrandRow()
+
+                            Text(
+                                text = if (isEmail) "Enter Email Address" else "Enter Phone Number",
+                                color = Color.White,
+                                fontFamily = BrewTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                            )
+
+                            Text(
+                                text = "We will send a one-time verification code to your device.",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontFamily = BrewTitle,
+                                fontSize = 13.sp,
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            if (isEmail) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    BasicTextField(
+                                        value = uiState.email,
+                                        onValueChange = { viewModel.updateEmail(it) },
+                                        textStyle = androidx.compose.ui.text.TextStyle(
+                                            color = Color.White,
+                                            fontFamily = BrewTitle,
+                                            fontSize = 15.sp
+                                        ),
+                                        cursorBrush = SolidColor(AccentYellow),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                        decorationBox = { innerTextField ->
+                                            Box(modifier = Modifier.fillMaxWidth()) {
+                                                if (uiState.email.isEmpty()) {
+                                                    Text(
+                                                        text = "yourname@domain.com",
+                                                        color = Color.White.copy(alpha = 0.35f),
+                                                        fontFamily = BrewTitle,
+                                                        fontSize = 15.sp
+                                                    )
+                                                }
+                                                innerTextField()
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().focusRequester(inputFormFocusRequester)
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Country Selector
+                                    Surface(
+                                        onClick = { viewModel.cycleCountry() },
+                                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                        colors = ClickableSurfaceDefaults.colors(
+                                            containerColor = Color.White.copy(alpha = 0.1f),
+                                            focusedContainerColor = Color.White.copy(alpha = 0.22f),
+                                            contentColor = Color.White,
+                                            focusedContentColor = Color.White,
+                                        ),
+                                        modifier = Modifier.height(48.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(horizontal = 12.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "+${uiState.selectedCountry.dialCode} (${uiState.selectedCountry.code})",
+                                                fontFamily = BrewTitle,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            )
+                                        }
+                                    }
+
+                                    // Phone Field
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp)
+                                            .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 14.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        BasicTextField(
+                                            value = uiState.phoneDigits,
+                                            onValueChange = { viewModel.updatePhoneDigits(it) },
+                                            textStyle = androidx.compose.ui.text.TextStyle(
+                                                color = Color.White,
+                                                fontFamily = BrewTitle,
+                                                fontSize = 15.sp
+                                            ),
+                                            cursorBrush = SolidColor(AccentYellow),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            decorationBox = { innerTextField ->
+                                                Box(modifier = Modifier.fillMaxWidth()) {
+                                                    if (uiState.phoneDigits.isEmpty()) {
+                                                        Text(
+                                                            text = "0000000000",
+                                                            color = Color.White.copy(alpha = 0.35f),
+                                                            fontFamily = BrewTitle,
+                                                            fontSize = 15.sp
+                                                        )
+                                                    }
+                                                    innerTextField()
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().focusRequester(inputFormFocusRequester)
+                                        )
+                                    }
+                                }
+                            }
+
+                            uiState.errorMessage?.let { error ->
+                                Text(
+                                    text = error,
+                                    color = Color(0xFFFF6B6B),
+                                    fontFamily = BrewTitle,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                AuthPrimaryButton(
+                                    label = "Send Code",
+                                    onClick = { viewModel.sendOtp() },
+                                    enabled = if (isEmail) uiState.email.isNotBlank() else uiState.phoneDigits.isNotBlank()
+                                )
+
+                                AuthSecondaryButton(
+                                    label = "Back to QR",
+                                    onClick = { viewModel.selectMethod(AuthSignInMethod.Qr) }
+                                )
+                            }
+                        }
+                    } else {
+                        // OTP Step
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            BrewAuthBrandRow()
+
+                            Text(
+                                text = "Enter Verification Code",
+                                color = Color.White,
+                                fontFamily = BrewTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                            )
+
+                            Text(
+                                text = "Sent to ${uiState.otpSentDisplay ?: "your device"}",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontFamily = BrewTitle,
+                                fontSize = 13.sp,
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            val otpLength = if (uiState.otpIssueChannel == AuthSignInMethod.Email) 6 else 4
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    for (i in 0 until otpLength) {
+                                        val char = uiState.otp.getOrNull(i)?.toString() ?: ""
+                                        Box(
+                                            modifier = Modifier
+                                                .size(width = 40.dp, height = 50.dp)
+                                                .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                                                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = char,
+                                                color = Color.White,
+                                                fontFamily = BrewTitle,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 22.sp,
+                                            )
+                                        }
+                                    }
+                                }
+
+                                BasicTextField(
+                                    value = uiState.otp,
+                                    onValueChange = { viewModel.updateOtp(it) },
+                                    textStyle = androidx.compose.ui.text.TextStyle(color = Color.Transparent),
+                                    cursorBrush = SolidColor(Color.Transparent),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier
+                                        .size(width = (48 * otpLength).dp, height = 50.dp)
+                                        .focusRequester(otpFormFocusRequester)
+                                )
+                            }
+
+                            uiState.errorMessage?.let { error ->
+                                Text(
+                                    text = error,
+                                    color = Color(0xFFFF6B6B),
+                                    fontFamily = BrewTitle,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (uiState.resendCountdown > 0) {
+                                    Text(
+                                        text = "Resend in ${uiState.resendCountdown}s",
+                                        color = Color.White.copy(alpha = 0.4f),
+                                        fontFamily = BrewTitle,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.align(Alignment.CenterVertically)
+                                    )
+                                } else {
+                                    AuthSecondaryButton(
+                                        label = "Resend Code",
+                                        onClick = { viewModel.resendOtp() }
+                                    )
+                                }
+
+                                AuthSecondaryButton(
+                                    label = "Back to Input",
+                                    onClick = { viewModel.resetOtpStep() }
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {}
             }
         }
-
-        Text(
-            text = "Need help signing in?\nContact support@brew.tv",
-            color = Color.White.copy(alpha = 0.45f),
-            fontFamily = BrewTitle,
-            fontSize = 13.sp,
-            textAlign = TextAlign.End,
-            lineHeight = 18.sp,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(40.dp),
-        )
     }
 }
 
@@ -264,120 +512,33 @@ private fun BrewAuthBrandRow(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Image(
             painter = painterResource(R.drawable.brew_logo),
             contentDescription = "Brew",
             modifier = Modifier
-                .height(36.dp)
-                .width(56.dp),
+                .height(28.dp)
+                .width(42.dp),
             contentScale = ContentScale.Fit,
         )
         Box(
             modifier = Modifier
                 .width(1.dp)
-                .height(40.dp)
-                .background(SeparatorGray),
+                .height(24.dp)
+                .background(Color.White.copy(alpha = 0.3f)),
         )
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(BrewImageUrl.forWatchHiddenGems(WatchHiddenGemsUrl))
-                .size(
-                    BrewImageUrl.WATCH_HIDDEN_GEMS_WIDTH,
-                    BrewImageUrl.WATCH_HIDDEN_GEMS_HEIGHT,
-                )
+                .data(WatchHiddenGemsUrl)
                 .crossfade(false)
                 .build(),
             contentDescription = "Watch hidden gems",
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .height(44.dp)
-                .width(88.dp),
+                .height(32.dp)
+                .width(72.dp),
         )
-    }
-}
-
-@Composable
-private fun QrAndPhoneOnboardingContent(
-    qrUrl: String?,
-    qrCode: String?,
-    qrExpired: Boolean,
-    isLoading: Boolean,
-    phoneDigits: String,
-    countryLabel: String,
-    onRefreshQr: () -> Unit,
-    onPhoneChange: (String) -> Unit,
-    onCycleCountry: () -> Unit,
-    onContinuePhone: () -> Unit,
-) {
-    val phoneFocus = remember { FocusRequester() }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(48.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.Top,
-    ) {
-        QrOnboardingContent(
-            qrUrl = qrUrl,
-            qrCode = qrCode,
-            qrExpired = qrExpired,
-            isLoading = isLoading,
-            onRefreshQr = onRefreshQr,
-            modifier = Modifier.width(720.dp),
-        )
-
-        Box(
-            modifier = Modifier
-                .width(1.dp)
-                .height(280.dp)
-                .background(SeparatorGray.copy(alpha = 0.6f)),
-        )
-
-        Column(
-            modifier = Modifier
-                .width(380.dp)
-                .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-                .padding(horizontal = 28.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.Start,
-        ) {
-            Text(
-                text = "Sign in with phone",
-                color = Color.White,
-                fontFamily = BrewTitle,
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-            )
-            Text(
-                text = "We'll text you a 4-digit code",
-                color = Color.White.copy(alpha = 0.6f),
-                fontFamily = BrewTitle,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(top = 6.dp, bottom = 18.dp),
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                AuthSecondaryButton(label = countryLabel, onClick = onCycleCountry)
-                AuthTextField(
-                    value = phoneDigits,
-                    onValueChange = onPhoneChange,
-                    placeholder = "Phone number",
-                    keyboardType = KeyboardType.Phone,
-                    modifier = Modifier
-                        .width(200.dp)
-                        .focusRequester(phoneFocus),
-                )
-            }
-            AuthPrimaryButton(
-                label = if (isLoading) "Sending…" else "Continue",
-                onClick = onContinuePhone,
-                enabled = !isLoading,
-                modifier = Modifier.padding(top = 16.dp),
-            )
-        }
     }
 }
 
@@ -390,85 +551,87 @@ private fun QrOnboardingContent(
     onRefreshQr: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(64.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.Top,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Column(
-            modifier = Modifier.width(360.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.Start,
         ) {
             OnboardingStepHeader(
                 step = 1,
-                text = "Use your phone or tablet's camera and point to this code, or go to brew.tv/tv2",
+                text = "Point your camera to this code, or go to brew.tv/tv2",
             )
-            Box(
+            Row(
                 modifier = Modifier
-                    .padding(top = 20.dp)
-                    .background(Color.White, RoundedCornerShape(20.dp))
-                    .padding(14.dp)
-                    .align(Alignment.CenterHorizontally),
-                contentAlignment = Alignment.Center,
+                    .padding(top = 10.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                when {
-                    isLoading && qrUrl == null -> Loading(modifier = Modifier.size(200.dp))
-                    qrExpired -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "QR expired",
-                                color = Color.Black.copy(alpha = 0.7f),
-                                fontFamily = BrewTitle,
-                                fontSize = 16.sp,
-                            )
-                            AuthPrimaryButton(
-                                label = "Refresh QR",
-                                onClick = onRefreshQr,
-                                modifier = Modifier.padding(top = 12.dp),
+                Box(
+                    modifier = Modifier
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    when {
+                        isLoading && qrUrl == null -> Loading(modifier = Modifier.size(110.dp))
+                        qrExpired -> {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "Expired",
+                                    color = Color.Black.copy(alpha = 0.7f),
+                                    fontFamily = BrewTitle,
+                                    fontSize = 12.sp,
+                                )
+                                AuthPrimaryButton(
+                                    label = "Refresh",
+                                    onClick = onRefreshQr,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        }
+                        qrUrl != null -> {
+                            val bitmap = remember(qrUrl) { QrCodeGenerator.createBitmap(qrUrl, 512) }
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "QR sign in",
+                                modifier = Modifier.size(110.dp),
                             )
                         }
                     }
-                    qrUrl != null -> {
-                        val bitmap = remember(qrUrl) { QrCodeGenerator.createBitmap(qrUrl, 640) }
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = "QR sign in",
-                            modifier = Modifier.size(200.dp),
-                        )
-                    }
                 }
-            }
-            if (!qrExpired && qrUrl != null) {
-                AuthSecondaryButton(
-                    label = "Refresh QR",
-                    onClick = onRefreshQr,
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .align(Alignment.CenterHorizontally),
-                )
+                if (!qrExpired && qrUrl != null) {
+                    AuthSecondaryButton(
+                        label = "Refresh QR",
+                        onClick = onRefreshQr,
+                    )
+                }
             }
         }
 
         Column(
-            modifier = Modifier.width(320.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.Start,
         ) {
             OnboardingStepHeader(
                 step = 2,
-                text = "Confirm this code on your phone or tablet",
+                text = "Confirm this code on your device",
             )
             Row(
-                modifier = Modifier.padding(top = 28.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 if (isLoading || qrCode.isNullOrBlank()) {
-                    Loading(modifier = Modifier.size(48.dp))
+                    Loading(modifier = Modifier.size(36.dp))
                 } else {
                     qrCode.forEach { char ->
                         Box(
                             modifier = Modifier
-                                .size(width = 42.dp, height = 54.dp)
-                                .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                                .size(width = 30.dp, height = 40.dp)
+                                .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(6.dp)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -476,7 +639,7 @@ private fun QrOnboardingContent(
                                 color = Color.White,
                                 fontFamily = BrewTitle,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 26.sp,
+                                fontSize = 18.sp,
                             )
                         }
                     }
@@ -491,8 +654,8 @@ private fun OnboardingStepHeader(step: Int, text: String) {
     Row(verticalAlignment = Alignment.Top) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp)),
+                .size(24.dp)
+                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -500,244 +663,20 @@ private fun OnboardingStepHeader(step: Int, text: String) {
                 color = Color.White,
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                fontSize = 11.sp,
             )
         }
         Text(
             text = text,
             color = Color.White.copy(alpha = 0.9f),
             fontFamily = BrewTitle,
-            fontSize = 18.sp,
-            lineHeight = 24.sp,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
             modifier = Modifier
-                .padding(start = 14.dp)
+                .padding(start = 8.dp)
                 .fillMaxWidth(),
         )
     }
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun AuthAlternateMethodsRow(
-    onPhone: () -> Unit = {},
-    onEmail: () -> Unit = {},
-    onQr: (() -> Unit)? = null,
-    highlight: AuthSignInMethod? = null,
-    showQr: Boolean = false,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (showQr) {
-            onQr?.let {
-                AuthChip(label = "QR Code", selected = highlight == AuthSignInMethod.Qr, onClick = it)
-            }
-        }
-        AuthChip(label = "Phone", selected = highlight == AuthSignInMethod.Phone, onClick = onPhone)
-        AuthChip(label = "Email", selected = highlight == AuthSignInMethod.Email, onClick = onEmail)
-    }
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun AuthChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
-        colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Color.White else Color.White.copy(alpha = 0.1f),
-            focusedContainerColor = Color.White,
-            contentColor = if (selected) Color.Black else Color.White,
-            focusedContentColor = Color.Black,
-        ),
-        modifier = Modifier.height(40.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 22.dp)) {
-            Text(
-                text = label,
-                fontFamily = BrewTitle,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun PhoneEmailOnboardingContent(
-    method: AuthSignInMethod,
-    step: AuthSignInStep,
-    phoneDigits: String,
-    email: String,
-    countryLabel: String,
-    otp: String,
-    otpDisplay: String?,
-    otpIssueChannel: AuthSignInMethod?,
-    isLoading: Boolean,
-    resendCountdown: Int,
-    resendAttempts: Int,
-    onPhoneChange: (String) -> Unit,
-    onEmailChange: (String) -> Unit,
-    onOtpChange: (String) -> Unit,
-    onContinue: () -> Unit,
-    onResend: () -> Unit,
-    onBackToInput: () -> Unit,
-    onCycleCountry: () -> Unit,
-    onSwitchMode: () -> Unit,
-) {
-    val inputFocus = remember { FocusRequester() }
-
-    LaunchedEffect(method, step) {
-        kotlinx.coroutines.delay(120)
-        runCatching { inputFocus.requestFocus() }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth(0.72f)
-            .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-            .padding(horizontal = 40.dp, vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (step == AuthSignInStep.Otp) {
-            val channel = otpIssueChannel ?: method
-            val otpLen = AuthValidation.expectedOtpLength(channel)
-            Text(
-                text = "Enter the $otpLen-digit code sent to\n${otpDisplay.orEmpty()}",
-                color = Color.White,
-                fontFamily = BrewTitle,
-                fontSize = 24.sp,
-                lineHeight = 30.sp,
-                textAlign = TextAlign.Center,
-            )
-            AuthTextField(
-                value = otp,
-                onValueChange = onOtpChange,
-                placeholder = "Enter OTP",
-                keyboardType = KeyboardType.NumberPassword,
-                modifier = Modifier
-                    .padding(top = 20.dp)
-                    .width(320.dp)
-                    .focusRequester(inputFocus),
-            )
-            Row(
-                modifier = Modifier.padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                AuthSecondaryButton(
-                    label = if (channel == AuthSignInMethod.Email) "Change email" else "Change phone",
-                    onClick = onBackToInput,
-                )
-                val canResend = resendCountdown <= 0 && resendAttempts < 3
-                AuthSecondaryButton(
-                    label = when {
-                        resendAttempts >= 3 -> "Try again later"
-                        resendCountdown > 0 -> "Resend (${resendCountdown}s)"
-                        else -> "Resend code"
-                    },
-                    onClick = onResend,
-                    enabled = canResend && !isLoading,
-                )
-            }
-            return@Column
-        }
-
-        Text(
-            text = if (method == AuthSignInMethod.Phone) "Sign in with phone" else "Sign in with email",
-            color = Color.White,
-            fontFamily = BrewTitle,
-            fontWeight = FontWeight.Bold,
-            fontSize = 28.sp,
-        )
-
-        if (method == AuthSignInMethod.Phone) {
-            Row(
-                modifier = Modifier.padding(top = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                AuthSecondaryButton(label = countryLabel, onClick = onCycleCountry)
-                AuthTextField(
-                    value = phoneDigits,
-                    onValueChange = onPhoneChange,
-                    placeholder = "Phone number",
-                    keyboardType = KeyboardType.Phone,
-                    modifier = Modifier
-                        .width(280.dp)
-                        .focusRequester(inputFocus),
-                )
-            }
-        } else {
-            AuthTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                placeholder = "Email address",
-                keyboardType = KeyboardType.Email,
-                modifier = Modifier
-                    .padding(top = 20.dp)
-                    .width(380.dp)
-                    .focusRequester(inputFocus),
-            )
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            AuthPrimaryButton(
-                label = if (isLoading) "Sending…" else "Continue",
-                onClick = onContinue,
-                enabled = !isLoading,
-            )
-            AuthSecondaryButton(
-                label = if (method == AuthSignInMethod.Phone) "Use email instead" else "Use phone instead",
-                onClick = onSwitchMode,
-            )
-        }
-    }
-}
-
-@Composable
-private fun AuthTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    keyboardType: KeyboardType,
-    modifier: Modifier = Modifier,
-) {
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        textStyle = MaterialTheme.typography.titleMedium.copy(
-            color = Color.White,
-            fontFamily = BrewTitle,
-            fontSize = 18.sp,
-        ),
-        modifier = modifier
-            .height(48.dp)
-            .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 16.dp),
-        decorationBox = { inner ->
-            Box(contentAlignment = Alignment.CenterStart) {
-                if (value.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontFamily = BrewTitle,
-                        fontSize = 16.sp,
-                    )
-                }
-                inner()
-            }
-        },
-    )
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -751,7 +690,7 @@ private fun AuthPrimaryButton(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = AccentYellow,
             focusedContainerColor = Color.White,
@@ -761,10 +700,10 @@ private fun AuthPrimaryButton(
         modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.5f },
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
     }
 }
@@ -780,7 +719,7 @@ private fun AuthSecondaryButton(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.White.copy(alpha = 0.1f),
             focusedContainerColor = Color.White.copy(alpha = 0.22f),
@@ -790,10 +729,14 @@ private fun AuthSecondaryButton(
         modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.45f },
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Medium, fontSize = 12.sp)
         }
     }
+}
+
+object AuthScreenRoute {
+    const val MethodBundleKey = "method"
 }

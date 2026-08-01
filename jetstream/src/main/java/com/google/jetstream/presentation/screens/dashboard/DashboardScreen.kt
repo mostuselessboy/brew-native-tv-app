@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +39,7 @@ import com.google.jetstream.presentation.common.PrimeTabReveal
 import com.google.jetstream.presentation.screens.favourites.FavouritesScreen
 import com.google.jetstream.presentation.screens.home.HomeScreen
 import com.google.jetstream.presentation.screens.profile.ProfileScreen
+import com.google.jetstream.presentation.screens.profile.AccountsSection
 import com.google.jetstream.presentation.screens.search.SearchScreen
 import com.google.jetstream.presentation.utils.Padding
 
@@ -110,6 +112,7 @@ fun DashboardScreen(
         Screens.Shorts(),
         Screens.Store(),
         -> catalogFocusHandles[tabRoute]?.showcase
+        Screens.Account() -> profileContentFocusRequester
         Screens.Profile() -> profileContentFocusRequester
         Screens.Favourites() -> libraryContentFocusRequester
         Screens.Search() -> searchContentFocusRequester
@@ -257,6 +260,7 @@ private fun catalogPageForRoute(route: String): String? = when (route) {
 }
 
 private val NonCatalogTabRoutes = listOf(
+    Screens.Account(),
     Screens.Profile(),
     Screens.Favourites(),
     Screens.Search(),
@@ -383,6 +387,20 @@ private fun NonCatalogTab(
     searchContentFocusRequester: FocusRequester,
 ) {
     when (route) {
+        Screens.Account() -> {
+            val childPadding = rememberChildPadding()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = childPadding.top)
+            ) {
+                AccountsSection(
+                    onSignInPhone = openSignInPhone,
+                    onSignInEmail = openSignInEmail,
+                    panelFocusRequester = profileContentFocusRequester,
+                )
+            }
+        }
         Screens.Profile() -> ProfileScreen(
             openSignInPhone = openSignInPhone,
             openSignInEmail = openSignInEmail,

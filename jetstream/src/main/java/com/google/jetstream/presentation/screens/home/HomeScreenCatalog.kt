@@ -152,7 +152,7 @@ internal fun Catalog(
                                     modifier = Modifier.focusGroup(),
                                     movieList = continueWatchingState.movies,
                                     title = "Continue Watching",
-                                    subtitle = "Pick up where you left off",
+                                    subtitle = null,
                                     itemDirection = ItemDirection.Horizontal,
                                     showItemTitle = true,
                                     onMovieSelected = { movie ->

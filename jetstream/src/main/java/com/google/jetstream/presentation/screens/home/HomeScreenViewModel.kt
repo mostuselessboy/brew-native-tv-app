@@ -70,10 +70,9 @@ class HomeScreeViewModel @Inject constructor(
     }
 
     fun setPage(pageKey: String) {
+        if (page.value == pageKey) return
         page.value = pageKey
-        if (pageKey == BrewPages.HOME) {
-            refreshContinueWatching()
-        }
+        refreshContinueWatching()
     }
 
     private fun refreshContinueWatching() {
