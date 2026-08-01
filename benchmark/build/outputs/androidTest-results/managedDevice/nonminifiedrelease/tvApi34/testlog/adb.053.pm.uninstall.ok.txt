@@ -1,0 +1,17 @@
+EXECUTING: /opt/homebrew/share/android-commandlinetools/platform-tools/adb -H localhost -P 5037 -s emulator-5554 shell pm uninstall com.google.jetstream.benchmark
+CURRENT_WORKING_DIRECTORY: /Users/hamzarizvi/Desktop/native tv app
+START_TIME: 2026-08-01 12:42:31.555
+START_TIME-NANOS: 2026-08-01 12:42:31.555932000
+ENVIRONMENT:
+ANDROID_SDK_HOME=/opt/homebrew/share/android-commandlinetools
+ANDROID_ADB=/opt/homebrew/share/android-commandlinetools/platform-tools/adb
+*****************************************
+STDOUT/STDERR BELOW
+===================
+Success
+
+===================
+END_TIME: 2026-08-01 12:42:31.787
+END_TIME-NANOS: 2026-08-01 12:42:31.787331000
+DURATION: 231ms
+EXIT CODE: 0

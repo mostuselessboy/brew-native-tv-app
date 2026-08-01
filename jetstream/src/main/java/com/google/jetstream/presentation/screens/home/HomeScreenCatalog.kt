@@ -213,7 +213,7 @@ internal fun Catalog(
                                     movieList = section.movies,
                                     title = section.title,
                                     titleStyle = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = 18.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         letterSpacing = (-0.15).sp,
                                     ),

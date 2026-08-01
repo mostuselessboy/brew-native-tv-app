@@ -124,15 +124,21 @@ private fun Details(
         filterDetailMovies(movieDetails.customersAlsoWatched, movieDetails.id)
     }
     val context = LocalContext.current
-    LaunchedEffect(customersAlsoWatched) {
+    LaunchedEffect(movieDetails.id) {
         val loader = context.imageLoader
-        customersAlsoWatched.take(6).forEach { movie ->
-            val request = ImageRequest.Builder(context)
+        val avatarRequests = movieDetails.castAndCrew.take(8).map { member ->
+            ImageRequest.Builder(context)
+                .data(BrewImageUrl.forCastAvatar(member.avatarUrl))
+                .size(BrewImageUrl.CAST_AVATAR_PX, BrewImageUrl.CAST_AVATAR_PX)
+                .build()
+        }
+        val cardRequests = customersAlsoWatched.take(6).map { movie ->
+            ImageRequest.Builder(context)
                 .data(BrewImageUrl.forCard(movie.posterUri))
                 .size(BrewImageUrl.CARD_WIDTH, BrewImageUrl.CARD_HEIGHT)
                 .build()
-            loader.enqueue(request)
         }
+        (avatarRequests + cardRequests).forEach { loader.enqueue(it) }
     }
     val relatedMovies = remember(movieDetails) {
         filterDetailMovies(movieDetails.relatedMovies, movieDetails.id)

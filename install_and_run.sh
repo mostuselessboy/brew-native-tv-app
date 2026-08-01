@@ -6,20 +6,32 @@ set -e
 # Configuration
 PACKAGE_NAME="com.google.jetstream"
 ACTIVITY_NAME=".MainActivity"
-APK_PATH="jetstream/build/outputs/apk/debug/jetstream-debug.apk"
 
 # Initialize variables
 BUILD_APP=true
+PROD_BUILD=false
 DEVICE_ID=""
 
 # Parse arguments
 for arg in "$@"; do
     if [ "$arg" = "--no-build" ] || [ "$arg" = "-n" ]; then
         BUILD_APP=false
+    elif [ "$arg" = "--prod-build" ] || [ "$arg" = "-p" ]; then
+        PROD_BUILD=true
     else
         DEVICE_ID="$arg"
     fi
 done
+
+if [ "$PROD_BUILD" = true ]; then
+    APK_PATH="jetstream/build/outputs/apk/release/jetstream-release.apk"
+    GRADLE_TASK=":jetstream:assembleRelease"
+    echo "🚀 Production (Release) build mode selected."
+else
+    APK_PATH="jetstream/build/outputs/apk/debug/jetstream-debug.apk"
+    GRADLE_TASK=":jetstream:assembleDebug"
+    echo "🔧 Debug build mode selected."
+fi
 
 # Locate ADB
 if command -v adb >/dev/null 2>&1; then
@@ -91,9 +103,9 @@ fi
 
 # Build app if requested
 if [ "$BUILD_APP" = true ]; then
-    echo "🔨 Building the application..."
+    echo "🔨 Building the application ($GRADLE_TASK)..."
     chmod +x ./gradlew
-    ./gradlew :jetstream:assembleDebug
+    ./gradlew $GRADLE_TASK
 else
     echo "⏭️ Skipping build as requested..."
 fi

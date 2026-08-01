@@ -71,7 +71,8 @@ internal object MovieDetailTokens {
     val TaglineSize = 16.sp
     val SynopsisSize = 11.sp
     val MetaSize = 12.sp
-    val SectionTitleSize = 24.sp
+    val SectionTitleSize = 17.sp
+    val SectionTitleColor = Color(0xFFD1D5DB)
 
     val YellowTextPrimary = Color.Black
     val YellowTextSecondary = Color(0xB3000000)

@@ -172,3 +172,12 @@ INFO         | emulatorSetupEnvironment: Environment scene is not required
 INFO         | Loading snapshot 'default_boot'...
 INFO         | Successfully loaded snapshot 'default_boot' using 5139 ms
 ERROR        | Failed to find ColorBuffer: 63
+[h264 @ 0x823d3a300] no frame!
+[h264 @ 0x823d3a300] no frame!
+[h264 @ 0x823d39e00] no frame!
+[h264 @ 0x823d39e00] no frame!
+===================
+END_TIME: 2026-08-01 12:42:33.808
+END_TIME-NANOS: 2026-08-01 12:42:33.808408000
+DURATION: 967900ms
+EXIT CODE: 0

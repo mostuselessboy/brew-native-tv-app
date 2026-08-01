@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -106,11 +107,11 @@ fun AwardsFestivalsRow(
 
                 val scaleAnimationSpec = if (isFocused) {
                     spring<Float>(
-                        dampingRatio = 0.76f,
-                        stiffness = 380f
+                        dampingRatio = 0.85f,
+                        stiffness = 180f
                     )
                 } else {
-                    tween<Float>(durationMillis = 500, easing = LinearOutSlowInEasing)
+                    tween<Float>(durationMillis = 650, easing = LinearOutSlowInEasing)
                 }
 
                 val animatedScale by animateFloatAsState(
@@ -131,6 +132,12 @@ fun AwardsFestivalsRow(
                         focusedBorder = Border(
                             border = BorderStroke(1.2.dp, AccentGold.copy(alpha = 0.88f)),
                             shape = AwardCardShape,
+                        ),
+                    ),
+                    glow = ClickableSurfaceDefaults.glow(
+                        focusedGlow = Glow(
+                            elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
+                            elevation = 12.dp,
                         ),
                     ),
                     colors = ClickableSurfaceDefaults.colors(

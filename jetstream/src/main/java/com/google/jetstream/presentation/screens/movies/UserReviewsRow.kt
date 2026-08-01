@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -63,9 +64,9 @@ private val ReviewCardBg = Color(0xFF111111)
 private val ReviewCardShape = RoundedCornerShape(12.dp)
 private val StirYellow = Color(0xFFFFC15E)
 private val ReviewCardWidth = 320.dp
-private val ReviewCardHeight = 152.dp
-private val ReviewAvatarSize = 36.dp
-private val VerifiedBadgeSize = 14.dp
+private val ReviewCardHeight = 164.dp
+private val ReviewAvatarSize = 48.dp
+private val VerifiedBadgeSize = 16.dp
 
 /** Audience reviews — horizontal cards, no country split or distribution chart. */
 @Composable
@@ -128,11 +129,11 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
 
     val scaleAnimationSpec = if (isFocused) {
         spring<Float>(
-            dampingRatio = 0.76f,
-            stiffness = 380f
+            dampingRatio = 0.85f,
+            stiffness = 180f
         )
     } else {
-        tween<Float>(durationMillis = 500, easing = LinearOutSlowInEasing)
+        tween<Float>(durationMillis = 650, easing = LinearOutSlowInEasing)
     }
 
     val animatedScale by animateFloatAsState(
@@ -157,6 +158,12 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                 shape = ReviewCardShape,
             ),
         ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
+                elevation = 12.dp,
+            ),
+        ),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = ReviewCardBg,
             focusedContainerColor = ReviewCardBg,
@@ -175,7 +182,8 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(ReviewCardHeight)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             ReviewAvatar(review = review)
@@ -220,9 +228,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                         fontSize = 16.sp,
                         lineHeight = 18.sp,
                         letterSpacing = (-0.4).sp,
-                        maxLines = if (expanded) Int.MAX_VALUE else 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                        modifier = Modifier.padding(top = 6.dp, bottom = 3.dp),
                     )
                 }
                 Text(
@@ -233,15 +239,6 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                     maxLines = if (expanded) Int.MAX_VALUE else 3,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (showReadMore) {
-                    Text(
-                        text = "read more",
-                        color = StirYellow.copy(alpha = 0.9f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
             }
         }
     }
@@ -295,7 +292,7 @@ private fun ReviewAvatar(review: MovieReviewsAndRatings) {
                 tint = StirYellow,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .offset(x = 2.dp, y = 2.dp)
+                    .offset(x = 1.dp, y = 1.dp)
                     .size(VerifiedBadgeSize),
             )
         }

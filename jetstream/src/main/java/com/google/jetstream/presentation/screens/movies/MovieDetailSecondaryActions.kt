@@ -53,9 +53,6 @@ fun MovieDetailSecondaryActions(
 
     Row(
         modifier = modifier
-            .focusProperties {
-                enter = { firstItem }
-            }
             .focusGroup()
             .graphicsLayer { clip = false },
         horizontalArrangement = Arrangement.spacedBy(10.dp),

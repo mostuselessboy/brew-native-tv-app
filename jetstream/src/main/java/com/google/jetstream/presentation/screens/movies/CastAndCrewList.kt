@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -74,9 +76,7 @@ fun CastAndCrewList(
         LazyRow(
             modifier = Modifier
                 .padding(top = 14.dp)
-                .focusProperties {
-                    enter = { firstItem }
-                },
+                .focusRestorer(),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
@@ -84,17 +84,8 @@ fun CastAndCrewList(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             items(members, key = { it.id }) { member ->
-                val isFirst = member.id == members.first().id
                 CastAndCrewItem(
                     castMember = member,
-                    modifier = Modifier
-                        .then(
-                            if (isFirst) {
-                                Modifier.focusRequester(firstItem)
-                            } else {
-                                Modifier
-                            }
-                        ),
                 )
             }
         }
@@ -112,11 +103,11 @@ private fun CastAndCrewItem(
 
     val scaleAnimationSpec = if (isFocused) {
         spring<Float>(
-            dampingRatio = 0.76f,
-            stiffness = 380f
+            dampingRatio = 0.85f,
+            stiffness = 180f
         )
     } else {
-        tween<Float>(durationMillis = 500, easing = LinearOutSlowInEasing)
+        tween<Float>(durationMillis = 650, easing = LinearOutSlowInEasing)
     }
 
     val animatedScale by animateFloatAsState(
@@ -137,6 +128,12 @@ private fun CastAndCrewItem(
                 focusedBorder = Border(
                     border = BorderStroke(1.2.dp, Color.White.copy(alpha = 0.9f)),
                     shape = CircleShape,
+                ),
+            ),
+            glow = ClickableSurfaceDefaults.glow(
+                focusedGlow = Glow(
+                    elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
+                    elevation = 12.dp,
                 ),
             ),
             colors = ClickableSurfaceDefaults.colors(

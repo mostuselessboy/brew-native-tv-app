@@ -73,7 +73,11 @@ fun MoviesRow(
     endPadding: Dp = rememberChildPadding().end,
     title: String? = null,
     subtitle: String? = null,
-    titleStyle: TextStyle = MaterialTheme.typography.titleLarge,
+    titleStyle: TextStyle = MaterialTheme.typography.titleMedium.copy(
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFFD1D5DB),
+    ),
     showItemTitle: Boolean = true,
     showIndexOverImage: Boolean = false,
     onMovieSelected: (movie: Movie) -> Unit = {},
@@ -101,14 +105,13 @@ fun MoviesRow(
             Column(
                 modifier = Modifier.padding(
                     start = startPadding,
-                    top = 2.dp,
+                    top = 18.dp,
                     bottom = 8.dp,
                 ),
             ) {
                 Text(
                     text = title,
                     style = titleStyle,
-                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 subtitle?.takeIf { it.isNotBlank() }?.let { sub ->
                     Text(
@@ -176,7 +179,7 @@ fun MoviesRow(
                     }
                 }
 
-                if (cardsReady && onViewMoreClick != null) {
+                if (cardsReady && onViewMoreClick != null && !showIndexOverImage) {
                     item(key = "view_more") {
                         ViewMoreTrayCard(
                             previewMovies = movieList,
@@ -255,7 +258,7 @@ private fun RankedMovieItem(
     Box(
         modifier = modifier
             .height(cardHeight + 12.dp)
-            .padding(start = if (isDoubleDigit) 28.dp else 20.dp),
+            .padding(start = if (isDoubleDigit) 36.dp else 28.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(
@@ -269,7 +272,7 @@ private fun RankedMovieItem(
             maxLines = 1,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(x = (-10).dp)
+                .offset(x = (-10).dp, y = 14.dp)
                 .widthIn(min = numberWidth)
                 .zIndex(0f),
         )
@@ -279,7 +282,7 @@ private fun RankedMovieItem(
             onClick = onClick,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(start = numberWidth * 0.55f)
+                .padding(start = numberWidth * 0.78f)
                 .zIndex(1f),
         )
     }

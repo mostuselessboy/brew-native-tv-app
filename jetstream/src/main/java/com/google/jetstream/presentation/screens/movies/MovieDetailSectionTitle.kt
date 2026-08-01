@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
@@ -21,11 +22,11 @@ fun MovieDetailSectionTitle(
     val padding = rememberChildPadding()
     Text(
         text = text,
-        color = Color.White,
+        color = MovieDetailTokens.SectionTitleColor,
         fontFamily = if (useDisplayFont) BrewDisplay else BrewTitle,
         fontWeight = FontWeight.Bold,
         fontSize = MovieDetailTokens.SectionTitleSize,
-        letterSpacing = (-1.25).sp,
-        modifier = modifier.then(Modifier.padding(start = padding.start)),
+        letterSpacing = (-0.15).sp,
+        modifier = modifier.then(Modifier.padding(start = padding.start, top = 12.dp, bottom = 4.dp)),
     )
 }

@@ -1,0 +1,17 @@
+EXECUTING: /opt/homebrew/share/android-commandlinetools/platform-tools/adb -H localhost -P 5037 -s emulator-5554 pull /sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt /Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/managed_device_android_test_additional_output/nonminifiedrelease/tvApi34/BaselineProfileGenerator_startup-baseline-prof.txt
+CURRENT_WORKING_DIRECTORY: /Users/hamzarizvi/Desktop/native tv app
+START_TIME: 2026-08-01 12:42:30.011
+START_TIME-NANOS: 2026-08-01 12:42:30.011366000
+ENVIRONMENT:
+ANDROID_SDK_HOME=/opt/homebrew/share/android-commandlinetools
+ANDROID_ADB=/opt/homebrew/share/android-commandlinetools/platform-tools/adb
+*****************************************
+STDOUT/STDERR BELOW
+===================
+/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt: 1 file pulled, 0 skipped. 138.1 MB/s (2844567 bytes in 0.020s)
+
+===================
+END_TIME: 2026-08-01 12:42:30.080
+END_TIME-NANOS: 2026-08-01 12:42:30.080341000
+DURATION: 68ms
+EXIT CODE: 0
