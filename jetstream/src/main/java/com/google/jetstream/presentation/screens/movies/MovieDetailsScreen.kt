@@ -23,12 +23,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,6 +40,7 @@ import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MovieCast
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.MovieList
+import com.google.jetstream.presentation.common.BrewFeedbackToast
 import com.google.jetstream.presentation.common.BrewQrPopup
 import com.google.jetstream.presentation.common.DetailsShimmerSkeleton
 import com.google.jetstream.presentation.common.Error
@@ -52,6 +53,7 @@ object MovieDetailsScreen {
 @Composable
 fun MovieDetailsScreen(
     goToMoviePlayer: (movieId: String) -> Unit,
+    goToSignIn: () -> Unit,
     onBackPressed: () -> Unit,
     refreshScreenWithNewMovie: (Movie) -> Unit,
     movieDetailsScreenViewModel: MovieDetailsScreenViewModel = hiltViewModel(),
@@ -61,6 +63,10 @@ fun MovieDetailsScreen(
     val qrPopup by movieDetailsScreenViewModel.qrPopup.collectAsStateWithLifecycle()
     val selectedCastMemberDetails by movieDetailsScreenViewModel.selectedCastMemberDetails.collectAsStateWithLifecycle()
     val castLoading by movieDetailsScreenViewModel.castLoading.collectAsStateWithLifecycle()
+    val accessDialogState by movieDetailsScreenViewModel.accessDialogState.collectAsStateWithLifecycle()
+    val reminderFeedback by movieDetailsScreenViewModel.reminderFeedback.collectAsStateWithLifecycle()
+
+    val primaryCtaFocusRequester = remember { FocusRequester() }
 
     var selectedCastMember by remember { mutableStateOf<MovieCast?>(null) }
 
@@ -86,6 +92,7 @@ fun MovieDetailsScreen(
 
         is MovieDetailsScreenUiState.Done -> {
             val isBookmarked = (bookmarkState as? BookmarkUiState.Ready)?.isBookmarked == true
+            val reminderSet = movieDetailsScreenViewModel.isReminderSet(s.movieDetails)
             val onPrimaryCtaClick = remember(movieDetailsScreenViewModel, s.movieDetails, s.checkPurchase) {
                 { movieDetailsScreenViewModel.onPrimaryCtaClick(s.movieDetails, s.checkPurchase) }
             }
@@ -124,6 +131,7 @@ fun MovieDetailsScreen(
                     movieDetailsScreenViewModel.dismissCastDialog()
                 }
             }
+            Box(modifier = Modifier.fillMaxSize()) {
             Details(
                 movieDetails = s.movieDetails,
                 onPrimaryCtaClick = onPrimaryCtaClick,
@@ -137,7 +145,17 @@ fun MovieDetailsScreen(
                 isBookmarked = isBookmarked,
                 onBookmarkClick = onBookmarkClick,
                 onExtraClick = onExtraClick,
+                purchaseLoading = s.purchaseLoading,
+                reminderSet = reminderSet,
+                primaryFocusRequester = primaryCtaFocusRequester,
                 modifier = Modifier.fillMaxSize(),
+            )
+            BrewFeedbackToast(
+                message = reminderFeedback,
+                onDismiss = movieDetailsScreenViewModel::dismissReminderFeedback,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 24.dp),
             )
             BrewQrPopup(
                 state = qrPopup,
@@ -157,6 +175,21 @@ fun MovieDetailsScreen(
                     }
                 )
             }
+            accessDialogState?.let { dialogState ->
+                MovieDetailAccessDialog(
+                    showDialog = true,
+                    title = dialogState.title,
+                    message = dialogState.message,
+                    showSignInButton = dialogState.showSignInButton,
+                    showBuyButton = dialogState.showBuyButton,
+                    onSignInClick = goToSignIn,
+                    onBuyClick = {
+                        runCatching { primaryCtaFocusRequester.requestFocus() }
+                    },
+                    onDismissRequest = movieDetailsScreenViewModel::dismissAccessDialog
+                )
+            }
+            }
         }
     }
 }
@@ -175,12 +208,15 @@ private fun Details(
     isBookmarked: Boolean = false,
     onBookmarkClick: () -> Unit = {},
     onExtraClick: (vodAssetId: Int, title: String) -> Unit = { _, _ -> },
+    purchaseLoading: Boolean = false,
+    reminderSet: Boolean = false,
+    primaryFocusRequester: FocusRequester? = null,
     modifier: Modifier = Modifier,
 ) {
     var showLanguagesDialog by remember { mutableStateOf(false) }
     var showSynopsisDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
-    val primaryCtaFocusRequester = remember { FocusRequester() }
+    val primaryCtaFocusRequester = primaryFocusRequester ?: remember { FocusRequester() }
 
     LaunchedEffect(movieDetails.id) {
         listState.scrollToItem(0, scrollOffset = 0)
@@ -273,6 +309,8 @@ private fun Details(
                         onOpenLanguages = { showLanguagesDialog = true },
                         isBookmarked = isBookmarked,
                         onBookmarkClick = onBookmarkClick,
+                        purchaseLoading = purchaseLoading,
+                        reminderSet = reminderSet,
                         modifier = Modifier.fillMaxSize(),
                         primaryFocusRequester = primaryCtaFocusRequester,
                         overlay = {

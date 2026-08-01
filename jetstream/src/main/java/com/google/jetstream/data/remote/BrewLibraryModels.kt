@@ -102,6 +102,8 @@ data class BrewLibraryAppearanceDto(
     @SerialName("vertical_thumbnails") val verticalThumbnails: JsonElement? = null,
     @SerialName("horizontal_thumbnails") val horizontalThumbnails: JsonElement? = null,
     @SerialName("background_art") val backgroundArt: JsonElement? = null,
+    @SerialName("alternate_vertical_background_art") val alternateVerticalBackgroundArt: JsonElement? = null,
+    @SerialName("alternate_horizontal_background_art") val alternateHorizontalBackgroundArt: JsonElement? = null,
 )
 
 @Serializable

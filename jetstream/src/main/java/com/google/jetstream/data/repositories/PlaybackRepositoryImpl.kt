@@ -9,6 +9,8 @@ import com.google.jetstream.data.remote.BrewCheckPurchaseResponse
 import com.google.jetstream.data.remote.BrewEndscreenRecommendationCard
 import com.google.jetstream.data.remote.BrewMappers.toMovieSubscriptionPlan
 import com.google.jetstream.data.remote.BrewStartPlaybackRequest
+import com.google.jetstream.data.remote.BrewUpdateVideoSettingsRequest
+import com.google.jetstream.data.remote.BrewVideoSettingsPayload
 import com.google.jetstream.data.remote.BrewVodApiService
 import com.google.jetstream.data.remote.BrewVodAssetData
 import com.google.jetstream.data.util.DetailCtaKind
@@ -216,6 +218,28 @@ class PlaybackRepositoryImpl @Inject constructor(
             vodAssetId = assetId,
             trailerUrl = card.trailerUrl?.takeIf { it.isNotBlank() },
         )
+    }
+
+    override suspend fun updateVideoSettings(
+        userId: Int,
+        vodAssetId: Int,
+        initialTimeSeconds: Double,
+        percentageWatched: Double,
+        watchTimeDelta: Double?,
+    ): Result<Unit> = runCatching {
+        vodApi.updateVideoSettings(
+            BrewUpdateVideoSettingsRequest(
+                userId = userId,
+                vodAssetId = vodAssetId,
+                videoSettings = BrewVideoSettingsPayload(
+                    initialTime = initialTimeSeconds,
+                    volume = 1.0,
+                    watchTimeDelta = watchTimeDelta,
+                    percentageWatched = percentageWatched,
+                ),
+            ),
+        )
+        Unit
     }
 
     override fun isWatchCta(kind: DetailCtaKind): Boolean = when (kind) {

@@ -14,6 +14,10 @@ object BrewImageUrl {
     const val CARD_WIDTH = 330
     const val CARD_HEIGHT = 186
 
+    /** Library portrait shelves — ~150×225dp @ 2× density (Bookmarks, Titles you finished). */
+    const val PORTRAIT_CARD_WIDTH = 300
+    const val PORTRAIT_CARD_HEIGHT = 450
+
     /** Home showcase hero — ~380dp tall @ 1.5× density. */
     const val SHOWCASE_WIDTH = 1024
     const val SHOWCASE_HEIGHT = 576
@@ -48,6 +52,9 @@ object BrewImageUrl {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) "avif" else "webp"
 
     fun forCard(url: String): String = withDimensions(url, CARD_WIDTH, CARD_HEIGHT)
+
+    fun forPortraitCard(url: String): String =
+        withDimensions(url, PORTRAIT_CARD_WIDTH, PORTRAIT_CARD_HEIGHT, quality = "90")
 
     fun forShowcase(url: String): String = withDimensions(url, SHOWCASE_WIDTH, SHOWCASE_HEIGHT)
 

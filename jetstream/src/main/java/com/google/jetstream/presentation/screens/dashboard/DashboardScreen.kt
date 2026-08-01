@@ -31,6 +31,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.jetstream.data.util.resolveUserAvatarDisplayUrl
 import com.google.jetstream.data.entities.LibraryItem
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.remote.BrewPages
@@ -79,6 +81,8 @@ fun DashboardScreen(
     onBackPressed: () -> Unit,
 ) {
     val dashboardViewModel: DashboardViewModel = hiltViewModel()
+    val currentUser by dashboardViewModel.currentUser.collectAsStateWithLifecycle()
+    val accountAvatarUrl = resolveUserAvatarDisplayUrl(currentUser, 80)
     var tabRoute by rememberSaveable { mutableStateOf(Screens.Home()) }
     var tabSlideDirection by remember { mutableIntStateOf(1) }
     val tabTarget = remember(tabRoute, tabSlideDirection) {
@@ -181,6 +185,7 @@ fun DashboardScreen(
             DashboardNavigationDrawer(
                 selectedRoute = tabRoute,
                 onNavigateTo = ::navigateToTab,
+                accountAvatarUrl = accountAvatarUrl,
                 onRailFocus = { screen, selected ->
                     dashboardViewModel.onRailItemFocused(screen, selected, ::navigateToTab)
                 },
@@ -310,7 +315,15 @@ private fun Body(
                         onTrayMovieOpen = {
                             dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = true)
                         },
-                        onMovieClick = { movie -> openMovieDetailsScreen(movie.id) },
+                        onMovieClick = { movie ->
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = true)
+                            openMovieDetailsScreen(movie.id)
+                        },
+                        onMoreInfoClick = { movie ->
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = false)
+                            openMovieDetailsScreen(movie.id)
+                        },
+                        onSignInRequired = openSignInPhone,
                         onViewMoreClick = openCollectionScreen,
                         onShowcaseOpenMovie = {
                             dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = false)
@@ -351,19 +364,20 @@ private fun Body(
                             .focusProperties { canFocus = visible },
                     ) {
                         NonCatalogTab(
-                        route = nonCatalogRoute,
-                        isTabVisible = visible,
-                        openMovieDetailsScreen = openMovieDetailsScreen,
-                        onPlayLibraryItem = onPlayLibraryItem,
-                        openSignInPhone = openSignInPhone,
-                        openSignInEmail = openSignInEmail,
-                        onBrowseHome = onBrowseHome,
-                        onBrowseStore = onBrowseStore,
-                        sidebarFocusRequester = sidebarFocusRequester,
-                        profileContentFocusRequester = profileContentFocusRequester,
-                        libraryContentFocusRequester = libraryContentFocusRequester,
-                        searchContentFocusRequester = searchContentFocusRequester,
-                    )
+                            route = nonCatalogRoute,
+                            isTabVisible = visible,
+                            openMovieDetailsScreen = openMovieDetailsScreen,
+                            onPlayLibraryItem = onPlayLibraryItem,
+                            openSignInPhone = openSignInPhone,
+                            openSignInEmail = openSignInEmail,
+                            onBrowseHome = onBrowseHome,
+                            onBrowseStore = onBrowseStore,
+                            sidebarFocusRequester = sidebarFocusRequester,
+                            profileContentFocusRequester = profileContentFocusRequester,
+                            libraryContentFocusRequester = libraryContentFocusRequester,
+                            searchContentFocusRequester = searchContentFocusRequester,
+                            dashboardViewModel = dashboardViewModel,
+                        )
                     }
                 }
             }
@@ -385,6 +399,7 @@ private fun NonCatalogTab(
     profileContentFocusRequester: FocusRequester,
     libraryContentFocusRequester: FocusRequester,
     searchContentFocusRequester: FocusRequester,
+    dashboardViewModel: DashboardViewModel,
 ) {
     when (route) {
         Screens.Account() -> {
@@ -421,7 +436,9 @@ private fun NonCatalogTab(
             isTabVisible = isTabVisible,
         )
         Screens.Search() -> SearchScreen(
-            onMovieClick = { openMovieDetailsScreen(it.id) },
+            onMovieClick = { selectedMovie ->
+                openMovieDetailsScreen(selectedMovie.id)
+            },
             onScroll = { },
             sidebarFocusRequester = sidebarFocusRequester,
             contentFocusRequester = searchContentFocusRequester,

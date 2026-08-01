@@ -11,6 +11,7 @@ import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.data.playback.PlaybackIntentStore
 import com.google.jetstream.data.playback.PlaybackLauncher
+import com.google.jetstream.data.playback.PlaybackProgressNotifier
 import com.google.jetstream.data.repositories.MovieRepository
 import com.google.jetstream.data.repositories.PlaybackRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -37,9 +39,13 @@ class VideoPlayerScreenViewModel @Inject constructor(
     private val playbackIntentStore: PlaybackIntentStore,
     private val playbackLauncher: PlaybackLauncher,
     private val authSessionStore: AuthSessionStore,
+    private val playbackProgressNotifier: PlaybackProgressNotifier,
 ) : ViewModel() {
 
     private val reloadToken = MutableStateFlow(0)
+
+    val accessToken: String?
+        get() = authSessionStore.accessToken
 
     private val _endScreenState = MutableStateFlow<EndScreenUiState>(EndScreenUiState.Hidden)
     val endScreenState: StateFlow<EndScreenUiState> = _endScreenState.asStateFlow()
@@ -64,8 +70,7 @@ class VideoPlayerScreenViewModel @Inject constructor(
                     emit(VideoPlayerScreenUiState.Error)
                     return@flow
                 }
-                val intent = playbackIntentStore.consume()?.takeIf { it.movieSlug == id }
-                    ?: resolvePlaybackIntent(details)
+                val intent = resolveIntentForPlayback(id, details)
                 if (intent == null || intent.hlsUrl.isBlank()) {
                     emit(VideoPlayerScreenUiState.Error)
                     return@flow
@@ -117,13 +122,56 @@ class VideoPlayerScreenViewModel @Inject constructor(
     fun playEndScreenRecommendation(pick: EndScreenRecommendation) {
         viewModelScope.launch {
             _endScreenState.value = EndScreenUiState.Hidden
+            _switchToMovie.tryEmit(pick.slug)
             playbackLauncher.launchEndScreenPick(pick)
-                .onSuccess { slug -> _switchToMovie.tryEmit(slug) }
         }
     }
 
     fun reload() {
         reloadToken.value += 1
+    }
+
+    fun syncVideoProgress(
+        vodAssetId: Int,
+        positionSeconds: Double,
+        durationSeconds: Double,
+        isCheckpoint: Boolean,
+    ) {
+        if (vodAssetId <= 0 || durationSeconds <= 0.0) return
+        val userId = authSessionStore.currentUserId() ?: return
+        if (positionSeconds <= 0.0 && !isCheckpoint) return
+
+        val percentageWatched = ((positionSeconds / durationSeconds) * 100.0)
+            .coerceIn(0.0, 100.0)
+            .let { kotlin.math.round(it * 10.0) / 10.0 }
+
+        viewModelScope.launch {
+            playbackRepository.updateVideoSettings(
+                userId = userId,
+                vodAssetId = vodAssetId,
+                initialTimeSeconds = positionSeconds,
+                percentageWatched = percentageWatched,
+                watchTimeDelta = if (isCheckpoint) 0.0 else null,
+            ).onSuccess {
+                if (isCheckpoint) {
+                    playbackProgressNotifier.onCheckpointSaved()
+                }
+            }
+        }
+    }
+
+    private suspend fun resolveIntentForPlayback(
+        id: String,
+        details: MovieDetails,
+    ): PlaybackIntent? {
+        playbackIntentStore.consume()?.takeIf { it.movieSlug == id }?.let { return it }
+        repeat(300) {
+            playbackIntentStore.peek()?.takeIf { it.movieSlug == id }?.let {
+                return playbackIntentStore.consume()
+            }
+            delay(50)
+        }
+        return resolvePlaybackIntent(details)
     }
 
     private suspend fun resolvePlaybackIntent(details: MovieDetails): PlaybackIntent? {

@@ -2,6 +2,12 @@ package com.google.jetstream.presentation.screens.movies
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -61,8 +68,18 @@ fun MovieDetailPurchaseCtaRow(
     onSecondaryAction: () -> Unit,
     modifier: Modifier = Modifier,
     primaryFocusRequester: FocusRequester? = null,
+    reminderSet: Boolean = false,
 ) {
-    val slots = DetailPurchaseCta.primaryRowSlots(movie)
+    val slots = DetailPurchaseCta.primaryRowSlots(movie).map { slot ->
+        if (
+            reminderSet &&
+            (slot.kind == DetailCtaKind.ComingSoonNotify || slot.kind == DetailCtaKind.ComingSoon)
+        ) {
+            slot.copy(sublabel = "Reminder set")
+        } else {
+            slot
+        }
+    }
 
     if (slots.isEmpty()) {
         return
@@ -391,5 +408,70 @@ private fun PaidPriceColumn(
                 modifier = Modifier.padding(top = 1.dp),
             )
         }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun DetailPurchaseCtaSkeletonButton(
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.65f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmerAlpha"
+    )
+
+    Surface(
+        onClick = {},
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(8.dp)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color(0xFF2A2A2A).copy(alpha = alpha),
+            contentColor = Color.Transparent,
+            focusedContainerColor = Color(0xFF4A4A4A),
+            focusedContentColor = Color.Transparent,
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color(0xFFFF9A4D).copy(alpha = 0.2f),
+                elevation = 8.dp
+            )
+        ),
+        modifier = modifier
+            .height(MovieDetailTokens.CtaMinHeight)
+            .suppressBringIntoViewOnFocus()
+    ) {
+        Box(modifier = Modifier.fillMaxSize())
+    }
+}
+
+@Composable
+fun MovieDetailSkeletonCtaRow(
+    modifier: Modifier = Modifier,
+    primaryFocusRequester: FocusRequester? = null,
+) {
+    Column(
+        modifier = modifier
+            .width(MovieDetailTokens.CtaFixedWidth)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        DetailPurchaseCtaSkeletonButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (primaryFocusRequester != null) {
+                        Modifier.focusRequester(primaryFocusRequester)
+                    } else {
+                        Modifier
+                    }
+                )
+        )
     }
 }

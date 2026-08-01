@@ -16,6 +16,7 @@
 
 package com.google.jetstream.presentation.screens.videoPlayer.components
 
+import android.view.KeyEvent
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
@@ -27,111 +28,88 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.MaterialTheme
-import com.google.jetstream.presentation.utils.handleDPadKeyEvents
-import com.google.jetstream.presentation.utils.ifElse
 
 @Composable
 fun RowScope.VideoPlayerControllerIndicator(
     progress: Float,
-    onSeek: (seekProgress: Float) -> Unit,
+    onPlayPauseToggle: () -> Unit,
     onShowControls: () -> Unit = {},
-    onScrubbingChanged: (Boolean) -> Unit = {},
-    onSeekProgressChanged: (Float) -> Unit = {},
+    onDismissControls: () -> Unit = {},
+    onFocusChanged: (Boolean) -> Unit = {},
     progressColor: Color? = null,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    var isSelected by remember { mutableStateOf(false) }
     val isFocused by interactionSource.collectIsFocusedAsState()
-    val color by rememberUpdatedState(
-        newValue = progressColor ?: if (isSelected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        }
-    )
+    val color = progressColor ?: if (isFocused) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
     val animatedIndicatorHeight by animateDpAsState(
-        targetValue = 4.dp.times((if (isFocused) 2.5f else 1f))
+        targetValue = 4.dp.times((if (isFocused) 2.5f else 1f)),
+        label = "indicatorHeight",
     )
-    var seekProgress by remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(isSelected) {
-        onShowControls()
-        onScrubbingChanged(isSelected)
-        if (!isSelected) {
-            onSeekProgressChanged(progress)
+    LaunchedEffect(isFocused) {
+        onFocusChanged(isFocused)
+        if (isFocused) {
+            onShowControls()
         }
     }
 
-    LaunchedEffect(isSelected, seekProgress) {
-        if (isSelected) {
-            onSeekProgressChanged(seekProgress)
-        }
-    }
-
-    val handleSeekEventModifier = Modifier.handleDPadKeyEvents(
-        onEnter = {
-            isSelected = !isSelected
-            if (!isSelected) {
-                onSeek(seekProgress)
+    val enterKeyModifier = Modifier.onPreviewKeyEvent { event ->
+        val native = event.nativeKeyEvent
+        when {
+            native.action == KeyEvent.ACTION_DOWN &&
+                native.keyCode == KeyEvent.KEYCODE_BACK -> {
+                onDismissControls()
+                true
             }
-        },
-        onLeft = {
-            seekProgress = (seekProgress - 0.1f).coerceAtLeast(0f)
-        },
-        onRight = {
-            seekProgress = (seekProgress + 0.1f).coerceAtMost(1f)
+            native.action == KeyEvent.ACTION_UP &&
+                (native.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                    native.keyCode == KeyEvent.KEYCODE_ENTER ||
+                    native.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) -> {
+                onShowControls()
+                onPlayPauseToggle()
+                true
+            }
+            else -> false
         }
-    )
-
-    val handleDpadCenterClickModifier = Modifier.handleDPadKeyEvents(
-        onEnter = {
-            seekProgress = progress
-            isSelected = !isSelected
-        }
-    )
+    }
 
     Canvas(
         modifier = modifier
             .weight(1f)
             .height(animatedIndicatorHeight)
             .padding(horizontal = 4.dp)
-            .ifElse(
-                condition = isSelected,
-                ifTrueModifier = handleSeekEventModifier,
-                ifFalseModifier = handleDpadCenterClickModifier
-            )
+            .then(enterKeyModifier)
             .focusable(interactionSource = interactionSource),
         onDraw = {
             val yOffset = size.height.div(2)
+            val clamped = progress.coerceIn(0f, 1f)
             drawLine(
                 color = color.copy(alpha = 0.24f),
                 start = Offset(x = 0f, y = yOffset),
                 end = Offset(x = size.width, y = yOffset),
                 strokeWidth = size.height,
-                cap = StrokeCap.Round
+                cap = StrokeCap.Round,
             )
             drawLine(
                 color = color,
                 start = Offset(x = 0f, y = yOffset),
-                end = Offset(
-                    x = size.width.times(if (isSelected) seekProgress else progress),
-                    y = yOffset
-                ),
+                end = Offset(x = size.width.times(clamped), y = yOffset),
                 strokeWidth = size.height,
-                cap = StrokeCap.Round
+                cap = StrokeCap.Round,
             )
-        }
+        },
     )
 }

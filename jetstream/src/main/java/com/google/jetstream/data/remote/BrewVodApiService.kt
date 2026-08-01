@@ -2,7 +2,9 @@ package com.google.jetstream.data.remote
 
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /** Authenticated VOD playback endpoints — mobile / tv-app parity. */
@@ -19,6 +21,11 @@ interface BrewVodApiService {
     suspend fun startPlayback(
         @Body body: BrewStartPlaybackRequest,
     ): BrewWrappedResponse<BrewCheckPurchaseDetails?>
+
+    @PATCH("api/v1/vod/update-video-settings")
+    suspend fun updateVideoSettings(
+        @Body body: BrewUpdateVideoSettingsRequest,
+    ): BrewWrappedResponse<Unit?>
 
     @GET("api/v1/vod/asset")
     suspend fun getVodAsset(
@@ -41,4 +48,14 @@ interface BrewVodApiService {
         @Query("country") country: String? = null,
         @Query("original_currency") originalCurrency: String? = null,
     ): BrewWrappedResponse<BrewSubscriptionPlansResponse>
+
+    @GET("api/v1/vod/showcase-access/{userId}")
+    suspend fun getShowcaseAccess(
+        @Path("userId") userId: Int,
+    ): BrewWrappedResponse<BrewShowcaseAccessResponse>
+
+    @POST("api/v1/vod/coming-soon-waitlist")
+    suspend fun joinWaitlist(
+        @Body body: BrewJoinWaitlistRequest,
+    ): BrewWrappedResponse<BrewJoinWaitlistResponse>
 }

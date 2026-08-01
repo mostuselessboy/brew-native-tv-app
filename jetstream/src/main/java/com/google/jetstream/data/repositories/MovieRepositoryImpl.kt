@@ -29,6 +29,7 @@ import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.entities.ThumbnailType
 import com.google.jetstream.data.remote.BrewApiService
+import com.google.jetstream.data.remote.BrewVodApiService
 import com.google.jetstream.data.remote.BrewContentDataDto
 import com.google.jetstream.data.remote.BrewHomeSectionDto
 import com.google.jetstream.data.remote.BrewMappers.toCollectionSectionDetails
@@ -50,6 +51,7 @@ import kotlinx.coroutines.sync.withLock
 @Singleton
 class MovieRepositoryImpl @Inject constructor(
     private val brewApiService: BrewApiService,
+    private val brewVodApiService: BrewVodApiService,
 ) : MovieRepository {
 
     private val mutex = Mutex()
@@ -411,6 +413,20 @@ class MovieRepositoryImpl @Inject constructor(
 
     override suspend fun getCastMember(id: String): com.google.jetstream.data.remote.BrewCastMemberDetailDto? {
         return runCatching { brewApiService.getCastMember(id).data }.getOrNull()
+    }
+
+    override suspend fun getShowcaseAccess(userId: Int): com.google.jetstream.data.remote.BrewShowcaseAccessResponse? {
+        return runCatching { brewVodApiService.getShowcaseAccess(userId).data }.getOrNull()
+    }
+
+    override suspend fun joinWaitlist(
+        userId: Int,
+        campaignVersionId: Int,
+    ): Result<com.google.jetstream.data.remote.BrewJoinWaitlistResponse> = runCatching {
+        val response = brewVodApiService.joinWaitlist(
+            com.google.jetstream.data.remote.BrewJoinWaitlistRequest(userId, campaignVersionId)
+        )
+        response.data ?: throw IllegalStateException(response.message ?: "Could not join waitlist")
     }
 }
 

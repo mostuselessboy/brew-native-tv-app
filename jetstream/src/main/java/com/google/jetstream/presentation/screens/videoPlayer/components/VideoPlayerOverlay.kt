@@ -30,12 +30,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import android.view.KeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,25 +51,29 @@ fun VideoPlayerOverlay(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     isControlsVisible: Boolean = true,
-    focusRequester: FocusRequester = remember { FocusRequester() },
     showControls: () -> Unit = {},
+    onDismissControls: () -> Unit = {},
     centerButton: @Composable () -> Unit = {},
     centerControls: @Composable () -> Unit = {},
+    topControls: @Composable (() -> Unit)? = null,
     subtitles: @Composable () -> Unit = {},
     controls: @Composable () -> Unit = {}
 ) {
-    LaunchedEffect(isControlsVisible) {
-        if (isControlsVisible) {
-            focusRequester.requestFocus()
-        }
-    }
-
-    LaunchedEffect(isPlaying) {
-        showControls()
-    }
-
     Box(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (!isControlsVisible) return@onPreviewKeyEvent false
+                val native = event.nativeKeyEvent
+                if (native.keyCode == KeyEvent.KEYCODE_BACK &&
+                    native.action == KeyEvent.ACTION_DOWN
+                ) {
+                    onDismissControls()
+                    true
+                } else {
+                    false
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         AnimatedVisibility(isControlsVisible, Modifier, fadeIn(), fadeOut()) {
@@ -101,9 +106,21 @@ fun VideoPlayerOverlay(
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 56.dp)
-                        .padding(bottom = 32.dp, top = 8.dp)
+                        .padding(bottom = 24.dp, top = 4.dp)
                 ) {
                     controls()
+                }
+            }
+        }
+        if (topControls != null) {
+            AnimatedVisibility(
+                isControlsVisible,
+                Modifier.align(Alignment.TopCenter),
+                fadeIn(),
+                fadeOut(),
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 56.dp, vertical = 32.dp)) {
+                    topControls()
                 }
             }
         }
@@ -116,14 +133,16 @@ fun CinematicBackground(modifier: Modifier = Modifier) {
     Spacer(
         modifier.background(
             Brush.verticalGradient(
-                listOf(
-                    Color.Black.copy(alpha = 0.72f),
-                    Color.Transparent,
-                    Color.Transparent,
-                    Color.Black.copy(alpha = 0.92f),
-                )
-            )
-        )
+                colorStops = arrayOf(
+                    0f to Color.Black.copy(alpha = 0.94f),
+                    0.18f to Color.Black.copy(alpha = 0.42f),
+                    0.42f to Color.Transparent,
+                    0.58f to Color.Transparent,
+                    0.82f to Color.Black.copy(alpha = 0.48f),
+                    1f to Color.Black.copy(alpha = 0.97f),
+                ),
+            ),
+        ),
     )
 }
 

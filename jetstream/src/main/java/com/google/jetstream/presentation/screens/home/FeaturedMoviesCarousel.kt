@@ -48,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
@@ -157,6 +159,11 @@ fun FeaturedMoviesCarousel(
     padding: Padding,
     onMovieClick: (movie: Movie) -> Unit,
     goToVideoPlayer: (movie: Movie) -> Unit,
+    onMoreInfoClick: (movie: Movie) -> Unit = {},
+    onToggleReminder: (movie: Movie) -> Unit = {},
+    showcaseAccess: com.google.jetstream.data.remote.BrewShowcaseAccessResponse? = null,
+    optimisticReminderIds: Set<Int> = emptySet(),
+    isReminderSet: (Movie) -> Boolean = { false },
     modifier: Modifier = Modifier,
     primaryFocusRequester: FocusRequester? = null,
     secondaryFocusRequester: FocusRequester? = null,
@@ -184,9 +191,6 @@ fun FeaturedMoviesCarousel(
     fun openFeatured(movie: Movie) {
         onMovieClick(movie)
     }
-
-    @Suppress("UNUSED_PARAMETER")
-    val unusedPlayerNav = goToVideoPlayer
 
     LaunchedEffect(slideIndex) {
         onSlideIndexChange(slideIndex)
@@ -218,11 +222,30 @@ fun FeaturedMoviesCarousel(
                 label = "showcaseBackdrop",
                 modifier = Modifier.fillMaxSize(),
             ) { index ->
-                ShowcaseHeroBackdrop(
-                    posterUri = movies[index].posterUri,
-                    contentDescription = movies[index].name,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawBehind {
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFFFF9A4D).copy(alpha = 0.10f),
+                                        Color(0xFFFF7A2E).copy(alpha = 0.04f),
+                                        Color.Transparent,
+                                    ),
+                                    center = Offset(0f, 0f),
+                                    radius = size.width * 0.72f,
+                                ),
+                            )
+                        }
+                        .background(Color.Black),
+                ) {
+                    ShowcaseHeroBackdrop(
+                        posterUri = movies[index].posterUri,
+                        contentDescription = movies[index].name,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         },
         overlay = {
@@ -260,6 +283,12 @@ fun FeaturedMoviesCarousel(
                 sidebarFocusRequester = sidebarFocusRequester,
                 showBrewPlus = activeMovie.showBrewPlus,
                 onOpen = { openFeatured(activeMovie) },
+                goToVideoPlayer = goToVideoPlayer,
+                onMoreInfoClick = onMoreInfoClick,
+                onToggleReminder = onToggleReminder,
+                showcaseAccess = showcaseAccess,
+                optimisticReminderIds = optimisticReminderIds,
+                isReminderSet = isReminderSet,
                 movie = activeMovie,
             )
         },
@@ -276,10 +305,25 @@ private fun ShowcaseCopy(movie: Movie) {
                 modifier = Modifier.padding(bottom = 10.dp),
             )
         }
+        val dynamicTitleSize = when {
+            movie.name.length <= 10 -> 62.sp
+            movie.name.length <= 18 -> 52.sp
+            movie.name.length <= 28 -> 42.sp
+            else -> 34.sp
+        }
+        val dynamicTitleLine = when {
+            movie.name.length <= 10 -> 58.sp
+            movie.name.length <= 18 -> 48.sp
+            movie.name.length <= 28 -> 38.sp
+            else -> 30.sp
+        }
         Text(
             text = movie.name,
             color = Color.White,
-            style = ShowcaseHeroStyles.Title,
+            style = ShowcaseHeroStyles.Title.copy(
+                fontSize = dynamicTitleSize,
+                lineHeight = dynamicTitleLine,
+            ),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -321,10 +365,17 @@ private fun ShowcaseActionButtons(
     sidebarFocusRequester: FocusRequester?,
     showBrewPlus: Boolean,
     onOpen: () -> Unit,
+    goToVideoPlayer: (Movie) -> Unit,
+    onMoreInfoClick: (Movie) -> Unit,
+    onToggleReminder: (Movie) -> Unit,
+    showcaseAccess: com.google.jetstream.data.remote.BrewShowcaseAccessResponse?,
+    optimisticReminderIds: Set<Int>,
+    isReminderSet: (Movie) -> Boolean,
     movie: Movie,
 ) {
     var focusEnteredAt by remember { mutableLongStateOf(0L) }
-    val primaryCta = ShowcaseCta.primaryCta(movie)
+    val primaryCta = ShowcaseCta.primaryCta(movie, showcaseAccess)
+    val reminderSet = isReminderSet(movie)
 
     if (movie.isComingSoon) {
         Column(
@@ -335,7 +386,7 @@ private fun ShowcaseActionButtons(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ShowcaseFocusButton(
-                onClick = onOpen,
+                onClick = { onToggleReminder(movie) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(primaryFocusRequester)
@@ -358,13 +409,13 @@ private fun ShowcaseActionButtons(
                 fixedHeight = ShowcaseButtonHeight,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_bell_filled),
+                    painter = painterResource(if (reminderSet) R.drawable.ic_lucide_check else R.drawable.ic_bell_filled),
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = primaryCta.label,
+                    text = if (reminderSet) "Reminder set" else "Remind me",
                     style = ShowcaseCtaPrimaryStyle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -372,7 +423,7 @@ private fun ShowcaseActionButtons(
             }
 
             ShowcaseFocusButton(
-                onClick = onOpen,
+                onClick = { onMoreInfoClick(movie) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(secondaryFocusRequester)
@@ -413,7 +464,14 @@ private fun ShowcaseActionButtons(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ShowcaseFocusButton(
-            onClick = onOpen,
+            onClick = {
+                val label = primaryCta.label
+                if (label == "Watch Now" || label == "Watch for free") {
+                    goToVideoPlayer(movie)
+                } else {
+                    onOpen()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(primaryFocusRequester)
@@ -439,7 +497,7 @@ private fun ShowcaseActionButtons(
         }
 
         ShowcaseFocusButton(
-            onClick = onOpen,
+            onClick = { onMoreInfoClick(movie) },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(secondaryFocusRequester)

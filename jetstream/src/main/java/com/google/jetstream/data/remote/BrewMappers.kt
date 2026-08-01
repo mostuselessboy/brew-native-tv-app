@@ -117,6 +117,8 @@ object BrewMappers {
             } else {
                 null
             },
+            campaignId = this.id,
+            campaignVersionId = campaignVersionId,
         )
     }
 

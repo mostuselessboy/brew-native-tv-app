@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -91,7 +92,7 @@ private val PrimaryRailEntries = listOf(
         compactIcon = true,
     ),
     BrewRailEntry(screen = Screens.Search, iconRes = R.drawable.ic_lucide_search),
-    BrewRailEntry(screen = Screens.Favourites, iconRes = R.drawable.ic_lucide_bookmark),
+    BrewRailEntry(screen = Screens.Favourites, iconRes = R.drawable.ic_lucide_library),
 )
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -99,6 +100,7 @@ private val PrimaryRailEntries = listOf(
 fun DashboardNavigationDrawer(
     selectedRoute: String?,
     onNavigateTo: (Screens) -> Unit,
+    accountAvatarUrl: String? = null,
     modifier: Modifier = Modifier,
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
@@ -190,6 +192,7 @@ fun DashboardNavigationDrawer(
                 label = "Account",
                 selected = selectedRoute == Screens.Account(),
                 iconRes = R.drawable.ic_lucide_profile,
+                avatarUrl = accountAvatarUrl,
                 onClick = { onNavigateTo(Screens.Account) },
                 onRailFocus = onRailFocus,
                 onRailBlur = onRailBlur,
@@ -241,6 +244,7 @@ private fun BrewRailItem(
     onClick: () -> Unit,
     iconRes: Int,
     iconSize: Dp = IconSize,
+    avatarUrl: String? = null,
     onRailFocus: (Screens, Boolean) -> Unit = { _, _ -> },
     onRailBlur: (Screens) -> Unit = {},
     contentFocusRequester: FocusRequester? = null,
@@ -315,12 +319,26 @@ private fun BrewRailItem(
             ),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = label,
-                tint = tint,
-                modifier = Modifier.size(iconSize),
-            )
+            if (!avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(avatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = label,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(iconSize + 6.dp)
+                        .clip(CircleShape),
+                )
+            } else {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = label,
+                    tint = tint,
+                    modifier = Modifier.size(iconSize),
+                )
+            }
         }
     }
 }

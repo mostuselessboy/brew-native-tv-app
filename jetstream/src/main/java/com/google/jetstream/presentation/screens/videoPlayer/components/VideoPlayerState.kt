@@ -38,6 +38,10 @@ class VideoPlayerState(
     var isControlsVisible by mutableStateOf(true)
         private set
 
+    fun hideControls() {
+        isControlsVisible = false
+    }
+
     fun showControls(isPlaying: Boolean = true) {
         if (isPlaying) {
             updateControlVisibility()

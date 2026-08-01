@@ -105,6 +105,9 @@ fun App(
                             Screens.VideoPlayer.withArgs(movieId)
                         )
                     },
+                    goToSignIn = {
+                        navController.navigate(Screens.SignIn.withArgs("qr"))
+                    },
                     refreshScreenWithNewMovie = { movie ->
                         navController.navigate(
                             Screens.MovieDetails.withArgs(movie.id)

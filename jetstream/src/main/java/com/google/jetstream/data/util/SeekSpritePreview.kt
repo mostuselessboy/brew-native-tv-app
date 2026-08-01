@@ -69,6 +69,8 @@ object SeekSpritePreview {
         cdnZone: String,
         spriteWidth: Int = DEFAULT_SPRITE_WIDTH,
         spriteHeight: Int = DEFAULT_SPRITE_HEIGHT,
+        maxPreviewWidthPx: Int = MAX_PREVIEW_WIDTH_PX,
+        maxPreviewHeightPx: Int = 160,
     ): FramePreview? {
         val id = normalizeVideoId(videoId)
         if (id.isBlank() || durationSeconds <= 0) return null
@@ -82,16 +84,18 @@ object SeekSpritePreview {
         val frameH = spriteHeight.toFloat() / SPRITE_ROWS
         val aspect = frameW / frameH
 
-        var previewW = MAX_PREVIEW_WIDTH_PX.toFloat()
+        var previewW = maxPreviewWidthPx.toFloat()
         var previewH = previewW / aspect
-        if (previewH > 160f) {
-            previewH = 160f
+        if (previewH > maxPreviewHeightPx) {
+            previewH = maxPreviewHeightPx.toFloat()
             previewW = previewH * aspect
         }
 
         val scale = minOf(previewW / frameW, previewH / frameH)
-        val offsetX = -(col * frameW) * scale
-        val offsetY = -(row * frameH) * scale
+        val scaledFrameW = frameW * scale
+        val scaledFrameH = frameH * scale
+        val offsetX = kotlin.math.round(-(col * frameW) * scale)
+        val offsetY = kotlin.math.round(-(row * frameH) * scale)
 
         return FramePreview(
             spriteUrl = spriteUrl(cdnZone, id, spriteIndex),
@@ -100,9 +104,37 @@ object SeekSpritePreview {
             offsetY = offsetY,
             frameWidth = frameW,
             frameHeight = frameH,
-            previewWidth = frameW * scale,
-            previewHeight = frameH * scale,
+            previewWidth = scaledFrameW,
+            previewHeight = scaledFrameH,
             scale = scale,
         )
+    }
+
+    fun stripFrameTimes(
+        centerTimeSeconds: Double,
+        durationSeconds: Double,
+        frameCount: Int = 7,
+        stepSeconds: Double = 10.0,
+    ): List<Double> {
+        if (durationSeconds <= 0 || frameCount <= 0) return emptyList()
+        val centerIndex = frameCount / 2
+        return List(frameCount) { index ->
+            val offset = (index - centerIndex) * stepSeconds
+            (centerTimeSeconds + offset).coerceIn(0.0, durationSeconds)
+        }
+    }
+
+    fun spriteUrlsToWarm(
+        durationSeconds: Double,
+        videoId: String,
+        cdnZone: String,
+        maxSheets: Int = 32,
+    ): List<String> {
+        val id = normalizeVideoId(videoId)
+        if (id.isBlank() || durationSeconds <= 0) return emptyList()
+        val total = totalSpriteCount(durationSeconds).coerceAtLeast(1)
+        return (0 until minOf(total, maxSheets)).map { index ->
+            spriteUrl(cdnZone, id, index)
+        }
     }
 }

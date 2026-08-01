@@ -171,13 +171,13 @@ fun ShowcaseHeroBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.10f to contentBg,
-                0.20f to contentBg.copy(alpha = 0.98f),
-                0.34f to contentBg.copy(alpha = 0.82f),
-                0.48f to contentBg.copy(alpha = 0.52f),
-                0.60f to contentBg.copy(alpha = 0.22f),
-                0.72f to contentBg.copy(alpha = 0.06f),
-                0.82f to Color.Transparent,
+                0.08f to contentBg,
+                0.15f to contentBg.copy(alpha = 0.98f),
+                0.26f to contentBg.copy(alpha = 0.80f),
+                0.36f to contentBg.copy(alpha = 0.50f),
+                0.46f to contentBg.copy(alpha = 0.20f),
+                0.54f to contentBg.copy(alpha = 0.05f),
+                0.62f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -186,11 +186,11 @@ fun ShowcaseHeroBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.22f to contentBg.copy(alpha = 0.96f),
-                0.40f to contentBg.copy(alpha = 0.68f),
-                0.56f to contentBg.copy(alpha = 0.32f),
-                0.70f to contentBg.copy(alpha = 0.10f),
-                0.82f to Color.Transparent,
+                0.15f to contentBg.copy(alpha = 0.95f),
+                0.30f to contentBg.copy(alpha = 0.65f),
+                0.45f to contentBg.copy(alpha = 0.30f),
+                0.58f to contentBg.copy(alpha = 0.08f),
+                0.68f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -199,13 +199,13 @@ fun ShowcaseHeroBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.06f to contentBg.copy(alpha = 0.98f),
-                0.14f to contentBg.copy(alpha = 0.88f),
-                0.24f to contentBg.copy(alpha = 0.68f),
-                0.36f to contentBg.copy(alpha = 0.42f),
-                0.48f to contentBg.copy(alpha = 0.18f),
-                0.58f to contentBg.copy(alpha = 0.06f),
-                0.68f to Color.Transparent,
+                0.05f to contentBg.copy(alpha = 0.98f),
+                0.11f to contentBg.copy(alpha = 0.85f),
+                0.19f to contentBg.copy(alpha = 0.65f),
+                0.28f to contentBg.copy(alpha = 0.40f),
+                0.38f to contentBg.copy(alpha = 0.15f),
+                0.46f to contentBg.copy(alpha = 0.05f),
+                0.54f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -259,7 +259,7 @@ fun ShowcaseHeroBackdrop(
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .fillMaxHeight()
-                .fillMaxWidth(0.38f)
+                .fillMaxWidth(0.30f)
                 .background(horizontalBrush2),
         )
     }

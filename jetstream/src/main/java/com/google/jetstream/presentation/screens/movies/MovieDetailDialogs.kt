@@ -554,7 +554,7 @@ fun MovieDetailCastDialog(
                                 val annotatedAge = androidx.compose.ui.text.buildAnnotatedString {
                                     append("Age while filming ")
                                     withStyle(androidx.compose.ui.text.SpanStyle(color = Color(0xFFFFC15E))) {
-                                        append("\"$currentMovieName\"")
+                                        append(currentMovieName)
                                     }
                                     append(": $ageText")
                                 }
@@ -595,6 +595,10 @@ fun MovieDetailCastDialog(
                     val moviesList = remember(castDetails) {
                         (castDetails?.topWork.orEmpty() + castDetails?.upcomingWork.orEmpty())
                             .distinctBy { it.id ?: it.slug ?: it.title }
+                            .filter {
+                                val posterUrl = it.projectPoster ?: it.poster ?: it.posterUri ?: it.posterPath ?: it.thumbnail ?: it.backdrop ?: ""
+                                posterUrl.isNotBlank()
+                            }
                     }
 
                     if (moviesList.isNotEmpty()) {
@@ -629,60 +633,24 @@ fun MovieDetailCastDialog(
                             LazyRow(
                                 state = listState,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth().height(125.dp)
+                                modifier = Modifier.fillMaxWidth().height(95.dp)
                             ) {
                                 items(infiniteListSize) { index ->
                                     val movie = moviesList[index % moviesList.size]
                                     val posterUrl = movie.projectPoster ?: movie.poster ?: movie.posterUri ?: movie.posterPath ?: movie.thumbnail ?: movie.backdrop ?: ""
                                     
-                                    Column(
-                                        modifier = Modifier.width(60.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        if (posterUrl.isNotBlank()) {
-                                            AsyncImage(
-                                                model = ImageRequest.Builder(context)
-                                                    .data(com.google.jetstream.data.util.BrewImageUrl.forCast(posterUrl))
-                                                    .crossfade(true)
-                                                    .build(),
-                                                contentDescription = movie.title,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier
-                                                    .size(width = 60.dp, height = 90.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                                            )
-                                        } else {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(width = 60.dp, height = 90.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(Color(0xFF1E1E1E))
-                                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = (movie.title ?: "?").take(1).uppercase(),
-                                                    color = Color.White.copy(alpha = 0.3f),
-                                                    fontFamily = BrewTitle,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 20.sp
-                                                )
-                                            }
-                                        }
-
-                                        Spacer(modifier = Modifier.height(4.dp))
-
-                                        val roleText = movie.character ?: movie.role ?: movie.title ?: ""
-                                        Text(
-                                            text = roleText,
-                                            color = Color.White.copy(alpha = 0.7f),
-                                            fontFamily = BrewTitle,
-                                            fontWeight = FontWeight.Normal,
-                                            fontSize = 8.sp,
-                                            maxLines = 2,
-                                            textAlign = TextAlign.Center,
-                                            lineHeight = 10.sp
+                                    if (posterUrl.isNotBlank()) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(context)
+                                                .data(com.google.jetstream.data.util.BrewImageUrl.forCast(posterUrl))
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = movie.title,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(width = 60.dp, height = 90.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
                                         )
                                     }
                                 }
@@ -701,59 +669,23 @@ fun MovieDetailCastDialog(
                             )
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth().height(125.dp)
+                                modifier = Modifier.fillMaxWidth().height(95.dp)
                             ) {
                                 items(moviesList) { movie ->
                                     val posterUrl = movie.projectPoster ?: movie.poster ?: movie.posterUri ?: movie.posterPath ?: movie.thumbnail ?: movie.backdrop ?: ""
                                     
-                                    Column(
-                                        modifier = Modifier.width(60.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        if (posterUrl.isNotBlank()) {
-                                            AsyncImage(
-                                                model = ImageRequest.Builder(context)
-                                                    .data(com.google.jetstream.data.util.BrewImageUrl.forCast(posterUrl))
-                                                    .crossfade(true)
-                                                    .build(),
-                                                contentDescription = movie.title,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier
-                                                    .size(width = 60.dp, height = 90.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                                            )
-                                        } else {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(width = 60.dp, height = 90.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(Color(0xFF1E1E1E))
-                                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = (movie.title ?: "?").take(1).uppercase(),
-                                                    color = Color.White.copy(alpha = 0.3f),
-                                                    fontFamily = BrewTitle,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 20.sp
-                                                )
-                                            }
-                                        }
-
-                                        Spacer(modifier = Modifier.height(4.dp))
-
-                                        val roleText = movie.character ?: movie.role ?: movie.title ?: ""
-                                        Text(
-                                            text = roleText,
-                                            color = Color.White.copy(alpha = 0.7f),
-                                            fontFamily = BrewTitle,
-                                            fontWeight = FontWeight.Normal,
-                                            fontSize = 8.sp,
-                                            maxLines = 2,
-                                            textAlign = TextAlign.Center,
-                                            lineHeight = 10.sp
+                                    if (posterUrl.isNotBlank()) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(context)
+                                                .data(com.google.jetstream.data.util.BrewImageUrl.forCast(posterUrl))
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = movie.title,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(width = 60.dp, height = 90.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
                                         )
                                     }
                                 }
@@ -899,5 +831,88 @@ fun MovieDetailSynopsisDialog(
             )
         },
         dismissButton = {},
+    )
+}
+
+@OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalComposeUiApi::class,
+    ExperimentalTvMaterial3Api::class,
+)
+@Composable
+fun MovieDetailAccessDialog(
+    showDialog: Boolean,
+    title: String,
+    message: String,
+    showSignInButton: Boolean,
+    showBuyButton: Boolean,
+    onSignInClick: () -> Unit,
+    onBuyClick: () -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    StandardDialog(
+        showDialog = showDialog,
+        onDismissRequest = onDismissRequest,
+        shape = MovieDetailDialogShape,
+        containerColor = DialogSurface,
+        title = {
+            Text(
+                text = title,
+                fontFamily = BrewTitle,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Color.White,
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                fontFamily = BrewTitle,
+                fontSize = 13.sp,
+                color = DialogMuted,
+            )
+        },
+        confirmButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val focusRequester = remember { FocusRequester() }
+                LaunchedEffect(showDialog) {
+                    if (showDialog) {
+                        focusRequester.requestFocus()
+                    }
+                }
+                if (showSignInButton) {
+                    AccountsSectionDialogButton(
+                        text = "Sign In",
+                        shouldRequestFocus = false,
+                        onClick = {
+                            onDismissRequest()
+                            onSignInClick()
+                        },
+                        modifier = Modifier.focusRequester(focusRequester)
+                    )
+                }
+                if (showBuyButton) {
+                    AccountsSectionDialogButton(
+                        text = "View Purchase Options",
+                        shouldRequestFocus = false,
+                        onClick = {
+                            onDismissRequest()
+                            onBuyClick()
+                        },
+                        modifier = if (!showSignInButton) Modifier.focusRequester(focusRequester) else Modifier
+                    )
+                }
+                AccountsSectionDialogButton(
+                    text = "Cancel",
+                    shouldRequestFocus = !showSignInButton && !showBuyButton,
+                    onClick = onDismissRequest,
+                    modifier = if (!showSignInButton && !showBuyButton) Modifier.focusRequester(focusRequester) else Modifier
+                )
+            }
+        },
+        dismissButton = {}
     )
 }

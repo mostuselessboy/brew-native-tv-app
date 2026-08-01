@@ -11,9 +11,9 @@ import com.google.jetstream.data.playback.BrewExoPlayerFactory
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun rememberPlayer(context: Context): ExoPlayer {
-    val player = remember {
-        BrewExoPlayerFactory.buildPlayer(context).apply {
+fun rememberPlayer(context: Context, accessToken: String? = null): ExoPlayer {
+    val player = remember(accessToken) {
+        BrewExoPlayerFactory.buildPlayer(context, accessToken).apply {
             playWhenReady = true
             repeatMode = Player.REPEAT_MODE_OFF
         }

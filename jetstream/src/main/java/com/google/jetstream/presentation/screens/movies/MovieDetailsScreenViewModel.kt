@@ -11,6 +11,7 @@ import com.google.jetstream.data.remote.BrewCheckPurchaseResponse
 import com.google.jetstream.data.repositories.LibraryRepository
 import com.google.jetstream.data.repositories.MovieRepository
 import com.google.jetstream.data.repositories.PlaybackRepository
+import com.google.jetstream.data.playback.PlaybackProgressNotifier
 import com.google.jetstream.data.util.BrewWebUrls
 import com.google.jetstream.data.util.DetailCtaKind
 import com.google.jetstream.data.util.DetailPurchaseCta
@@ -30,6 +31,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class AccessDialogState(
+    val title: String,
+    val message: String,
+    val showSignInButton: Boolean,
+    val showBuyButton: Boolean
+)
+
 @HiltViewModel
 class MovieDetailsScreenViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -38,7 +46,16 @@ class MovieDetailsScreenViewModel @Inject constructor(
     private val playbackRepository: PlaybackRepository,
     private val playbackIntentStore: PlaybackIntentStore,
     private val authSessionStore: AuthSessionStore,
+    private val playbackProgressNotifier: PlaybackProgressNotifier,
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            playbackProgressNotifier.events.collect {
+                refreshAfterPlayback()
+            }
+        }
+    }
 
     private val _bookmarkState = MutableStateFlow<BookmarkUiState>(BookmarkUiState.Idle)
     val bookmarkState: StateFlow<BookmarkUiState> = _bookmarkState.asStateFlow()
@@ -62,6 +79,18 @@ class MovieDetailsScreenViewModel @Inject constructor(
 
     private val _castLoading = MutableStateFlow(false)
     val castLoading: StateFlow<Boolean> = _castLoading.asStateFlow()
+
+    private val _accessDialogState = MutableStateFlow<AccessDialogState?>(null)
+    val accessDialogState: StateFlow<AccessDialogState?> = _accessDialogState.asStateFlow()
+
+    private val _optimisticReminderSet = MutableStateFlow(false)
+    private val _reminderFeedback = MutableStateFlow<com.google.jetstream.presentation.common.BrewFeedbackMessage?>(null)
+    val reminderFeedback: StateFlow<com.google.jetstream.presentation.common.BrewFeedbackMessage?> =
+        _reminderFeedback.asStateFlow()
+
+    fun dismissAccessDialog() {
+        _accessDialogState.value = null
+    }
 
     fun loadCastMemberDetails(castMemberId: String) {
         viewModelScope.launch {
@@ -91,22 +120,42 @@ class MovieDetailsScreenViewModel @Inject constructor(
     private suspend fun loadMovie(rawId: String?) {
         val id = rawId?.let { Uri.decode(it) }?.trim()
         val peekPoster = id?.let { repository.peekMovieFromCatalog(it)?.posterUri }
+        _optimisticReminderSet.value = false
         _uiState.value = MovieDetailsScreenUiState.Loading(posterUri = peekPoster)
         if (id.isNullOrBlank()) {
             _uiState.value = MovieDetailsScreenUiState.Error
             return
         }
-        _uiState.value = runCatching { repository.getMovieDetails(movieId = id) }.fold(
+        runCatching { repository.getMovieDetails(movieId = id) }.fold(
             onSuccess = { details ->
-                val enriched = enrichWithPurchase(details)
-                loadBookmarkStatus(enriched.details, enriched.checkPurchase)
-                MovieDetailsScreenUiState.Done(
-                    movieDetails = enriched.details,
-                    checkPurchase = enriched.checkPurchase,
-                    purchaseLoading = enriched.purchaseLoading,
+                _uiState.value = MovieDetailsScreenUiState.Done(
+                    movieDetails = details,
+                    checkPurchase = null,
+                    purchaseLoading = true,
                 )
+                viewModelScope.launch {
+                    runCatching { enrichWithPurchase(details) }.fold(
+                        onSuccess = { enriched ->
+                            loadBookmarkStatus(enriched.details, enriched.checkPurchase)
+                            _uiState.value = MovieDetailsScreenUiState.Done(
+                                movieDetails = enriched.details,
+                                checkPurchase = enriched.checkPurchase,
+                                purchaseLoading = false,
+                            )
+                        },
+                        onFailure = {
+                            _uiState.value = MovieDetailsScreenUiState.Done(
+                                movieDetails = details,
+                                checkPurchase = null,
+                                purchaseLoading = false,
+                            )
+                        }
+                    )
+                }
             },
-            onFailure = { MovieDetailsScreenUiState.Error },
+            onFailure = {
+                _uiState.value = MovieDetailsScreenUiState.Error
+            },
         )
     }
 
@@ -127,25 +176,29 @@ class MovieDetailsScreenViewModel @Inject constructor(
             showYoutubeTrailerPopup(youtubeUrl)
             return
         }
+        _navigateToPlayer.tryEmit(details.id)
         viewModelScope.launch {
-            if (_playbackLoading.value) return@launch
-            _playbackLoading.value = true
             val userId = authSessionStore.currentUserId() ?: 0
-            val intent = playbackRepository.prepareTrailerPlayback(details, userId)
-            _playbackLoading.value = false
-            if (intent != null) {
+            playbackRepository.prepareTrailerPlayback(details, userId)?.let { intent ->
                 playbackIntentStore.set(intent)
-                _navigateToPlayer.tryEmit(details.id)
             }
         }
     }
 
     fun onExtraClick(details: MovieDetails, vodAssetId: Int, title: String) {
-        val userId = authSessionStore.currentUserId() ?: return
+        val userId = authSessionStore.currentUserId()
+        if (userId == null) {
+            _accessDialogState.value = AccessDialogState(
+                title = "Sign In Required",
+                message = "Please sign in to watch this bonus content.",
+                showSignInButton = true,
+                showBuyButton = false
+            )
+            return
+        }
         if (vodAssetId <= 0) return
+        _navigateToPlayer.tryEmit(details.id)
         viewModelScope.launch {
-            if (_playbackLoading.value) return@launch
-            _playbackLoading.value = true
             val result = playbackRepository.prepareDirectPlayback(
                 userId = userId,
                 cvName = details.cvName.ifBlank { details.id },
@@ -153,10 +206,15 @@ class MovieDetailsScreenViewModel @Inject constructor(
                 title = title,
                 campaignVersionId = details.campaignVersionId,
             )
-            _playbackLoading.value = false
             result.onSuccess { intent ->
                 playbackIntentStore.set(intent)
-                _navigateToPlayer.tryEmit(details.id)
+            }.onFailure {
+                _accessDialogState.value = AccessDialogState(
+                    title = "Purchase Required",
+                    message = "You need to purchase this title or subscribe to Brew+ to watch this content.",
+                    showSignInButton = false,
+                    showBuyButton = true
+                )
             }
         }
     }
@@ -227,6 +285,10 @@ class MovieDetailsScreenViewModel @Inject constructor(
             checkPurchase = enriched.checkPurchase,
             purchaseLoading = false,
         )
+    }
+
+    private fun refreshAfterPlayback() {
+        viewModelScope.launch { refreshPurchaseOnly() }
     }
 
     private fun showYoutubeTrailerPopup(url: String) {
@@ -302,8 +364,58 @@ class MovieDetailsScreenViewModel @Inject constructor(
         }
         when (slot.kind) {
             DetailCtaKind.ComingSoon,
-            DetailCtaKind.ComingSoonNotify -> showPurchaseQrPopup(details, slot)
+            DetailCtaKind.ComingSoonNotify -> toggleReminder(details)
             else -> onTrailerClick(details)
+        }
+    }
+
+    fun dismissReminderFeedback() {
+        _reminderFeedback.value = null
+    }
+
+    fun isReminderSet(details: MovieDetails): Boolean {
+        if (_optimisticReminderSet.value) return true
+        return details.purchaseCtaSlots.any { slot ->
+            (slot.kind == DetailCtaKind.ComingSoonNotify || slot.kind == DetailCtaKind.ComingSoon) &&
+                slot.sublabel == "Reminder set"
+        }
+    }
+
+    fun toggleReminder(details: MovieDetails) {
+        if (isReminderSet(details)) {
+            _reminderFeedback.value = com.google.jetstream.presentation.common.BrewFeedbackMessage(
+                title = "You're on the list",
+                message = "We'll let you know when this title is live.",
+            )
+            return
+        }
+        val userId = authSessionStore.currentUserId()
+        if (userId == null) {
+            _accessDialogState.value = AccessDialogState(
+                title = "Sign In Required",
+                message = "Please sign in to set a reminder for this title.",
+                showSignInButton = true,
+                showBuyButton = false
+            )
+            return
+        }
+        val campaignVersionId = details.campaignVersionId ?: return
+        _optimisticReminderSet.value = true
+        viewModelScope.launch {
+            val result = repository.joinWaitlist(userId, campaignVersionId)
+            result.onSuccess {
+                refreshPurchaseOnly()
+                _reminderFeedback.value = com.google.jetstream.presentation.common.BrewFeedbackMessage(
+                    title = "You're on the list",
+                    message = "We'll let you know when this title is live.",
+                )
+            }.onFailure {
+                _optimisticReminderSet.value = false
+                _reminderFeedback.value = com.google.jetstream.presentation.common.BrewFeedbackMessage(
+                    title = "Could not save your reminder",
+                    message = "Please try again.",
+                )
+            }
         }
     }
 
@@ -313,26 +425,27 @@ class MovieDetailsScreenViewModel @Inject constructor(
     ) {
         val userId = authSessionStore.currentUserId()
         if (userId == null) {
-            onTrailerClick(details)
+            _accessDialogState.value = AccessDialogState(
+                title = "Sign In Required",
+                message = "Please sign in to watch this title.",
+                showSignInButton = true,
+                showBuyButton = false
+            )
             return
         }
+        _navigateToPlayer.tryEmit(details.id)
         viewModelScope.launch {
-            if (_playbackLoading.value) return@launch
-            _playbackLoading.value = true
             val result = playbackRepository.prepareFeaturePlayback(
                 movie = details,
                 checkPurchase = checkPurchase,
                 userId = userId,
             )
-            _playbackLoading.value = false
             result.onSuccess { intent ->
                 playbackIntentStore.set(intent)
-                _navigateToPlayer.tryEmit(details.id)
             }.onFailure {
-                val userId = authSessionStore.currentUserId() ?: 0
-                playbackRepository.prepareTrailerPlayback(details, userId)?.let { trailer ->
+                val fallbackUserId = authSessionStore.currentUserId() ?: 0
+                playbackRepository.prepareTrailerPlayback(details, fallbackUserId)?.let { trailer ->
                     playbackIntentStore.set(trailer)
-                    _navigateToPlayer.tryEmit(details.id)
                 }
             }
         }

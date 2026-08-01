@@ -40,5 +40,13 @@ interface PlaybackRepository {
 
     suspend fun fetchSubscriptionPlans(country: String): List<MovieSubscriptionPlan>
 
+    suspend fun updateVideoSettings(
+        userId: Int,
+        vodAssetId: Int,
+        initialTimeSeconds: Double,
+        percentageWatched: Double,
+        watchTimeDelta: Double? = null,
+    ): Result<Unit>
+
     fun isWatchCta(kind: DetailCtaKind): Boolean
 }

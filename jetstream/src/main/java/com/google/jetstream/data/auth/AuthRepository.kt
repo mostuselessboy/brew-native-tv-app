@@ -78,6 +78,14 @@ class AuthRepository @Inject constructor(
 
     /** TV QR flow — uses dummy OTP after phone scan (tv-app parity). */
     suspend fun completeQrLogin(email: String?, phone: String?): AuthResult<BrewUser> {
+        if (isAuthenticated) {
+            when (val detailsResult = getUserDetails()) {
+                is AuthResult.Success -> return detailsResult
+                is AuthResult.Error -> {
+                    // Fall back to dummy OTP flow if fetching user details failed
+                }
+            }
+        }
         val identifier = when {
             !phone.isNullOrBlank() -> phone
             !email.isNullOrBlank() -> email

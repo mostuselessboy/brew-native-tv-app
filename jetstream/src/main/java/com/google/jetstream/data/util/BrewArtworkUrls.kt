@@ -62,4 +62,11 @@ object BrewArtworkUrls {
         return collectUrlList(appearance["horizontal_thumbnails"])
             .ifEmpty { collectUrlList(appearance["alternate_horizontal_background_art"]) }
     }
+
+    /** Alternate vertical art list — mirrors vod `collectAlternateVerticalSources`. */
+    fun verticalAlternatesFromAppearance(appearance: JsonObject?): List<String> {
+        if (appearance == null) return emptyList()
+        return collectUrlList(appearance["vertical_thumbnails"])
+            .ifEmpty { collectUrlList(appearance["alternate_vertical_background_art"]) }
+    }
 }

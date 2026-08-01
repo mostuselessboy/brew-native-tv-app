@@ -3,6 +3,7 @@ package com.google.jetstream.presentation.screens.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.jetstream.data.auth.AuthRepository
+import com.google.jetstream.data.auth.BrewUser
 import com.google.jetstream.data.auth.AuthSessionStore
 import com.google.jetstream.data.entities.LibraryItem
 import com.google.jetstream.data.entities.Movie
@@ -19,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
@@ -49,6 +51,8 @@ class DashboardViewModel @Inject constructor(
 
     private val _openPlayer = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val openPlayer: SharedFlow<String> = _openPlayer.asSharedFlow()
+
+    val currentUser: StateFlow<BrewUser?> = authSessionStore.currentUser
 
     private val catalogMemoryByRoute = mutableMapOf<String, CatalogTabMemory>()
 
@@ -130,16 +134,38 @@ class DashboardViewModel @Inject constructor(
     private var pendingRailScreen: Screens? = null
 
     fun playMovie(movie: Movie) {
+        _openPlayer.tryEmit(movie.id)
         viewModelScope.launch {
             playbackLauncher.launchMovie(movie)
-                .onSuccess { _openPlayer.tryEmit(it) }
+        }
+    }
+
+    fun playMovieOrNavigate(movie: Movie, navigateToDetails: (String) -> Unit) {
+        if (movie.isComingSoon) {
+            navigateToDetails(movie.id)
+            return
+        }
+        _openPlayer.tryEmit(movie.id)
+        viewModelScope.launch {
+            playbackLauncher.launchMovie(movie)
+                .onFailure {
+                    // Player screen will attempt fallback preparation.
+                }
         }
     }
 
     fun playLibraryItem(item: LibraryItem, openDetail: (String) -> Unit) {
+        when (item.clickAction) {
+            com.google.jetstream.data.util.LibraryClickAction.Nothing -> return
+            com.google.jetstream.data.util.LibraryClickAction.OpenMoviePage -> {
+                openDetail(item.movieId)
+                return
+            }
+            com.google.jetstream.data.util.LibraryClickAction.Play -> Unit
+        }
+        _openPlayer.tryEmit(item.movieId)
         viewModelScope.launch {
             playbackLauncher.launchLibraryItem(item)
-                .onSuccess { _openPlayer.tryEmit(it) }
                 .onFailure { error ->
                     if (error.message == "Open detail") {
                         openDetail(item.movieId)

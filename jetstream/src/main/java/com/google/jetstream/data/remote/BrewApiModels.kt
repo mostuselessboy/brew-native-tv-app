@@ -58,6 +58,7 @@ data class BrewHomeContentItemDto(
 @Serializable
 data class BrewContentDataDto(
     val id: Int? = null,
+    @SerialName("campaign_version_id") val campaignVersionId: Int? = null,
     @SerialName("project_id") val projectId: Int? = null,
     @SerialName("project_title") val projectTitle: String? = null,
     @SerialName("project_synopsis") val projectSynopsis: String? = null,

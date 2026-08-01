@@ -17,16 +17,17 @@
 package com.google.jetstream.presentation.screens.videoPlayer.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.media3.common.Player
 import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.data.entities.MovieDetails
 
+private val BrewAccentYellow = Color(0xFFFFC15E)
+
 /**
- * Netflix-style bottom chrome — title + seek bar only (no media-action sidebar).
- * Port of mobile-viewer `BottomControls` + `TopControls` title row.
+ * Bottom chrome — seek bar + time labels only (title/metadata live in top controls).
  */
 @Composable
 fun VideoPlayerControls(
@@ -34,41 +35,26 @@ fun VideoPlayerControls(
     movieDetails: MovieDetails,
     playback: PlaybackIntent?,
     focusRequester: FocusRequester,
+    holdSeekState: VideoPlayerHoldSeekState,
     onShowControls: () -> Unit = {},
+    onDismissControls: () -> Unit = {},
+    onStartHoldSeek: (NetflixSeekDirection) -> Unit = {},
+    onTapSeek: (NetflixSeekDirection) -> Unit = {},
+    onCommitHoldSeek: () -> Unit = {},
+    onCancelHoldSeek: () -> Unit = {},
+    onBumpSeekSpeed: (NetflixSeekDirection) -> Unit = {},
 ) {
-    val metaLine = buildString {
-        movieDetails.releaseYear.takeIf { it.isNotBlank() }?.let { append(it) }
-        if (isNotEmpty() && movieDetails.duration.isNotBlank() && movieDetails.duration != "—") {
-            append("  •  ")
-        }
-        if (movieDetails.duration.isNotBlank() && movieDetails.duration != "—") {
-            append(movieDetails.duration)
-        }
-    }
-
-    VideoPlayerMainFrame(
-        mediaTitle = {
-            VideoPlayerMediaTitle(
-                title = playback?.title?.takeIf { it.isNotBlank() } ?: movieDetails.name,
-                secondaryText = metaLine,
-                tertiaryText = "",
-                type = if (playback?.isTrailer == true) {
-                    VideoPlayerMediaTitleType.TRAILER
-                } else {
-                    VideoPlayerMediaTitleType.DEFAULT
-                },
-            )
-        },
-        mediaActions = null,
-        seeker = {
-            VideoPlayerSeeker(
-                player = player,
-                focusRequester = focusRequester,
-                bunnyVideoId = playback?.bunnyVideoId,
-                bunnyCdnZone = playback?.bunnyCdnZone,
-                onShowControls = onShowControls,
-            )
-        },
-        more = null
+    VideoPlayerSeeker(
+        player = player,
+        focusRequester = focusRequester,
+        holdSeekState = holdSeekState,
+        onShowControls = onShowControls,
+        onDismissControls = onDismissControls,
+        onStartHoldSeek = onStartHoldSeek,
+        onTapSeek = onTapSeek,
+        onCommitHoldSeek = onCommitHoldSeek,
+        onCancelHoldSeek = onCancelHoldSeek,
+        onBumpSeekSpeed = onBumpSeekSpeed,
+        progressColor = BrewAccentYellow,
     )
 }

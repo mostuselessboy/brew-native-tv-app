@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -31,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import com.google.jetstream.R
+import kotlinx.coroutines.delay
 import com.google.jetstream.data.entities.MovieDetails
 import com.google.jetstream.data.util.DetailPurchaseCta
 import com.google.jetstream.presentation.common.RibbonLabelBadge
@@ -92,6 +97,8 @@ fun MovieDetailShowcaseContent(
     onOpenLanguages: () -> Unit,
     isBookmarked: Boolean = false,
     onBookmarkClick: () -> Unit = {},
+    purchaseLoading: Boolean = false,
+    reminderSet: Boolean = false,
     modifier: Modifier = Modifier,
     overlay: @Composable BoxScope.() -> Unit = {},
     primaryFocusRequester: FocusRequester? = null,
@@ -100,6 +107,17 @@ fun MovieDetailShowcaseContent(
     val purchaseSlots = remember(movieDetails) { DetailPurchaseCta.primaryRowSlots(movieDetails) }
     val hasPurchaseCtas = purchaseSlots.isNotEmpty()
     val shortLine = movieDetails.tagline.takeIf { it.isNotBlank() }
+
+    var wasPurchaseLoading by remember { mutableStateOf(purchaseLoading) }
+    LaunchedEffect(purchaseLoading, hasPurchaseCtas) {
+        val loadingJustFinished = wasPurchaseLoading && !purchaseLoading
+        wasPurchaseLoading = purchaseLoading
+        if (loadingJustFinished && hasPurchaseCtas && primaryFocusRequester != null) {
+            delay(50)
+            runCatching { primaryFocusRequester.requestFocus() }
+        }
+    }
+
     val averageRating = movieDetails.averageRating
         ?: movieDetails.reviewSummary?.averageRating
         ?: 0.0
@@ -218,9 +236,14 @@ fun MovieDetailShowcaseContent(
                         .padding(top = 10.dp)
                         .focusGroup(),
                 ) {
-                    if (hasPurchaseCtas) {
+                    if (purchaseLoading) {
+                        MovieDetailSkeletonCtaRow(
+                            primaryFocusRequester = primaryFocusRequester,
+                        )
+                    } else if (hasPurchaseCtas) {
                         MovieDetailPurchaseCtaRow(
                             movie = movieDetails,
+                            reminderSet = reminderSet,
                             onPrimaryAction = onPrimaryCtaClick,
                             onSecondaryAction = onSecondaryCtaClick,
                             primaryFocusRequester = primaryFocusRequester,
@@ -235,8 +258,10 @@ fun MovieDetailShowcaseContent(
                         onShareClick = onShareClick,
                         isBookmarked = isBookmarked,
                         onBookmarkClick = onBookmarkClick,
-                        modifier = Modifier.padding(top = if (hasPurchaseCtas) 8.dp else 0.dp),
-                        firstItemFocusRequester = if (!hasPurchaseCtas) primaryFocusRequester else null,
+                        modifier = Modifier.padding(
+                            top = if (purchaseLoading || hasPurchaseCtas) 8.dp else 0.dp
+                        ),
+                        firstItemFocusRequester = if (!purchaseLoading && !hasPurchaseCtas) primaryFocusRequester else null,
                     )
                 }
             }

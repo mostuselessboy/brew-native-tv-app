@@ -6,6 +6,7 @@ import com.google.jetstream.data.auth.AuthSessionStore
 import com.google.jetstream.data.entities.LibraryItem
 import com.google.jetstream.data.entities.LibraryShelf
 import com.google.jetstream.data.entities.MyLibraryPage
+import com.google.jetstream.data.playback.PlaybackProgressNotifier
 import com.google.jetstream.data.repositories.LibraryRepository
 import com.google.jetstream.data.util.resolveUserAvatarDisplayUrl
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 class MyLibraryViewModel @Inject constructor(
     private val libraryRepository: LibraryRepository,
     private val authSessionStore: AuthSessionStore,
+    private val playbackProgressNotifier: PlaybackProgressNotifier,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MyLibraryUiState>(MyLibraryUiState.Loading)
@@ -28,6 +30,17 @@ class MyLibraryViewModel @Inject constructor(
 
     init {
         refresh()
+        viewModelScope.launch {
+            playbackProgressNotifier.events.collect {
+                refresh()
+            }
+        }
+    }
+
+    fun refreshIfPending() {
+        if (playbackProgressNotifier.consumePendingRefresh()) {
+            refresh()
+        }
     }
 
     fun refresh() {

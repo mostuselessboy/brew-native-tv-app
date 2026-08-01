@@ -13,6 +13,8 @@ object BrewWebUrls {
     fun moviePage(movie: MovieDetails): String =
         "$BASE/${movieSlug(movie)}"
 
+    fun shareSlug(slug: String): String = "$BASE/${slug.trim('/')}"
+
     fun share(movie: MovieDetails): String = moviePage(movie)
 
     fun rent(movie: MovieDetails): String = moviePage(movie)

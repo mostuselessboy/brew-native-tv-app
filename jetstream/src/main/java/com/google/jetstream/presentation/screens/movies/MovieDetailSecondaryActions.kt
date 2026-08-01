@@ -94,11 +94,11 @@ fun MovieDetailSecondaryActions(
         ) {
             Icon(
                 painter = painterResource(
-                    if (isBookmarked) R.drawable.ic_fa_bookmark else R.drawable.ic_lucide_bookmark,
+                    if (isBookmarked) R.drawable.ic_lucide_bookmark_filled else R.drawable.ic_lucide_bookmark,
                 ),
                 contentDescription = null,
-                tint = if (isBookmarked) MovieDetailTokens.AccentYellow else Color.White,
-                modifier = Modifier.size(17.dp),
+                tint = Color.White,
+                modifier = Modifier.size(16.dp),
             )
         }
         if (showShare) {

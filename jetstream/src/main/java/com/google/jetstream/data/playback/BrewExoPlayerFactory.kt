@@ -16,19 +16,25 @@ import com.google.jetstream.data.util.BunnyStream
 @UnstableApi
 object BrewExoPlayerFactory {
 
-    fun buildPlayer(context: Context): ExoPlayer {
+    fun buildPlayer(context: Context, accessToken: String? = null): ExoPlayer {
+        val headers = mutableMapOf(
+            "Referer" to BrewTrailerUrl.REFERER,
+            "Origin" to BrewTrailerUrl.ORIGIN,
+        )
+        if (!accessToken.isNullOrBlank()) {
+            headers["Authorization"] = "Bearer $accessToken"
+            headers["st-auth-mode"] = "header"
+        }
         val httpFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
-            .setDefaultRequestProperties(
-                mapOf(
-                    "Referer" to BrewTrailerUrl.REFERER,
-                    "Origin" to BrewTrailerUrl.ORIGIN,
-                ),
-            )
+            .setDefaultRequestProperties(headers)
         val dataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
+        val drmSessionManagerProvider = DefaultDrmSessionManagerProvider().apply {
+            setDrmHttpDataSourceFactory(httpFactory)
+        }
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
             .setDataSourceFactory(dataSourceFactory)
-            .setDrmSessionManagerProvider(DefaultDrmSessionManagerProvider())
+            .setDrmSessionManagerProvider(drmSessionManagerProvider)
 
         return ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)

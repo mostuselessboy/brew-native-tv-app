@@ -30,6 +30,9 @@ data class Movie(
     val isFreeTier: Boolean = false,
     val rentPriceFormatted: String? = null,
     val comingSoonHint: String? = null,
+    /** Numeric campaign id — used for showcase reminder_set_ids. */
+    val campaignId: Int? = null,
+    val campaignVersionId: Int? = null,
     /** Continue-watching progress (0–100) for tray / library cards. */
     val watchProgressPercent: Int? = null,
     /** VOD asset for direct resume playback from library / CW trays. */

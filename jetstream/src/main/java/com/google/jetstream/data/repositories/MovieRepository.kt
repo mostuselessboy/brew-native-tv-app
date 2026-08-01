@@ -50,5 +50,7 @@ interface MovieRepository {
     fun getBingeWatchDramas(): Flow<MovieList>
     fun getFavouriteMovies(): Flow<MovieList>
     suspend fun getCastMember(id: String): com.google.jetstream.data.remote.BrewCastMemberDetailDto?
+    suspend fun getShowcaseAccess(userId: Int): com.google.jetstream.data.remote.BrewShowcaseAccessResponse?
+    suspend fun joinWaitlist(userId: Int, campaignVersionId: Int): Result<com.google.jetstream.data.remote.BrewJoinWaitlistResponse>
 }
 

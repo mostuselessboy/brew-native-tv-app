@@ -30,6 +30,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.onPlaced
+import com.google.jetstream.data.util.SeekSpritePreview
 
 /**
  * Handles horizontal (Left & Right) D-Pad Keys and consumes the event(s) so that the focus doesn't
@@ -68,6 +69,70 @@ fun Modifier.handleDPadKeyEvents(
     }
 
     false
+}
+
+/**
+ * TV seek bar keys — tap left/right skips 10s; holding repeats enters scrub mode with seek-map steps.
+ */
+fun Modifier.handleSeekBarKeyEvents(
+    durationMs: Long,
+    scrubPositionMs: () -> Long,
+    onScrubPositionMs: (Long) -> Unit,
+    onScrubbingChange: (Boolean) -> Unit,
+    onTapSeek: (direction: Int) -> Unit,
+    onCommitScrub: (Long) -> Unit,
+    onShowControls: () -> Unit,
+    isScrubbing: () -> Boolean,
+    setPendingTap: (Boolean) -> Unit,
+    pendingTap: () -> Boolean,
+): Modifier = onPreviewKeyEvent { event ->
+    val native = event.nativeKeyEvent
+    val isHorizontal = when (native.keyCode) {
+        KeyEvent.KEYCODE_DPAD_LEFT,
+        KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT,
+        KeyEvent.KEYCODE_DPAD_RIGHT,
+        KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT,
+        -> true
+        else -> false
+    }
+    if (!isHorizontal || durationMs <= 0L) return@onPreviewKeyEvent false
+
+    val direction = when (native.keyCode) {
+        KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT -> -1
+        else -> 1
+    }
+
+    when (native.action) {
+        KeyEvent.ACTION_DOWN -> {
+            onShowControls()
+            if (native.repeatCount == 0) {
+                setPendingTap(true)
+                onScrubPositionMs(scrubPositionMs().coerceIn(0L, durationMs))
+            } else {
+                setPendingTap(false)
+                if (!isScrubbing()) {
+                    onScrubbingChange(true)
+                }
+                val durationSec = durationMs / 1000.0
+                val stepMs = (SeekSpritePreview.intervalForDuration(durationSec) * 1000.0).toLong()
+                    .coerceAtLeast(500L)
+                val next = (scrubPositionMs() + direction * stepMs).coerceIn(0L, durationMs)
+                onScrubPositionMs(next)
+            }
+            true
+        }
+        KeyEvent.ACTION_UP -> {
+            if (isScrubbing()) {
+                onCommitScrub(scrubPositionMs().coerceIn(0L, durationMs))
+                onScrubbingChange(false)
+            } else if (pendingTap()) {
+                onTapSeek(direction)
+                setPendingTap(false)
+            }
+            true
+        }
+        else -> false
+    }
 }
 
 /**
