@@ -31,7 +31,7 @@ fun MovieDetailInfoLines(
         if (genres.isNotEmpty()) {
             add(genres.joinToString(" • "))
         }
-    }.joinToString("       •       ")
+    }.joinToString("  •  ")
 
     if (combined.isBlank()) return
 

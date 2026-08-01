@@ -56,8 +56,8 @@ import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 
-private val CastAvatarSize = 120.dp
-private val CastCardWidth = 124.dp
+private val CastAvatarSize = 130.dp
+private val CastCardWidth = 134.dp
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalTvMaterial3Api::class)
 @Composable
@@ -111,7 +111,7 @@ private fun CastAndCrewItem(
     }
 
     val animatedScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.10f else 1.0f,
+        targetValue = if (isFocused) 1.15f else 1.0f,
         animationSpec = scaleAnimationSpec,
         label = "CastCardScale"
     )
@@ -132,8 +132,8 @@ private fun CastAndCrewItem(
             ),
             glow = ClickableSurfaceDefaults.glow(
                 focusedGlow = Glow(
-                    elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
-                    elevation = 12.dp,
+                    elevationColor = Color.White.copy(alpha = 0.50f),
+                    elevation = 20.dp,
                 ),
             ),
             colors = ClickableSurfaceDefaults.colors(
@@ -185,7 +185,7 @@ private fun CastAndCrewItem(
             color = Color.White,
             fontFamily = BrewTitle,
             fontWeight = FontWeight.Medium,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

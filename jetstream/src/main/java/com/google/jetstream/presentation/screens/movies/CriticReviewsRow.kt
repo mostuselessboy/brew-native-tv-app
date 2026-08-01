@@ -61,11 +61,10 @@ import com.google.jetstream.presentation.theme.BrewDisplay
 import com.google.jetstream.presentation.theme.BrewTitle
 
 private val CardShape = RoundedCornerShape(14.dp)
-private val CardWidth = 200.dp
-private val CardHeight = 168.dp
+private val CardWidth = 220.dp
+private val CardHeight = 190.dp
 private val CardGradientTop = Color(0xFF1C1C1E)
 private val CardGradientBottom = Color(0xFF0A0A0A)
-private val AccentLine = Color(0xFFFFC15E)
 
 /** Critic review cards — polished TV layout. */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -139,14 +138,14 @@ private fun CriticReviewCard(
                 shape = CardShape,
             ),
             focusedBorder = Border(
-                border = BorderStroke(1.2.dp, AccentLine.copy(alpha = 0.9f)),
+                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)),
                 shape = CardShape,
             ),
         ),
         glow = ClickableSurfaceDefaults.glow(
             focusedGlow = Glow(
-                elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
-                elevation = 12.dp,
+                elevationColor = Color.White.copy(alpha = 0.50f),
+                elevation = 20.dp,
             ),
         ),
         colors = ClickableSurfaceDefaults.colors(

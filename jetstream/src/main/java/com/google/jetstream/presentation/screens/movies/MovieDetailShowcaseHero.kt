@@ -93,10 +93,16 @@ fun MovieDetailShowcaseHero(
                     .widthIn(max = 420.dp),
                 verticalArrangement = Arrangement.Bottom,
             ) {
+                val dynamicTitleSize = when {
+                    movieDetails.name.length <= 10 -> 54.sp
+                    movieDetails.name.length <= 18 -> 46.sp
+                    movieDetails.name.length <= 28 -> 38.sp
+                    else -> 30.sp
+                }
                 Text(
                     text = movieDetails.name,
                     color = Color.White,
-                    style = ShowcaseHeroStyles.Title,
+                    style = ShowcaseHeroStyles.Title.copy(fontSize = dynamicTitleSize),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

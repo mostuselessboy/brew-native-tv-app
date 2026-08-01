@@ -136,8 +136,8 @@ fun AwardsFestivalsRow(
                     ),
                     glow = ClickableSurfaceDefaults.glow(
                         focusedGlow = Glow(
-                            elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
-                            elevation = 12.dp,
+                            elevationColor = Color.White.copy(alpha = 0.50f),
+                            elevation = 20.dp,
                         ),
                     ),
                     colors = ClickableSurfaceDefaults.colors(

@@ -20,37 +20,37 @@ internal object MovieDetailTokens {
     val CtaHalfRowRadius = 8.dp
     val CtaIconBoxRadius = 12.dp
 
-    val CtaFixedWidth = 216.dp
-    val CtaHalfRowFixedWidth = 216.dp
+    val CtaFixedWidth = 240.dp
+    val CtaHalfRowFixedWidth = 240.dp
 
     val CtaMinHeight = 38.dp
     val CtaHalfRowMinHeight = 36.dp
     val CtaSubscribeMinHeight = 38.dp
     val CtaHalfRowSubscribeMinHeight = 36.dp
 
-    val CtaPadH = 9.dp
-    val CtaPadTop = 6.dp
-    val CtaPadBottom = 2.dp
-    val CtaHalfRowPadTop = 8.dp
-    val CtaHalfRowPadBottom = 3.dp
+    val CtaPadH = 10.dp
+    val CtaPadTop = 12.dp
+    val CtaPadBottom = 10.dp
+    val CtaHalfRowPadTop = 12.dp
+    val CtaHalfRowPadBottom = 10.dp
 
     val CtaIconBox = 26.dp
     val CtaHalfRowIconBox = 30.dp
 
-    val CtaTitleSize = 12.sp
-    val CtaTitleLine = 15.sp
-    val CtaHalfRowTitleSize = 13.sp
-    val CtaHalfRowTitleLine = 16.sp
+    val CtaTitleSize = 14.sp
+    val CtaTitleLine = 17.sp
+    val CtaHalfRowTitleSize = 14.sp
+    val CtaHalfRowTitleLine = 17.sp
 
-    val CtaSublabelSize = 10.sp
-    val CtaSublabelLine = 13.sp
-    val CtaHalfRowSublabelSize = 9.sp
-    val CtaHalfRowSublabelLine = 12.sp
+    val CtaSublabelSize = 9.sp
+    val CtaSublabelLine = 12.sp
+    val CtaHalfRowSublabelSize = 8.sp
+    val CtaHalfRowSublabelLine = 11.sp
 
-    val CtaPriceSize = 16.sp
-    val CtaHalfRowPriceSize = 14.sp
-    val CtaPriceColumnWidth = 88.dp
-    val CtaHalfRowPriceColumnWidth = 76.dp
+    val CtaPriceSize = 13.sp
+    val CtaHalfRowPriceSize = 12.sp
+    val CtaPriceColumnWidth = 80.dp
+    val CtaHalfRowPriceColumnWidth = 70.dp
 
     /** Stacked subscribe wordmark — sized to fit CTA row without dominating. */
     val BrewPlusLogoWidth = 52.dp

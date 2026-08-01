@@ -149,7 +149,7 @@ fun BrewLandscapeMovieCard(
     }
 
     val focusedBorder = Border(
-        border = BorderStroke(1.2.dp, Color.White.copy(alpha = 0.9f)),
+        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)),
         shape = shape,
     )
     val surfaceBorder = when (style) {
@@ -172,8 +172,8 @@ fun BrewLandscapeMovieCard(
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         glow = ClickableSurfaceDefaults.glow(
             focusedGlow = Glow(
-                elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
-                elevation = 12.dp,
+                elevationColor = Color.White.copy(alpha = 0.30f),
+                elevation = 20.dp,
             ),
         ),
         colors = ClickableSurfaceDefaults.colors(

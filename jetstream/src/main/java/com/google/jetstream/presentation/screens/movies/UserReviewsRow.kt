@@ -160,8 +160,8 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
         ),
         glow = ClickableSurfaceDefaults.glow(
             focusedGlow = Glow(
-                elevationColor = Color(0xFFFFC15E).copy(alpha = 0.24f),
-                elevation = 12.dp,
+                elevationColor = Color.White.copy(alpha = 0.50f),
+                elevation = 20.dp,
             ),
         ),
         colors = ClickableSurfaceDefaults.colors(
@@ -228,7 +228,7 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                         fontSize = 16.sp,
                         lineHeight = 18.sp,
                         letterSpacing = (-0.4).sp,
-                        modifier = Modifier.padding(top = 6.dp, bottom = 3.dp),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 5.dp),
                     )
                 }
                 Text(
@@ -251,7 +251,7 @@ private fun ReviewAvatar(review: MovieReviewsAndRatings) {
 
     Box(
         modifier = Modifier
-            .size(ReviewAvatarSize + 6.dp)
+            .size(ReviewAvatarSize)
             .graphicsLayer { clip = false },
         contentAlignment = Alignment.TopStart,
     ) {
@@ -292,7 +292,6 @@ private fun ReviewAvatar(review: MovieReviewsAndRatings) {
                 tint = StirYellow,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .offset(x = 1.dp, y = 1.dp)
                     .size(VerifiedBadgeSize),
             )
         }

@@ -193,7 +193,7 @@ private fun DetailPurchaseCtaButton(
                     if (slot.showBrewPlusLogo) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Text(
                                 text = slot.title,
@@ -206,10 +206,14 @@ private fun DetailPurchaseCtaButton(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            BrewPlusCtaLogo(
-                                onYellowBackground = onYellow,
-                                compact = compact,
-                                stacked = false,
+                            Text(
+                                text = "Brew+",
+                                color = Color.Black,
+                                fontFamily = BrewTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = (titleSize.value - 2f).sp,
+                                letterSpacing = (-0.5).sp,
+                                maxLines = 1,
                             )
                         }
                     } else {
