@@ -129,7 +129,25 @@ fun VideoPlayerSeeker(
 
     val showThumbPreview = holdSeekState.isActive
 
-    val previewTimeSeconds = displayPositionMs / 1000.0
+    var lingerThumbPreview by remember { mutableStateOf(false) }
+    var lingerPreviewTimeSeconds by remember { mutableStateOf(0.0) }
+
+    LaunchedEffect(holdSeekState.isActive, displayPositionMs) {
+        if (holdSeekState.isActive) {
+            lingerThumbPreview = true
+            lingerPreviewTimeSeconds = displayPositionMs / 1000.0
+        } else if (lingerThumbPreview) {
+            delay(1_000)
+            lingerThumbPreview = false
+        }
+    }
+
+    val showSeekPreview = showThumbPreview || lingerThumbPreview
+    val previewTimeSeconds = if (holdSeekState.isActive) {
+        displayPositionMs / 1000.0
+    } else {
+        lingerPreviewTimeSeconds
+    }
 
     val timeLabel = formatTimeRemaining(
         currentMs = displayPositionMs,
@@ -198,8 +216,8 @@ fun VideoPlayerSeeker(
             onDismissControls = onDismissControls,
             onFocusChanged = { isSeekBarFocused = it },
             progressColor = progressColor,
-            showThumbPreview = showThumbPreview,
-            isSeeking = holdSeekState.isActive,
+            showThumbPreview = showSeekPreview,
+            isSeeking = holdSeekState.isActive || lingerThumbPreview,
             previewTimeSeconds = previewTimeSeconds,
             durationSeconds = durationSeconds,
             bunnyVideoId = bunnyVideoId,

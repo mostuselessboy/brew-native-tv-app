@@ -441,7 +441,6 @@ fun VideoPlayerScreenContent(
                 holdSeekState = holdSeekState,
                 enabled = {
                     !videoPlayerState.isControlsVisible &&
-                        !isBuffering &&
                         settingsDialog == VideoPlayerSettingsDialog.None
                 },
                 onStartHold = startHoldSeek,

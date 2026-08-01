@@ -42,7 +42,7 @@ enum class TransientPlayPauseIcon {
 }
 
 const val CHROMELESS_SEEK_SECONDS = 10
-private const val SEEK_WING_DISMISS_MS = 3_200L
+private const val SEEK_WING_DISMISS_MS = 4_200L
 
 class VideoPlayerFeedbackState(
     private val intervalSeconds: Int = CHROMELESS_SEEK_SECONDS,

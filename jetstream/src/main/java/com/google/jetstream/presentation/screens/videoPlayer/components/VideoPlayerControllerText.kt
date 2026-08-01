@@ -17,6 +17,7 @@
 package com.google.jetstream.presentation.screens.videoPlayer.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 
 private val TimeLabelWidth = 58.dp
+private val TimeLabelRowHeight = 48.dp
 
 @Composable
 fun VideoPlayerControllerText(
@@ -36,7 +38,9 @@ fun VideoPlayerControllerText(
     isRemaining: Boolean,
 ) {
     Box(
-        modifier = Modifier.width(TimeLabelWidth),
+        modifier = Modifier
+            .height(TimeLabelRowHeight)
+            .width(TimeLabelWidth),
         contentAlignment = if (isRemaining) Alignment.CenterStart else Alignment.CenterEnd,
     ) {
         Text(

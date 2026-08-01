@@ -77,14 +77,7 @@ object VideoPlayerTrackHelper {
         return heights.values.sortedByDescending { it.height }
     }
 
-    fun autoQualityLabel(player: Player, options: List<QualityTrackOption>): String {
-        val playingHeight = selectedVideoHeight(player)
-        return if (playingHeight != null && playingHeight > 0) {
-            "Auto-${resolutionLabel(playingHeight)}"
-        } else {
-            "Auto"
-        }
-    }
+    fun autoQualityLabel(player: Player, options: List<QualityTrackOption>): String = "Auto"
 
     private fun currentVideoHeight(player: Player, options: List<QualityTrackOption>): Int? =
         selectedVideoHeight(player) ?: selectedQualityHeight(player, options)
@@ -121,12 +114,7 @@ object VideoPlayerTrackHelper {
             return resolutionLabel(cappedHeight)
         }
 
-        val playingHeight = selectedVideoHeight(player)
-        return if (playingHeight != null && playingHeight > 0) {
-            "Auto-${resolutionLabel(playingHeight)}"
-        } else {
-            "Auto"
-        }
+        return "Auto"
     }
 
     private fun selectedVideoHeight(player: Player): Int? {

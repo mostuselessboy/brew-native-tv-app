@@ -61,6 +61,7 @@ private val BarRowHeightSeeking = 32.dp
 private val BarRowHeightFocused = 24.dp
 private val BarRowHeightDefault = 20.dp
 private val PreviewGapAboveThumb = 8.dp
+private val TrackRowSlotHeight = 48.dp // matches VideoPlayerSeeker's PlayPauseSlotSize
 
 private val PreviewTimestampBlockHeight = 37.dp
 
@@ -171,7 +172,7 @@ fun VideoPlayerProgressBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(barRowHeight),
+                    .height(TrackRowSlotHeight),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Canvas(

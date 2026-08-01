@@ -3,6 +3,7 @@ package com.google.jetstream.presentation.screens.videoPlayer.components
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -11,6 +12,10 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+
+private const val QUALITY_PILL_POLL_MS = 1_000L
 
 data class PlayerSettingsPillLabels(
     val subtitles: String,
@@ -48,6 +53,16 @@ fun rememberPlayerSettingsPillLabels(
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
+    }
+
+    // Backstop: some CDNs/manifests don't reliably trigger onTracksChanged /
+    // onVideoSizeChanged on every ABR switch, so poll as a cheap fallback to
+    // guarantee the pill never sits stale for more than ~1s.
+    LaunchedEffect(player, qualityOverride) {
+        while (isActive) {
+            delay(QUALITY_PILL_POLL_MS)
+            labels = buildPillLabels(player, qualityOverride)
+        }
     }
 
     return labels

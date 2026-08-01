@@ -96,10 +96,11 @@ fun SeekThumbPreview(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .width(previewWidthDp)
                 .height(previewHeightDp)
                 .clip(imageShape)
                 .background(PreviewImageBg),
+            contentAlignment = Alignment.TopStart,
         ) {
             SpriteFrameImage(
                 preview = preview,
@@ -327,23 +328,24 @@ private fun SpriteFrameImage(
     val previewHeight = with(density) { preview.previewHeight.toDp() }
     val sheetWidth = with(density) { (preview.sheetWidth * preview.scale).toDp() }
     val sheetHeight = with(density) { (preview.sheetHeight * preview.scale).toDp() }
-    val offsetX = with(density) { preview.offsetX.toDp() }
-    val offsetY = with(density) { preview.offsetY.toDp() }
 
     Box(
         modifier = Modifier
-            .width(previewWidth)
-            .height(previewHeight)
+            .size(previewWidth, previewHeight)
             .clip(RoundedCornerShape(cornerRadius)),
+        contentAlignment = Alignment.TopStart,
     ) {
         AsyncImage(
             model = spriteImageRequest(context, preview.spriteUrl),
             contentDescription = null,
-            contentScale = ContentScale.None,
+            alignment = Alignment.TopStart,
+            contentScale = ContentScale.FillBounds,
             modifier = Modifier
-                .width(sheetWidth)
-                .height(sheetHeight)
-                .offset(x = offsetX, y = offsetY),
+                .size(sheetWidth, sheetHeight)
+                .graphicsLayer {
+                    translationX = preview.offsetX
+                    translationY = preview.offsetY
+                },
         )
     }
 }
