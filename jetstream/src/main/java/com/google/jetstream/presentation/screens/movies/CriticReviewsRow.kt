@@ -61,8 +61,8 @@ import com.google.jetstream.presentation.theme.BrewDisplay
 import com.google.jetstream.presentation.theme.BrewTitle
 
 private val CardShape = RoundedCornerShape(14.dp)
-private val CardWidth = 220.dp
-private val CardHeight = 190.dp
+private val CardWidth = 196.dp
+private val CardHeight = 164.dp
 private val CardGradientTop = Color(0xFF1C1C1E)
 private val CardGradientBottom = Color(0xFF0A0A0A)
 
@@ -144,7 +144,7 @@ private fun CriticReviewCard(
         ),
         glow = ClickableSurfaceDefaults.glow(
             focusedGlow = Glow(
-                elevationColor = Color.White.copy(alpha = 0.50f),
+                elevationColor = Color.White.copy(alpha = 0.30f),
                 elevation = 20.dp,
             ),
         ),
@@ -181,9 +181,6 @@ private fun CriticReviewCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White.copy(alpha = 0.06f))
-                        .padding(vertical = 6.dp, horizontal = 10.dp)
                         .height(28.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -212,15 +209,15 @@ private fun CriticReviewCard(
                     fontFamily = BrewDisplay,
                     fontStyle = FontStyle.Italic,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 13.sp,
-                    lineHeight = 17.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(top = 10.dp, bottom = 8.dp),
+                        .padding(top = 8.dp, bottom = 6.dp),
                 )
 
                 Box(
@@ -231,7 +228,7 @@ private fun CriticReviewCard(
                             Brush.horizontalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    AccentLine.copy(alpha = 0.45f),
+                                    Color.White.copy(alpha = 0.15f),
                                     Color.Transparent,
                                 ),
                             ),
@@ -277,7 +274,7 @@ private fun CriticReviewCard(
                         ) {
                             Text(
                                 text = "Read article",
-                                color = AccentLine.copy(alpha = 0.85f),
+                                color = Color.White.copy(alpha = 0.55f),
                                 fontFamily = BrewTitle,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Medium,
@@ -285,7 +282,7 @@ private fun CriticReviewCard(
                             Icon(
                                 painter = painterResource(R.drawable.ic_lucide_external_link),
                                 contentDescription = null,
-                                tint = AccentLine.copy(alpha = 0.85f),
+                                tint = Color.White.copy(alpha = 0.55f),
                                 modifier = Modifier.size(10.dp),
                             )
                         }

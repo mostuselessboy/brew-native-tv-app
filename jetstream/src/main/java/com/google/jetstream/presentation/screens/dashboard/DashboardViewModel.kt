@@ -52,8 +52,18 @@ class DashboardViewModel @Inject constructor(
     var focusRestoreTarget: CatalogFocusRestoreTarget = CatalogFocusRestoreTarget.ShowcasePrimary
         private set
 
+    var lastFocusedSectionId: String? = null
+        private set
+    var lastFocusedMovieId: String? = null
+        private set
+
     fun rememberFocusTarget(target: CatalogFocusRestoreTarget) {
         focusRestoreTarget = target
+    }
+
+    fun saveFocusedItem(sectionId: String?, movieId: String?) {
+        lastFocusedSectionId = sectionId
+        lastFocusedMovieId = movieId
     }
 
     private var railNavigateJob: Job? = null

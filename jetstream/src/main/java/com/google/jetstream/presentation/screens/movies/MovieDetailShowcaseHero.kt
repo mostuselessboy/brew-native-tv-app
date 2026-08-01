@@ -66,7 +66,7 @@ fun MovieDetailShowcaseHero(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(ShowcaseHeight)
+            .height(MovieDetailTokens.DetailShowcaseHeight)
             .clipToBounds()
             .background(Color.Black),
     ) {
@@ -94,10 +94,10 @@ fun MovieDetailShowcaseHero(
                 verticalArrangement = Arrangement.Bottom,
             ) {
                 val dynamicTitleSize = when {
-                    movieDetails.name.length <= 10 -> 54.sp
-                    movieDetails.name.length <= 18 -> 46.sp
-                    movieDetails.name.length <= 28 -> 38.sp
-                    else -> 30.sp
+                    movieDetails.name.length <= 10 -> 40.sp
+                    movieDetails.name.length <= 18 -> 34.sp
+                    movieDetails.name.length <= 28 -> 28.sp
+                    else -> 24.sp
                 }
                 Text(
                     text = movieDetails.name,
@@ -113,8 +113,8 @@ fun MovieDetailShowcaseHero(
                         color = StirYellow,
                         fontFamily = BrewTitle,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        lineHeight = 16.sp,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
                         letterSpacing = (-0.35).sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -127,7 +127,21 @@ fun MovieDetailShowcaseHero(
                         averageRating = averageRating,
                         ratingCount = ratingCount,
                         modifier = Modifier.padding(top = 6.dp),
-                        starSize = 14.dp,
+                        starSize = 12.dp,
+                    )
+                }
+
+                if (movieDetails.description.isNotBlank()) {
+                    Text(
+                        text = movieDetails.description,
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontFamily = BrewTitle,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 6.dp),
                     )
                 }
 
@@ -164,7 +178,7 @@ fun MovieDetailShowcaseHero(
             Column(
                 modifier = Modifier
                     .weight(0.46f)
-                    .padding(start = 12.dp, bottom = 2.dp)
+                    .padding(start = 12.dp, bottom = 12.dp)
                     .widthIn(max = 340.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.Start,
@@ -175,19 +189,6 @@ fun MovieDetailShowcaseHero(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
-                    )
-                }
-
-                if (movieDetails.description.isNotBlank()) {
-                    Text(
-                        text = movieDetails.description,
-                        color = Color.White.copy(alpha = 0.82f),
-                        style = ShowcaseHeroStyles.Description.copy(
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                        ),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

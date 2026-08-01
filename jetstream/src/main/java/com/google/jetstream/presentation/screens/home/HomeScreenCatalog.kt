@@ -84,6 +84,9 @@ internal fun Catalog(
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
+    onMovieFocused: (sectionId: String, movieId: String) -> Unit = { _, _ -> },
+    lastFocusedSectionId: String? = null,
+    lastFocusedMovieId: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val childPadding = rememberChildPadding()
@@ -169,6 +172,10 @@ internal fun Catalog(
                                             onMovieClick(movie)
                                         }
                                     },
+                                    onMovieFocused = { movie ->
+                                        onMovieFocused("continue_watching", movie.id)
+                                    },
+                                    lastFocusedMovieId = if (lastFocusedSectionId == "continue_watching") lastFocusedMovieId else null,
                                     firstItemFocusRequester = continueWatchingFocus,
                                     leftFocusRequester = sidebarFocusRequester,
                                 )
@@ -221,6 +228,10 @@ internal fun Catalog(
                                     showIndexOverImage = section.showRanking ||
                                         section.type == HomeSectionType.Immersive,
                                     onMovieSelected = onMovieClick,
+                                    onMovieFocused = { movie ->
+                                        onMovieFocused(section.id, movie.id)
+                                    },
+                                    lastFocusedMovieId = if (lastFocusedSectionId == section.id) lastFocusedMovieId else null,
                                     onViewMoreClick = {
                                         onViewMoreClick(section.slug ?: section.id)
                                     },

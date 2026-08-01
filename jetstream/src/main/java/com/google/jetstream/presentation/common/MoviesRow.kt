@@ -20,10 +20,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.tv.material3.Border
+import androidx.tv.material3.Glow
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
@@ -86,6 +89,8 @@ fun MoviesRow(
     leftFocusRequester: FocusRequester? = null,
     deferCardMount: Boolean = false,
     deferCardMountDelayMs: Long = 280,
+    onMovieFocused: (Movie) -> Unit = {},
+    lastFocusedMovieId: String? = null,
 ) {
     val (lazyRow, defaultFirstItem) = remember { FocusRequester.createRefs() }
     val firstItem = firstItemFocusRequester ?: defaultFirstItem
@@ -97,6 +102,34 @@ fun MoviesRow(
         if (deferCardMount) {
             delay(deferCardMountDelayMs)
             cardsReady = true
+        }
+    }
+
+    val targetItem = remember { FocusRequester() }
+    LaunchedEffect(cardsReady, lastFocusedMovieId) {
+        if (cardsReady && lastFocusedMovieId != null) {
+            delay(160)
+            runCatching { targetItem.requestFocus() }
+        }
+    }
+
+    val lazyListState = rememberLazyListState()
+    val showLeftGradient by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 0
+        }
+    }
+    val showRightGradient by remember {
+        derivedStateOf {
+            val layoutInfo = lazyListState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems == 0) {
+                false
+            } else {
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+                lastVisibleItem == null || lastVisibleItem.index < totalItems - 1 || 
+                    (lastVisibleItem.index == totalItems - 1 && lastVisibleItem.offset + lastVisibleItem.size > layoutInfo.viewportEndOffset)
+            }
         }
     }
 
@@ -127,9 +160,10 @@ fun MoviesRow(
 
         Box(modifier = Modifier.fillMaxWidth()) {
             LazyRow(
+                state = lazyListState,
                 contentPadding = PaddingValues(start = startPadding, end = endPadding),
                 horizontalArrangement = Arrangement.spacedBy(
-                    if (showIndexOverImage) 8.dp else 10.dp,
+                    if (showIndexOverImage) 16.dp else 18.dp,
                 ),
                 modifier = Modifier
                     .focusRequester(lazyRow)
@@ -146,11 +180,19 @@ fun MoviesRow(
                     } else {
                         Modifier
                     }
-                    val focusModifier = itemModifier.focusProperties {
-                        if (index == 0 && leftFocusRequester != null) {
-                            left = leftFocusRequester
+                    val focusModifier = itemModifier
+                        .then(
+                            if (movie.id == lastFocusedMovieId) {
+                                Modifier.focusRequester(targetItem)
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .focusProperties {
+                            if (index == 0 && leftFocusRequester != null) {
+                                left = leftFocusRequester
+                            }
                         }
-                    }
 
                     if (!cardsReady) {
                         TrayCardPlaceholder(modifier = focusModifier)
@@ -164,6 +206,9 @@ fun MoviesRow(
                                 lazyRow.saveFocusedChild()
                                 onMovieSelected(movie)
                             },
+                            onFocused = {
+                                onMovieFocused(movie)
+                            },
                             modifier = focusModifier,
                         )
                     } else {
@@ -173,6 +218,9 @@ fun MoviesRow(
                             onClick = {
                                 lazyRow.saveFocusedChild()
                                 onMovieSelected(movie)
+                            },
+                            onFocused = {
+                                onMovieFocused(movie)
                             },
                             modifier = focusModifier,
                         )
@@ -192,34 +240,38 @@ fun MoviesRow(
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(TrayEdgeFadeWidth)
-                    .height(cardHeight)
-                    .background(
-                        Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0f to TrayEdgeFadeColor,
-                                1f to Color.Transparent,
+            if (showLeftGradient) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .width(TrayEdgeFadeWidth)
+                        .height(cardHeight)
+                        .background(
+                            Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0f to TrayEdgeFadeColor,
+                                    1f to Color.Transparent,
+                                ),
                             ),
                         ),
-                    ),
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .width(TrayEdgeFadeWidth)
-                    .height(cardHeight)
-                    .background(
-                        Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0f to Color.Transparent,
-                                1f to TrayEdgeFadeColor,
+                )
+            }
+            if (showRightGradient) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .width(TrayEdgeFadeWidth)
+                        .height(cardHeight)
+                        .background(
+                            Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,
+                                    1f to TrayEdgeFadeColor,
+                                ),
                             ),
                         ),
-                    ),
-            )
+                )
+            }
         }
     }
 }
@@ -251,6 +303,7 @@ private fun RankedMovieItem(
     showTitle: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onFocused: () -> Unit = {},
 ) {
     val isDoubleDigit = rank > 9
     val numberWidth = if (isDoubleDigit) 72.dp else 52.dp
@@ -280,6 +333,7 @@ private fun RankedMovieItem(
             movie = movie,
             showTitle = showTitle,
             onClick = onClick,
+            onFocused = onFocused,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(start = numberWidth * 0.78f)
@@ -309,12 +363,22 @@ private fun ViewMoreTrayCard(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(TrayCardShape),
         border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
+                shape = TrayCardShape,
+            ),
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
+                border = androidx.compose.foundation.BorderStroke(0.8.dp, Color.White.copy(alpha = 0.50f)),
                 shape = TrayCardShape,
             ),
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.08f),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color.White.copy(alpha = 0.30f),
+                elevation = 20.dp,
+            ),
+        ),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color(0xFF141414),
             focusedContainerColor = Color(0xFF1E1E1E),

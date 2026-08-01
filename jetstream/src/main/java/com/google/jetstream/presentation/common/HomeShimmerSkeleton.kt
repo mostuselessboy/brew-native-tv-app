@@ -191,7 +191,7 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(ShowcaseHeight)
+                    .height(com.google.jetstream.presentation.screens.movies.MovieDetailTokens.DetailShowcaseHeight)
                     .clip(RoundedCornerShape(10.dp))
                     .background(shimmerBrush(w)),
             )
@@ -206,7 +206,7 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
                     translationY = offsets[1].dp.toPx()
                 }
                 .padding(horizontal = padding.start)
-                .padding(top = 16.dp),
+                .padding(top = 22.dp),
         ) {
             val w = constraints.maxWidth.toFloat()
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -234,7 +234,7 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
                     translationY = offsets[2].dp.toPx()
                 }
                 .padding(start = padding.start)
-                .padding(top = 22.dp),
+                .padding(top = 30.dp),
         ) {
             val w = constraints.maxWidth.toFloat()
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -256,7 +256,7 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
                     translationY = offsets[3].dp.toPx()
                 }
                 .padding(start = padding.start)
-                .padding(top = 22.dp),
+                .padding(top = 30.dp),
         ) {
             val w = constraints.maxWidth.toFloat()
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -284,7 +284,7 @@ fun DetailsShimmerSkeleton(modifier: Modifier = Modifier) {
                     translationY = offsets[4].dp.toPx()
                 }
                 .padding(start = padding.start)
-                .padding(top = 22.dp),
+                .padding(top = 30.dp),
         ) {
             val w = constraints.maxWidth.toFloat()
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

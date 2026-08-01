@@ -90,6 +90,12 @@ fun DashboardScreen(
     val searchContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     var didStartupFocus by rememberSaveable { mutableStateOf(false) }
 
+    var showSplash by rememberSaveable { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(2200)
+        showSplash = false
+    }
+
     val contentFocusRequester = when (tabRoute) {
         Screens.Home(),
         Screens.BrewPlus(),
@@ -112,11 +118,13 @@ fun DashboardScreen(
     LaunchedEffect(isComingBackFromDifferentScreen) {
         if (!isComingBackFromDifferentScreen) return@LaunchedEffect
         kotlinx.coroutines.delay(120)
-        when (dashboardViewModel.focusRestoreTarget) {
-            CatalogFocusRestoreTarget.ShowcasePrimary ->
-                runCatching { homeShowcaseFocusRequester.requestFocus() }
-            CatalogFocusRestoreTarget.FirstTray ->
-                runCatching { homeFirstTrayFocusRequester.requestFocus() }
+        if (dashboardViewModel.lastFocusedMovieId == null) {
+            when (dashboardViewModel.focusRestoreTarget) {
+                CatalogFocusRestoreTarget.ShowcasePrimary ->
+                    runCatching { homeShowcaseFocusRequester.requestFocus() }
+                CatalogFocusRestoreTarget.FirstTray ->
+                    runCatching { homeFirstTrayFocusRequester.requestFocus() }
+            }
         }
         resetIsComingBackFromDifferentScreen()
     }
@@ -138,44 +146,54 @@ fun DashboardScreen(
         }
     }
 
-    BackPressHandledArea(onBackPressed = onBackPressed) {
-        DashboardNavigationDrawer(
-            selectedRoute = tabRoute,
-            onNavigateTo = ::navigateToTab,
-            onRailFocus = { screen, selected ->
-                dashboardViewModel.onRailItemFocused(screen, selected, ::navigateToTab)
-            },
-            onRailBlur = dashboardViewModel::onRailItemUnfocused,
-            contentFocusRequester = contentFocusRequester,
-            sidebarFocusRequester = sidebarFocusRequester,
-            modifier = Modifier.fillMaxSize().background(Color.Black),
-        ) {
-            Body(
-                tabTarget = tabTarget,
-                openMovieDetailsScreen = openMovieDetailsScreen,
-                openCollectionScreen = openCollectionScreen,
-                onPlayMovie = dashboardViewModel::playMovie,
-                onPlayLibraryItem = { item ->
-                    dashboardViewModel.playLibraryItem(item, openMovieDetailsScreen)
+    Box(modifier = Modifier.fillMaxSize()) {
+        BackPressHandledArea(onBackPressed = onBackPressed) {
+            DashboardNavigationDrawer(
+                selectedRoute = tabRoute,
+                onNavigateTo = ::navigateToTab,
+                onRailFocus = { screen, selected ->
+                    dashboardViewModel.onRailItemFocused(screen, selected, ::navigateToTab)
                 },
-                openSignInPhone = openSignInPhone,
-                openSignInEmail = openSignInEmail,
-                onBrowseHome = { navigateToTab(Screens.Home) },
-                onBrowseStore = { navigateToTab(Screens.Store) },
-                homeShowcaseFocusRequester = homeShowcaseFocusRequester,
-                homeFirstTrayFocusRequester = homeFirstTrayFocusRequester,
+                onRailBlur = dashboardViewModel::onRailItemUnfocused,
+                contentFocusRequester = contentFocusRequester,
                 sidebarFocusRequester = sidebarFocusRequester,
-                profileContentFocusRequester = profileContentFocusRequester,
-                libraryContentFocusRequester = libraryContentFocusRequester,
-                searchContentFocusRequester = searchContentFocusRequester,
-                activeTabRoute = tabTarget.route,
-                onOpenMovieFromTray = {
-                    dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.FirstTray)
-                },
-                onOpenMovieFromShowcase = {
-                    dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.ShowcasePrimary)
-                },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().background(Color.Black),
+            ) {
+                Body(
+                    tabTarget = tabTarget,
+                    openMovieDetailsScreen = openMovieDetailsScreen,
+                    openCollectionScreen = openCollectionScreen,
+                    onPlayMovie = dashboardViewModel::playMovie,
+                    onPlayLibraryItem = { item ->
+                        dashboardViewModel.playLibraryItem(item, openMovieDetailsScreen)
+                    },
+                    openSignInPhone = openSignInPhone,
+                    openSignInEmail = openSignInEmail,
+                    onBrowseHome = { navigateToTab(Screens.Home) },
+                    onBrowseStore = { navigateToTab(Screens.Store) },
+                    homeShowcaseFocusRequester = homeShowcaseFocusRequester,
+                    homeFirstTrayFocusRequester = homeFirstTrayFocusRequester,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                    profileContentFocusRequester = profileContentFocusRequester,
+                    libraryContentFocusRequester = libraryContentFocusRequester,
+                    searchContentFocusRequester = searchContentFocusRequester,
+                    activeTabRoute = tabTarget.route,
+                    onOpenMovieFromTray = {
+                        dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.FirstTray)
+                    },
+                    onOpenMovieFromShowcase = {
+                        dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.ShowcasePrimary)
+                    },
+                    onMovieFocused = dashboardViewModel::saveFocusedItem,
+                    lastFocusedSectionId = dashboardViewModel.lastFocusedSectionId,
+                    lastFocusedMovieId = dashboardViewModel.lastFocusedMovieId,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        if (showSplash) {
+            com.google.jetstream.presentation.screens.splash.BrewSplashScreen(
+                modifier = Modifier.fillMaxSize().zIndex(100f)
             )
         }
     }
@@ -242,6 +260,9 @@ private fun Body(
     activeTabRoute: String,
     onOpenMovieFromTray: () -> Unit,
     onOpenMovieFromShowcase: () -> Unit,
+    onMovieFocused: (sectionId: String, movieId: String) -> Unit,
+    lastFocusedSectionId: String?,
+    lastFocusedMovieId: String?,
     modifier: Modifier = Modifier,
 ) {
     val route = tabTarget.route
@@ -277,6 +298,9 @@ private fun Body(
                         firstRowFocusRequester = homeFirstTrayFocusRequester,
                         sidebarFocusRequester = sidebarFocusRequester,
                         isTabVisible = visible,
+                        onMovieFocused = onMovieFocused,
+                        lastFocusedSectionId = lastFocusedSectionId,
+                        lastFocusedMovieId = lastFocusedMovieId,
                     )
                 }
             }

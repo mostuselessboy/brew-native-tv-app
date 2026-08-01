@@ -14,6 +14,8 @@ import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.presentation.common.Error
 import com.google.jetstream.presentation.common.HomeShimmerSkeleton
 
+import com.google.jetstream.presentation.screens.splash.BrewSplashScreen
+
 @Composable
 fun HomeScreen(
     onMovieClick: (movie: Movie) -> Unit,
@@ -28,6 +30,9 @@ fun HomeScreen(
     sidebarFocusRequester: FocusRequester? = null,
     onShowcaseOpenMovie: () -> Unit = {},
     isTabVisible: Boolean = true,
+    onMovieFocused: (sectionId: String, movieId: String) -> Unit = { _, _ -> },
+    lastFocusedSectionId: String? = null,
+    lastFocusedMovieId: String? = null,
 ) {
     SideEffect { homeScreeViewModel.setPage(page) }
 
@@ -50,6 +55,9 @@ fun HomeScreen(
                     showcaseFocusRequester = showcaseFocusRequester,
                     firstRowFocusRequester = firstRowFocusRequester,
                     sidebarFocusRequester = sidebarFocusRequester,
+                    onMovieFocused = onMovieFocused,
+                    lastFocusedSectionId = lastFocusedSectionId,
+                    lastFocusedMovieId = lastFocusedMovieId,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

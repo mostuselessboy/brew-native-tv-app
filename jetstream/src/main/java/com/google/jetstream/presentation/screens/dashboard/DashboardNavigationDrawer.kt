@@ -53,6 +53,10 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import com.google.jetstream.R
 import com.google.jetstream.presentation.screens.Screens
+import com.google.jetstream.presentation.theme.BrewTitle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Text
 
 private const val WatchHiddenGemsUrl =
     "https://createstir.b-cdn.net/stir-static/watch-hidden-gems.png"
@@ -131,21 +135,24 @@ fun DashboardNavigationDrawer(
                         .clip(RoundedCornerShape(4.dp)),
                     contentScale = ContentScale.Fit,
                 )
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(
-                            BrewImageUrl.forWatchHiddenGems(
-                                WatchHiddenGemsUrl,
-                            ),
-                        )
-                        .size(80, 64)
-                        .crossfade(false)
-                        .build(),
-                    contentDescription = "Watch hidden gems",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .height(RailWordmarkHeight)
-                        .width(RailWordmarkWidth),
+                val pageName = when (selectedRoute) {
+                    Screens.Home() -> "Home"
+                    Screens.BrewPlus() -> "Brew Plus"
+                    Screens.Shorts() -> "Shorts"
+                    Screens.Store() -> "Store"
+                    Screens.Search() -> "Search"
+                    Screens.Favourites() -> "My Library"
+                    Screens.Profile() -> "Profile"
+                    else -> "Brew"
+                }
+                Text(
+                    text = pageName,
+                    color = Color.White,
+                    fontFamily = BrewTitle,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = 2.dp)
                 )
             }
 

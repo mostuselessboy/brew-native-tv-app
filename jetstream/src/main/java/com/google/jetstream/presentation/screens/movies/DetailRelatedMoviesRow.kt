@@ -28,7 +28,7 @@ import com.google.jetstream.presentation.common.BrewLandscapeMovieCard
 import com.google.jetstream.presentation.common.BrewMovieCardStyle
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 
-private val DetailRelatedCardGap = 12.dp
+private val DetailRelatedCardGap = 18.dp
 
 /** Detail-page related / also-watched rail — shared modular card styling. */
 @OptIn(ExperimentalComposeUiApi::class)

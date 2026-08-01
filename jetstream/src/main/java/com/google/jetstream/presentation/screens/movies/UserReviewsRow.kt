@@ -154,13 +154,13 @@ private fun UserReviewCard(review: MovieReviewsAndRatings) {
                 shape = ReviewCardShape,
             ),
             focusedBorder = Border(
-                border = BorderStroke(1.2.dp, Color.White.copy(alpha = 0.85f)),
+                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)),
                 shape = ReviewCardShape,
             ),
         ),
         glow = ClickableSurfaceDefaults.glow(
             focusedGlow = Glow(
-                elevationColor = Color.White.copy(alpha = 0.50f),
+                elevationColor = Color.White.copy(alpha = 0.30f),
                 elevation = 20.dp,
             ),
         ),

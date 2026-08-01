@@ -112,8 +112,8 @@ fun BrewLandscapeMovieCard(
 
     val targetScale = if (isFocused) {
         when (style) {
-            BrewMovieCardStyle.Tray -> 1.12f
-            BrewMovieCardStyle.Detail -> 1.10f
+            BrewMovieCardStyle.Tray -> 1.08f
+            BrewMovieCardStyle.Detail -> 1.06f
         }
     } else {
         1.0f

@@ -208,7 +208,7 @@ private fun Details(
                     onBookmarkClick = onBookmarkClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(ShowcaseHeight)
+                        .height(MovieDetailTokens.DetailShowcaseHeight)
                         .focusGroup()
                         .bringIntoViewIfChildrenAreFocused(),
                     overlay = {

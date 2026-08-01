@@ -20,8 +20,8 @@ internal object MovieDetailTokens {
     val CtaHalfRowRadius = 8.dp
     val CtaIconBoxRadius = 12.dp
 
-    val CtaFixedWidth = 240.dp
-    val CtaHalfRowFixedWidth = 240.dp
+    val CtaFixedWidth = 210.dp
+    val CtaHalfRowFixedWidth = 210.dp
 
     val CtaMinHeight = 38.dp
     val CtaHalfRowMinHeight = 36.dp
@@ -69,8 +69,9 @@ internal object MovieDetailTokens {
     const val BackdropParallaxFactor = 0.48f
     const val BackdropScale = 1.08f
     val TaglineSize = 16.sp
-    val SynopsisSize = 11.sp
+    val SynopsisSize = 10.sp
     val MetaSize = 12.sp
+    val DetailShowcaseHeight = 410.dp
     val SectionTitleSize = 17.sp
     val SectionTitleColor = Color(0xFFD1D5DB)
 

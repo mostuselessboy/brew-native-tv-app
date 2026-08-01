@@ -126,13 +126,13 @@ private fun CastAndCrewItem(
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
             border = ClickableSurfaceDefaults.border(
                 focusedBorder = Border(
-                    border = BorderStroke(1.2.dp, Color.White.copy(alpha = 0.9f)),
+                    border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)),
                     shape = CircleShape,
                 ),
             ),
             glow = ClickableSurfaceDefaults.glow(
                 focusedGlow = Glow(
-                    elevationColor = Color.White.copy(alpha = 0.50f),
+                    elevationColor = Color.White.copy(alpha = 0.30f),
                     elevation = 20.dp,
                 ),
             ),
@@ -184,8 +184,9 @@ private fun CastAndCrewItem(
             text = castMember.realName,
             color = Color.White,
             fontFamily = BrewTitle,
-            fontWeight = FontWeight.Medium,
-            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            letterSpacing = (-0.5).sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
