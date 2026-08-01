@@ -69,21 +69,27 @@ fun MovieDetailsScreen(
 
         is MovieDetailsScreenUiState.Done -> {
             val isBookmarked = (bookmarkState as? BookmarkUiState.Ready)?.isBookmarked == true
+            val onPrimaryCtaClick = remember(movieDetailsScreenViewModel, s.movieDetails, s.checkPurchase) {
+                { movieDetailsScreenViewModel.onPrimaryCtaClick(s.movieDetails, s.checkPurchase) }
+            }
+            val onSecondaryCtaClick = remember(movieDetailsScreenViewModel, s.movieDetails, s.checkPurchase) {
+                { movieDetailsScreenViewModel.onSecondaryCtaClick(s.movieDetails, s.checkPurchase) }
+            }
+            val onTrailerClick = remember(movieDetailsScreenViewModel, s.movieDetails) {
+                { movieDetailsScreenViewModel.onTrailerClick(s.movieDetails) }
+            }
+            val onBookmarkClick = remember(movieDetailsScreenViewModel, s.movieDetails) {
+                { movieDetailsScreenViewModel.toggleBookmark(s.movieDetails) }
+            }
             Details(
                 movieDetails = s.movieDetails,
-                onPrimaryCtaClick = {
-                    movieDetailsScreenViewModel.onPrimaryCtaClick(s.movieDetails, s.checkPurchase)
-                },
-                onSecondaryCtaClick = {
-                    movieDetailsScreenViewModel.onSecondaryCtaClick(s.movieDetails, s.checkPurchase)
-                },
-                onTrailerClick = {
-                    movieDetailsScreenViewModel.onTrailerClick(s.movieDetails)
-                },
+                onPrimaryCtaClick = onPrimaryCtaClick,
+                onSecondaryCtaClick = onSecondaryCtaClick,
+                onTrailerClick = onTrailerClick,
                 onBackPressed = onBackPressed,
                 refreshScreenWithNewMovie = refreshScreenWithNewMovie,
                 isBookmarked = isBookmarked,
-                onBookmarkClick = { movieDetailsScreenViewModel.toggleBookmark(s.movieDetails) },
+                onBookmarkClick = onBookmarkClick,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -210,8 +216,6 @@ private fun Details(
                         movieList = customersAlsoWatched,
                         onMovieSelected = refreshScreenWithNewMovie,
                         contentTopPadding = 2.dp,
-                        deferCardMount = true,
-                        deferCardMountDelayMs = 30,
                     )
                 }
             }
@@ -248,8 +252,6 @@ private fun Details(
                         title = "Related Movies",
                         movieList = relatedMovies,
                         onMovieSelected = refreshScreenWithNewMovie,
-                        deferCardMount = true,
-                        deferCardMountDelayMs = 90,
                     )
                 }
             }

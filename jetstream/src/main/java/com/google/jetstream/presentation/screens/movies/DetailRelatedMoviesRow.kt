@@ -77,9 +77,12 @@ fun DetailRelatedMoviesRow(
                 if (!cardsReady) {
                     TrayCardPlaceholder(modifier = cardModifier)
                 } else {
+                    val onCardClick = remember(movie, onMovieSelected) {
+                        { onMovieSelected(movie) }
+                    }
                     BrewLandscapeMovieCard(
                         movie = movie,
-                        onClick = { onMovieSelected(movie) },
+                        onClick = onCardClick,
                         style = BrewMovieCardStyle.Tray,
                         modifier = cardModifier,
                     )

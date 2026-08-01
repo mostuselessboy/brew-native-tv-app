@@ -102,14 +102,36 @@ fun BrewLandscapeMovieCard(
         BrewMovieCardStyle.Tray -> 17.sp
         BrewMovieCardStyle.Detail -> 15.sp
     }
-    val focusedScale = when (style) {
-        BrewMovieCardStyle.Tray -> 1.06f
-        BrewMovieCardStyle.Detail -> 1.04f
-    }
     val containerColor = when (style) {
         BrewMovieCardStyle.Tray -> Color.Black
         BrewMovieCardStyle.Detail -> Color.White.copy(alpha = 0.06f)
     }
+
+    var isFocused by remember { mutableStateOf(false) }
+
+    val targetScale = if (isFocused) {
+        when (style) {
+            BrewMovieCardStyle.Tray -> 1.15f
+            BrewMovieCardStyle.Detail -> 1.12f
+        }
+    } else {
+        1.0f
+    }
+
+    val scaleAnimationSpec = if (isFocused) {
+        spring<Float>(
+            dampingRatio = 0.76f,
+            stiffness = 380f
+        )
+    } else {
+        tween<Float>(durationMillis = 500, easing = LinearOutSlowInEasing)
+    }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = targetScale,
+        animationSpec = scaleAnimationSpec,
+        label = "MovieCardScale"
+    )
 
     val widthModifier = when {
         fillAvailableWidth -> Modifier.fillMaxWidth()
@@ -139,7 +161,7 @@ fun BrewLandscapeMovieCard(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(shape),
         border = surfaceBorder,
-        scale = ClickableSurfaceDefaults.scale(focusedScale = focusedScale),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = containerColor,
             focusedContainerColor = containerColor,
@@ -147,7 +169,15 @@ fun BrewLandscapeMovieCard(
         modifier = modifier
             .then(widthModifier)
             .aspectRatio(16f / 9f)
-            .onFocusChanged { if (it.isFocused) onFocused() },
+            .onFocusChanged { 
+                isFocused = it.isFocused
+                if (it.isFocused) onFocused() 
+            }
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
+            .zIndex(if (isFocused) 10f else 1f),
     ) {
         Box(
             modifier = Modifier
