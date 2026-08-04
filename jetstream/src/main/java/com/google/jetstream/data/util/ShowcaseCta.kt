@@ -10,7 +10,10 @@ data class ShowcasePrimaryCta(
 
 object ShowcaseCta {
 
-    fun primaryCta(movie: Movie): ShowcasePrimaryCta {
+    fun primaryCta(
+        movie: Movie,
+        showcaseAccess: com.google.jetstream.data.remote.BrewShowcaseAccessResponse? = null
+    ): ShowcasePrimaryCta {
         if (movie.isComingSoon) {
             val hint = movie.comingSoonHint?.trim().orEmpty()
             val label = when {
@@ -20,6 +23,17 @@ object ShowcaseCta {
             }
             return ShowcasePrimaryCta(label = label)
         }
+
+        val campaignId = movie.id.toIntOrNull()
+        val hasAccess = showcaseAccess?.let { access ->
+            (access.hasActiveSubscription && movie.showBrewPlus) ||
+            (campaignId != null && campaignId in access.campaignIds)
+        } ?: false
+
+        if (hasAccess) {
+            return ShowcasePrimaryCta(label = "Watch Now")
+        }
+
         val projectType = movie.projectType?.lowercase()?.trim().orEmpty()
         if (projectType == "short-film" || movie.isFreeTier) {
             return ShowcasePrimaryCta(label = "Watch for free")

@@ -17,40 +17,59 @@
 package com.google.jetstream.presentation.screens.videoPlayer.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.media3.common.Player
+import com.google.jetstream.data.playback.PlaybackIntent
 import com.google.jetstream.data.entities.MovieDetails
 
+private val BrewAccentYellow = Color(0xFFFFC15E)
+
 /**
- * Netflix-style bottom chrome — title + seek bar only (no media-action sidebar).
- * Port of mobile-viewer `BottomControls` + `TopControls` title row.
+ * Bottom chrome — seek bar + time labels only (title/metadata live in top controls).
  */
 @Composable
 fun VideoPlayerControls(
     player: Player,
     movieDetails: MovieDetails,
+    playback: PlaybackIntent?,
     focusRequester: FocusRequester,
-    onShowControls: () -> Unit = {},
+    holdSeekState: VideoPlayerHoldSeekState,
+    durationSeconds: Double = 0.0,
+    feedbackState: VideoPlayerFeedbackState? = null,
+    videoPlayerState: VideoPlayerState? = null,
+    isPlaying: Boolean = true,
+    onShowControls: (Boolean) -> Unit = {},
+    onDismissControls: () -> Unit = {},
+    onStartHoldSeek: (NetflixSeekDirection) -> Unit = {},
+    onTapSeek: (NetflixSeekDirection) -> Unit = {},
+    onCommitHoldSeek: () -> Unit = {},
+    onCancelHoldSeek: () -> Unit = {},
+    onBumpSeekSpeed: (NetflixSeekDirection) -> Unit = {},
 ) {
-    VideoPlayerMainFrame(
-        mediaTitle = {
-            VideoPlayerMediaTitle(
-                title = movieDetails.name,
-                secondaryText = movieDetails.releaseDate,
-                tertiaryText = movieDetails.director,
-                type = VideoPlayerMediaTitleType.DEFAULT
-            )
+    VideoPlayerSeeker(
+        player = player,
+        focusRequester = focusRequester,
+        holdSeekState = holdSeekState,
+        durationSeconds = durationSeconds,
+        bunnyVideoId = playback?.bunnyVideoId,
+        bunnyCdnZone = playback?.bunnyCdnZone,
+        feedbackState = feedbackState,
+        onShowControls = { playing ->
+            onShowControls(playing)
+            videoPlayerState?.notifyInteraction(playing)
         },
-        mediaActions = null,
-        seeker = {
-            VideoPlayerSeeker(
-                player = player,
-                focusRequester = focusRequester,
-                onShowControls = onShowControls,
-            )
+        onDismissControls = onDismissControls,
+        onStartHoldSeek = onStartHoldSeek,
+        onTapSeek = {
+            onTapSeek(it)
+            videoPlayerState?.notifyInteraction(isPlaying)
         },
-        more = null
+        onCommitHoldSeek = onCommitHoldSeek,
+        onCancelHoldSeek = onCancelHoldSeek,
+        onBumpSeekSpeed = onBumpSeekSpeed,
+        onInteraction = { videoPlayerState?.notifyInteraction(isPlaying) },
+        progressColor = BrewAccentYellow,
     )
 }

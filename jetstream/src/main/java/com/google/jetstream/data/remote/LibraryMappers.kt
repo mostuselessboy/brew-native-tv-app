@@ -7,6 +7,7 @@ import com.google.jetstream.data.entities.LibraryShelfId
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.entities.MyLibraryPage
 import com.google.jetstream.data.util.BrewArtworkUrls
+import com.google.jetstream.data.util.DailyRotatingArtwork
 import com.google.jetstream.data.util.LibraryCardStatus
 import com.google.jetstream.data.util.LibraryClickAction
 import com.google.jetstream.data.util.LibraryWatchProgress
@@ -100,7 +101,11 @@ internal object LibraryMappers {
         val slug = info.localizedCvName?.takeIf { it.isNotBlank() }
             ?: info.cvName?.takeIf { it.isNotBlank() }
             ?: return null
-        val poster = resolveLandscapePoster(info)
+        val poster = if (layout == LibraryCardLayout.Portrait) {
+            resolvePortraitPoster(info)
+        } else {
+            resolveLandscapePoster(info)
+        }
         val progress = LibraryWatchProgress.resolvePercentageWatched(watchProgress)
         val initialTime = LibraryWatchProgress.resolveInitialTimeSeconds(watchProgress)
         val episodeLabel = LibraryWatchProgress.formatEpisodeLabel(watchProgress)
@@ -144,10 +149,12 @@ internal object LibraryMappers {
             ?: info?.localizedCvName?.takeIf { it.isNotBlank() }
             ?: info?.cvName?.takeIf { it.isNotBlank() }
             ?: return null
-        val poster = projectPosterUrl?.takeIf { it.isNotBlank() }
-            ?: info?.projectPoster?.takeIf { it.isNotBlank() }
-            ?: resolvePortraitPoster(info)
-            ?: resolveLandscapePoster(info)
+        val poster = if (layout == LibraryCardLayout.Portrait) {
+            resolvePortraitPoster(info)
+        } else {
+            projectPosterUrl?.takeIf { it.isNotBlank() }
+                ?: resolveLandscapePoster(info)
+        }
         val title = info?.projectTitle?.takeIf { it.isNotBlank() }
             ?: projectTitle?.takeIf { it.isNotBlank() }
             ?: assetTitle?.takeIf { it.isNotBlank() }
@@ -169,21 +176,39 @@ internal object LibraryMappers {
 
     private fun resolveLandscapePoster(info: BrewLibraryCampaignInfoDto?): String {
         if (info == null) return ""
-        return listOfNotNull(
-            info.projectPoster?.takeIf { it.isNotBlank() },
-            BrewArtworkUrls.asUrl(info.appearance?.backgroundArt),
-            BrewArtworkUrls.firstUrl(info.appearance?.horizontalThumbnails),
-            BrewArtworkUrls.asUrl(info.appearance?.verticalBackgroundArt),
-            BrewArtworkUrls.firstUrl(info.appearance?.verticalThumbnails),
-        ).firstOrNull().orEmpty()
+        val appearance = info.appearance
+        val horizontalThumbs = BrewArtworkUrls.collectUrlList(appearance?.horizontalThumbnails)
+            .ifEmpty { BrewArtworkUrls.collectUrlList(appearance?.alternateHorizontalBackgroundArt) }
+        return DailyRotatingArtwork.pickDailyLandscape(
+            backgroundArtUrl = BrewArtworkUrls.asUrl(appearance?.backgroundArt),
+            horizontalThumbnails = horizontalThumbs,
+            fallback = info.projectPoster,
+        )
     }
 
-    private fun resolvePortraitPoster(info: BrewLibraryCampaignInfoDto?): String? {
-        if (info == null) return null
-        return listOfNotNull(
-            info.projectPoster?.takeIf { it.isNotBlank() },
-            BrewArtworkUrls.asUrl(info.appearance?.verticalBackgroundArt),
-            BrewArtworkUrls.firstUrl(info.appearance?.verticalThumbnails),
-        ).firstOrNull()
+    /**
+     * Portrait-first library art — daily-rotated vertical pool, then landscape pool, then poster.
+     * Mirrors vod-mono `resolvePortraitFirstCardArt` / `pickGridMoviePosterUri(..., 'portrait')`.
+     */
+    private fun resolvePortraitPoster(info: BrewLibraryCampaignInfoDto?): String {
+        if (info == null) return ""
+        val appearance = info.appearance
+        val verticalThumbs = BrewArtworkUrls.collectUrlList(appearance?.verticalThumbnails)
+            .ifEmpty { BrewArtworkUrls.collectUrlList(appearance?.alternateVerticalBackgroundArt) }
+        val verticalPick = DailyRotatingArtwork.pickDailyVertical(
+            verticalBackgroundArtUrl = BrewArtworkUrls.asUrl(appearance?.verticalBackgroundArt),
+            verticalThumbnails = verticalThumbs,
+            fallback = null,
+        )
+        if (verticalPick.isNotBlank()) return verticalPick
+
+        val horizontalThumbs = BrewArtworkUrls.collectUrlList(appearance?.horizontalThumbnails)
+            .ifEmpty { BrewArtworkUrls.collectUrlList(appearance?.alternateHorizontalBackgroundArt) }
+        val landscapePick = DailyRotatingArtwork.pickDailyLandscape(
+            backgroundArtUrl = BrewArtworkUrls.asUrl(appearance?.backgroundArt),
+            horizontalThumbnails = horizontalThumbs,
+            fallback = info.projectPoster,
+        )
+        return landscapePick
     }
 }

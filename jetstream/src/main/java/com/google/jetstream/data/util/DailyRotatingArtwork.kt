@@ -59,6 +59,26 @@ object DailyRotatingArtwork {
         return picked.ifBlank { normalizeUrl(fallback).orEmpty() }
     }
 
+    /** Hero/backdrop pick — next landscape alternate from the daily card selection. */
+    fun pickAlternateLandscape(
+        backgroundArtUrl: String?,
+        horizontalThumbnails: List<String> = emptyList(),
+        cardPick: String? = null,
+        fallback: String? = null,
+        nowMs: Long = System.currentTimeMillis(),
+    ): String {
+        val pool = buildLandscapePool(backgroundArtUrl, horizontalThumbnails)
+        if (pool.isEmpty()) return normalizeUrl(fallback).orEmpty()
+        if (pool.size == 1) return pool[0]
+        val cardUrl = normalizeUrl(cardPick)
+        val day = getUtcArtworkDay(nowMs)
+        val cardIndex = when {
+            cardUrl != null -> pool.indexOf(cardUrl).takeIf { it >= 0 } ?: (day % pool.size).toInt()
+            else -> (day % pool.size).toInt()
+        }
+        return pool[(cardIndex + 1) % pool.size]
+    }
+
     fun pickDailyVertical(
         verticalBackgroundArtUrl: String?,
         verticalThumbnails: List<String> = emptyList(),

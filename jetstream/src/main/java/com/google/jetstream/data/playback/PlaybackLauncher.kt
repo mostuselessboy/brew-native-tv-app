@@ -75,20 +75,12 @@ class PlaybackLauncher @Inject constructor(
         return when (pick.action) {
             EndScreenAction.Detail -> Result.failure(IllegalStateException("Open detail"))
             EndScreenAction.Trailer -> {
-                val url = pick.trailerUrl?.takeIf { it.isNotBlank() }
-                    ?: return if (userId != null) {
-                        launchFeatureBySlug(pick.slug, userId)
-                    } else {
-                        Result.failure(IllegalStateException("No trailer URL"))
-                    }
-                playbackIntentStore.set(
-                    PlaybackIntent(
-                        movieSlug = pick.slug,
-                        title = pick.title,
-                        hlsUrl = url,
-                        isTrailer = true,
-                    ),
-                )
+                val uid = userId ?: return Result.failure(IllegalStateException("Sign in to watch"))
+                val details = runCatching { movieRepository.getMovieDetails(pick.slug) }
+                    .getOrElse { return Result.failure(it) }
+                val intent = playbackRepository.prepareTrailerPlayback(details, uid)
+                    ?: return Result.failure(IllegalStateException("No trailer available"))
+                playbackIntentStore.set(intent)
                 Result.success(pick.slug)
             }
             EndScreenAction.Player -> {

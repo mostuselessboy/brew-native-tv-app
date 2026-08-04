@@ -79,11 +79,22 @@ internal fun Catalog(
     continueWatchingState: ContinueWatchingTrayState = ContinueWatchingTrayState.Hidden,
     onMovieClick: (movie: Movie) -> Unit,
     goToVideoPlayer: (movie: Movie) -> Unit,
+    onMoreInfoClick: (movie: Movie) -> Unit = {},
+    onToggleReminder: (movie: Movie) -> Unit = {},
     onViewMoreClick: (sectionId: String) -> Unit = {},
+    onTrayMovieOpen: () -> Unit = {},
     onShowcaseOpenMovie: () -> Unit = {},
+    showcaseAccess: com.google.jetstream.data.remote.BrewShowcaseAccessResponse? = null,
+    optimisticReminderIds: Set<Int> = emptySet(),
+    isReminderSet: (Movie) -> Boolean = { false },
     showcaseFocusRequester: FocusRequester? = null,
     firstRowFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
+    showcaseSlideIndex: Int = 0,
+    onShowcaseSlideChange: (Int) -> Unit = {},
+    onMovieFocused: (sectionId: String, movieId: String) -> Unit = { _, _ -> },
+    lastFocusedSectionId: String? = null,
+    lastFocusedMovieId: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val childPadding = rememberChildPadding()
@@ -103,19 +114,6 @@ internal fun Catalog(
     val showContinueWatchingSlot = continueWatchingState !is ContinueWatchingTrayState.Hidden
     val catalogItems = remember(sections, showContinueWatchingSlot) {
         buildCatalogItems(sections, showContinueWatchingSlot)
-    }
-    val rowOrdinalBySectionIndex = remember(sections) {
-        var ordinal = 0
-        buildMap {
-            sections.forEachIndexed { index, section ->
-                if (section.type == HomeSectionType.Row ||
-                    section.type == HomeSectionType.Immersive
-                ) {
-                    put(index, ordinal)
-                    ordinal++
-                }
-            }
-        }
     }
     val firstContentSectionIndex = remember(sections) {
         sections.indexOfFirst {
@@ -159,19 +157,22 @@ internal fun Catalog(
                                     modifier = Modifier.focusGroup(),
                                     movieList = continueWatchingState.movies,
                                     title = "Continue Watching",
-                                    subtitle = "Pick up where you left off",
+                                    subtitle = null,
                                     itemDirection = ItemDirection.Horizontal,
                                     showItemTitle = true,
                                     onMovieSelected = { movie ->
                                         if (movie.libraryClickAction == com.google.jetstream.data.util.LibraryClickAction.Play) {
                                             goToVideoPlayer(movie)
                                         } else {
+                                            onTrayMovieOpen()
                                             onMovieClick(movie)
                                         }
                                     },
+                                    onMovieFocused = { movie ->
+                                        onMovieFocused("continue_watching", movie.id)
+                                    },
+                                    lastFocusedMovieId = if (lastFocusedSectionId == "continue_watching") lastFocusedMovieId else null,
                                     firstItemFocusRequester = continueWatchingFocus,
-                                    upFocusRequester = firstRowFocus,
-                                    leftFocusRequester = sidebarFocusRequester,
                                 )
                             }
                         }
@@ -185,14 +186,20 @@ internal fun Catalog(
                                 FeaturedMoviesCarousel(
                                     movies = section.movies,
                                     padding = childPadding,
+                                    initialSlideIndex = showcaseSlideIndex,
+                                    onSlideIndexChange = onShowcaseSlideChange,
                                     onMovieClick = {
                                         onShowcaseOpenMovie()
                                         onMovieClick(it)
                                     },
                                     goToVideoPlayer = goToVideoPlayer,
+                                    onMoreInfoClick = onMoreInfoClick,
+                                    onToggleReminder = onToggleReminder,
+                                    showcaseAccess = showcaseAccess,
+                                    optimisticReminderIds = optimisticReminderIds,
+                                    isReminderSet = isReminderSet,
                                     primaryFocusRequester = showcasePrimaryFocus,
                                     secondaryFocusRequester = showcaseSecondaryFocus,
-                                    downFocusRequester = firstRowFocus,
                                     sidebarFocusRequester = sidebarFocusRequester,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -206,47 +213,33 @@ internal fun Catalog(
 
                             HomeSectionType.Immersive,
                             HomeSectionType.Row -> {
-                                val rowOrdinal = rowOrdinalBySectionIndex[sectionIndex] ?: 0
                                 val isFirstContentRow = sectionIndex == firstContentSectionIndex
-                                val deferCards = rowOrdinal >= 3
-                                val deferDelayMs = 120L + ((rowOrdinal - 3).coerceAtLeast(0) * 70L)
                                 MoviesRow(
                                     modifier = Modifier.focusGroup(),
                                     movieList = section.movies,
                                     title = section.title,
                                     titleStyle = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = 18.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        letterSpacing = (-0.15).sp,
+                                        color = Color.White,
+                                        letterSpacing = (-0.35).sp,
                                     ),
                                     itemDirection = ItemDirection.Horizontal,
                                     showIndexOverImage = section.showRanking ||
                                         section.type == HomeSectionType.Immersive,
-                                    onMovieSelected = onMovieClick,
+                                    onMovieSelected = { movie ->
+                                        onTrayMovieOpen()
+                                        onMovieClick(movie)
+                                    },
+                                    onMovieFocused = { movie ->
+                                        onMovieFocused(section.id, movie.id)
+                                    },
+                                    lastFocusedMovieId = if (lastFocusedSectionId == section.id) lastFocusedMovieId else null,
                                     onViewMoreClick = {
                                         onViewMoreClick(section.slug ?: section.id)
                                     },
-                                    deferCardMount = deferCards,
-                                    deferCardMountDelayMs = deferDelayMs,
                                     firstItemFocusRequester = if (isFirstContentRow) {
                                         firstRowFocus
-                                    } else {
-                                        null
-                                    },
-                                    upFocusRequester = if (isFirstContentRow) {
-                                        showcaseSecondaryFocus
-                                    } else {
-                                        null
-                                    },
-                                    downFocusRequester = if (
-                                        isFirstContentRow && showContinueWatchingSlot
-                                    ) {
-                                        continueWatchingFocus
-                                    } else {
-                                        null
-                                    },
-                                    leftFocusRequester = if (isFirstContentRow) {
-                                        sidebarFocusRequester
                                     } else {
                                         null
                                     },

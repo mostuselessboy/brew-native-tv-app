@@ -1,0 +1,280 @@
+# 2026-08-01T07:12:36.095361Z:
+test_suite_meta_data {
+  scheduled_test_case_count: 3
+}
+test_status: PASSED
+test_result {
+  test_case {
+    test_class: "BaselineProfileGenerator"
+    test_package: "com.google.jetstream.benchmark"
+    test_method: "startup"
+    start_time {
+      seconds: 1785567455
+      nanos: 32000000
+    }
+    end_time {
+      seconds: 1785568348
+      nanos: 852000000
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "additionaltestoutput.benchmark.message"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/managed_device_android_test_additional_output/nonminifiedrelease/tvApi34/additionaltestoutput.benchmark.message_com.google.jetstream.benchmark.BaselineProfileGenerator.startup.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "additionaltestoutput.benchmark.trace"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/managed_device_android_test_additional_output/nonminifiedrelease/tvApi34/BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/logcat-com.google.jetstream.benchmark.BaselineProfileGenerator-startup.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/cpuinfo"
+    }
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt"
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+  }
+  details {
+    key: "android.studio.display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark.outputDirPath"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output"
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt"
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+  }
+  details {
+    key: "android.studio.display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark.outputDirPath"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output"
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt"
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+  }
+  details {
+    key: "android.studio.display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark.outputDirPath"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output"
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt"
+  }
+  details {
+    key: "additionalTestOutputFile_BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt"
+  }
+  details {
+    key: "android.studio.display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark"
+    value: "BaselineProfileGenerator_startup\nTotal run time Ns: 893303010675.\nBaseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)\n\nTo copy the profile use:\nadb -e pull \"/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt\" .\n"
+  }
+  details {
+    key: "android.studio.v2display.benchmark.outputDirPath"
+    value: "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output"
+  }
+}
+test_result {
+  test_case {
+    test_class: "StartupBenchmark"
+    test_package: "com.google.jetstream.benchmark"
+    test_method: "startupNoCompilation"
+    start_time {
+      seconds: 1785568349
+      nanos: 517000000
+    }
+    end_time {
+      seconds: 1785568349
+      nanos: 524000000
+    }
+  }
+  test_status: IGNORED
+  error {
+    error_message: "org.junit.AssumptionViolatedException: got: <false>, expected: is <true>\n\tat org.junit.Assume.assumeThat(Assume.java:106)\n\tat org.junit.Assume.assumeTrue(Assume.java:50)\n\tat androidx.benchmark.macro.junit4.MacrobenchmarkRule$applyInternal$1.evaluate(MacrobenchmarkRule.kt:205)\n\tat androidx.test.rule.GrantPermissionRule$RequestPermissionStatement.evaluate(GrantPermissionRule.java:150)\n\tat org.junit.rules.RunRules.evaluate(RunRules.java:20)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)\n\tat org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat androidx.test.ext.junit.runners.AndroidJUnit4.run(AndroidJUnit4.java:162)\n\tat org.junit.runners.Suite.runChild(Suite.java:128)\n\tat org.junit.runners.Suite.runChild(Suite.java:27)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:137)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:115)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)\n\tat androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:463)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)\n"
+    error_type: "org.junit.AssumptionViolatedException"
+    stack_trace: "org.junit.AssumptionViolatedException: got: <false>, expected: is <true>\n\tat org.junit.Assume.assumeThat(Assume.java:106)\n\tat org.junit.Assume.assumeTrue(Assume.java:50)\n\tat androidx.benchmark.macro.junit4.MacrobenchmarkRule$applyInternal$1.evaluate(MacrobenchmarkRule.kt:205)\n\tat androidx.test.rule.GrantPermissionRule$RequestPermissionStatement.evaluate(GrantPermissionRule.java:150)\n\tat org.junit.rules.RunRules.evaluate(RunRules.java:20)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)\n\tat org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat androidx.test.ext.junit.runners.AndroidJUnit4.run(AndroidJUnit4.java:162)\n\tat org.junit.runners.Suite.runChild(Suite.java:128)\n\tat org.junit.runners.Suite.runChild(Suite.java:27)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:137)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:115)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)\n\tat androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:463)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)\n"
+  }
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/logcat-com.google.jetstream.benchmark.StartupBenchmark-startupNoCompilation.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "StartupBenchmark"
+    test_package: "com.google.jetstream.benchmark"
+    test_method: "startupBaselineProfile"
+    start_time {
+      seconds: 1785568349
+      nanos: 528000000
+    }
+    end_time {
+      seconds: 1785568349
+      nanos: 532000000
+    }
+  }
+  test_status: IGNORED
+  error {
+    error_message: "org.junit.AssumptionViolatedException: got: <false>, expected: is <true>\n\tat org.junit.Assume.assumeThat(Assume.java:106)\n\tat org.junit.Assume.assumeTrue(Assume.java:50)\n\tat androidx.benchmark.macro.junit4.MacrobenchmarkRule$applyInternal$1.evaluate(MacrobenchmarkRule.kt:205)\n\tat androidx.test.rule.GrantPermissionRule$RequestPermissionStatement.evaluate(GrantPermissionRule.java:150)\n\tat org.junit.rules.RunRules.evaluate(RunRules.java:20)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)\n\tat org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat androidx.test.ext.junit.runners.AndroidJUnit4.run(AndroidJUnit4.java:162)\n\tat org.junit.runners.Suite.runChild(Suite.java:128)\n\tat org.junit.runners.Suite.runChild(Suite.java:27)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:137)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:115)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)\n\tat androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:463)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)\n"
+    error_type: "org.junit.AssumptionViolatedException"
+    stack_trace: "org.junit.AssumptionViolatedException: got: <false>, expected: is <true>\n\tat org.junit.Assume.assumeThat(Assume.java:106)\n\tat org.junit.Assume.assumeTrue(Assume.java:50)\n\tat androidx.benchmark.macro.junit4.MacrobenchmarkRule$applyInternal$1.evaluate(MacrobenchmarkRule.kt:205)\n\tat androidx.test.rule.GrantPermissionRule$RequestPermissionStatement.evaluate(GrantPermissionRule.java:150)\n\tat org.junit.rules.RunRules.evaluate(RunRules.java:20)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)\n\tat org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat androidx.test.ext.junit.runners.AndroidJUnit4.run(AndroidJUnit4.java:162)\n\tat org.junit.runners.Suite.runChild(Suite.java:128)\n\tat org.junit.runners.Suite.runChild(Suite.java:27)\n\tat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\n\tat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\n\tat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:137)\n\tat org.junit.runner.JUnitCore.run(JUnitCore.java:115)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)\n\tat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)\n\tat androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:463)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)\n"
+  }
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/logcat-com.google.jetstream.benchmark.StartupBenchmark-startupBaselineProfile.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/cpuinfo"
+    }
+  }
+}
+output_artifact {
+  label {
+    label: "test-results.log"
+    namespace: "com.google.testing.platform.runtime.android.driver.AndroidInstrumentationDriver"
+  }
+  source_path {
+    path: "/Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/androidTest-results/managedDevice/nonminifiedrelease/tvApi34/testlog/test-results.log"
+  }
+  type: TEST_DATA
+  mime_type: "text/plain"
+}

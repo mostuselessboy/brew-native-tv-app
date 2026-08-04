@@ -27,6 +27,13 @@ interface BrewApiService {
         @Query("page") page: String = BrewPages.HOME,
     ): List<BrewHomeSectionDto>
 
+    /** Dice / surprise-me catalog for search suggestions. */
+    @GET("api/v1/vod/dice-data")
+    suspend fun getDiceData(
+        @Query("country") country: String = BrewPages.DEFAULT_COUNTRY,
+        @Query("lang") lang: String = "en",
+    ): List<BrewHomeSectionDto>
+
     @GET("api/v1/vod/home-sections/{sectionId}")
     suspend fun getHomeSectionById(
         @Path("sectionId") sectionId: String,
@@ -60,4 +67,19 @@ interface BrewApiService {
         @Query("limit") limit: Int = 5,
         @Query("country") country: String = BrewPages.DEFAULT_COUNTRY,
     ): BrewCommentsResponse
+
+    /** Cast member details endpoint. */
+    @GET("api/v1/vod/cast-member/{id}")
+    suspend fun getCastMember(
+        @Path("id") id: String,
+        @Query("lang") lang: String = "en",
+    ): BrewCastMemberProfileResponse
+
+    @GET("api/v1/vod/get-campaign-subtitles/{slug}")
+    suspend fun getCampaignSubtitles(
+        @Path("slug") slug: String,
+        @Query("season") season: Int? = null,
+        @Query("episode") episode: Int? = null,
+    ): BrewCampaignSubtitlesResponse
 }
+

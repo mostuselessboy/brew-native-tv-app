@@ -22,60 +22,84 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.media3.common.util.UnstableApi
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @androidx.annotation.OptIn(UnstableApi::class)
 class VideoPlayerState(
     @IntRange(from = 0)
     private val hideSeconds: Int,
+    private val scope: CoroutineScope,
 ) {
     var isControlsVisible by mutableStateOf(true)
         private set
 
-    fun showControls(isPlaying: Boolean = true) {
-        if (isPlaying) {
-            updateControlVisibility()
-        } else {
-            updateControlVisibility(seconds = Int.MAX_VALUE)
+    private var hideJob: Job? = null
+    private var interactionHoldCount = 0
+
+    fun hideControls() {
+        hideJob?.cancel()
+        isControlsVisible = false
+    }
+
+    /** Keep chrome visible while seeking, settings open, or a key is held. */
+    fun holdControlsVisible() {
+        interactionHoldCount++
+        hideJob?.cancel()
+        isControlsVisible = true
+    }
+
+    fun releaseControlsHold() {
+        interactionHoldCount = (interactionHoldCount - 1).coerceAtLeast(0)
+        if (interactionHoldCount == 0 && isControlsVisible) {
+            scheduleHide(hideSeconds)
         }
     }
 
-    private fun updateControlVisibility(seconds: Int = hideSeconds) {
+    fun showControls(isPlaying: Boolean = true) {
         isControlsVisible = true
-        channel.trySend(seconds)
+        if (interactionHoldCount > 0) {
+            hideJob?.cancel()
+            return
+        }
+        val seconds = if (isPlaying) hideSeconds else Int.MAX_VALUE
+        scheduleHide(seconds)
     }
 
-    private val channel = Channel<Int>(CONFLATED)
+    /** Reset the auto-hide timer after the last control interaction. */
+    fun notifyInteraction(isPlaying: Boolean = true) {
+        if (!isControlsVisible || interactionHoldCount > 0) return
+        val seconds = if (isPlaying) hideSeconds else Int.MAX_VALUE
+        scheduleHide(seconds)
+    }
 
-    @OptIn(FlowPreview::class)
-    suspend fun observe() {
-        channel.consumeAsFlow()
-            .debounce { it.toLong() * 1000 }
-            .collect { isControlsVisible = false }
+    private fun scheduleHide(seconds: Int) {
+        hideJob?.cancel()
+        if (seconds == Int.MAX_VALUE) return
+        hideJob = scope.launch {
+            delay(seconds * 1000L)
+            if (interactionHoldCount == 0) {
+                isControlsVisible = false
+            }
+        }
     }
 }
 
-/**
- * Create and remember a [VideoPlayerState] instance. Useful when trying to control the state of
- * the [VideoPlayerOverlay]-related composable.
- * @return A remembered instance of [VideoPlayerState].
- * @param hideSeconds How many seconds should the controls be visible before being hidden.
- * */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun rememberVideoPlayerState(
-    @IntRange(from = 0) hideSeconds: Int = 2
+    @IntRange(from = 0) hideSeconds: Int = 2,
 ): VideoPlayerState {
-    return remember {
+    val scope = rememberCoroutineScope()
+    return remember(hideSeconds, scope) {
         VideoPlayerState(
             hideSeconds = hideSeconds,
+            scope = scope,
         )
     }
-        .also { LaunchedEffect(it) { it.observe() } }
 }

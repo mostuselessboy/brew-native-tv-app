@@ -1,5 +1,6 @@
 package com.google.jetstream.presentation.screens.movies
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -74,15 +75,37 @@ fun MovieDetailStarRating(
 }
 
 @Composable
+fun BrewStarRatingRow(
+    rating: Double,
+    modifier: Modifier = Modifier,
+    starSize: Dp = 12.dp,
+    spacing: Dp = 2.dp,
+) {
+    val normalized = if (rating > 5) rating / 2.0 else rating
+    val fillRating = snapOutOf5ForStarFill(normalized)
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+    ) {
+        repeat(5) { index ->
+            BrewRatingStar(
+                fillAmount = (fillRating - index).coerceIn(0.0, 1.0),
+                size = starSize,
+            )
+        }
+    }
+}
+
+@Composable
 private fun BrewRatingStar(
     fillAmount: Double,
     size: Dp,
 ) {
     Box(
         modifier = Modifier
-            .size(size)
-            .padding(end = 2.dp),
-        contentAlignment = Alignment.Center,
+            .padding(end = 2.dp)
+            .size(size),
+        contentAlignment = Alignment.CenterStart,
     ) {
         Icon(
             imageVector = Icons.Filled.Star,

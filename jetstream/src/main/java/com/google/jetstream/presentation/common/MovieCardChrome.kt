@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,21 +47,25 @@ private const val FestivalWreath =
 
 enum class BadgeVariant { White, Yellow }
 
-/** Sales pitch first; else year • country — vod-frontend MovieCardInfoOverlay. */
+/** Sales pitch first; else year • country; else genres — vod-frontend MovieCardInfoOverlay. */
 fun movieCardMetaLine(movie: Movie): String {
     if (movie.description.isNotBlank()) return movie.description
-    return listOfNotNull(movie.year, movie.country)
+    val yearCountry = listOfNotNull(movie.year, movie.country)
         .filter { it.isNotBlank() }
+        .joinToString(" • ")
+    if (yearCountry.isNotBlank()) return yearCountry
+    return movie.genres
+        .filter { it.isNotBlank() }
+        .take(2)
         .joinToString(" • ")
 }
 
-/** Showcase meta: genre • year • duration — vod-frontend buildShowcaseInfoLine. */
+/** Showcase meta: genre • year • duration; when no pitch, year • country — vod-frontend. */
 fun showcaseInfoLine(movie: Movie): String {
-    return listOfNotNull(
-        movie.genres.firstOrNull(),
-        movie.year,
-        movie.duration,
-    ).filter { it.isNotBlank() }.joinToString("  •  ")
+    if (movie.description.isNotBlank()) return movie.description
+    return listOfNotNull(movie.year, movie.country)
+        .filter { it.isNotBlank() }
+        .joinToString("  •  ")
 }
 
 /** Top-left Store / Brew Plus + top-right vod_tag — cards only (not showcase). */
@@ -165,8 +170,17 @@ fun StatusBadge(
     ) {
         when {
             isFestival -> {
+                val context = LocalContext.current
+                val wreathRequest = remember(compact) {
+                    val px = if (compact) 24 else 32
+                    ImageRequest.Builder(context)
+                        .data(FestivalWreath)
+                        .size(px, px)
+                        .crossfade(false)
+                        .build()
+                }
                 AsyncImage(
-                    model = FestivalWreath,
+                    model = wreathRequest,
                     contentDescription = null,
                     modifier = Modifier.size(wreathSize),
                     contentScale = ContentScale.Fit,
@@ -251,11 +265,16 @@ fun CommerceChromeRow(
                     .padding(horizontal = plusHPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
+                val context = LocalContext.current
+                val plusWordmarkRequest = remember(compact) {
+                    ImageRequest.Builder(context)
                         .data(BrewPlusWordmark)
-                        .size(if (compact) 180 else 240, if (compact) 40 else 52)
-                        .build(),
+                        .size(if (compact) 90 else 120, if (compact) 20 else 28)
+                        .crossfade(false)
+                        .build()
+                }
+                AsyncImage(
+                    model = plusWordmarkRequest,
                     contentDescription = "Brew Plus",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier

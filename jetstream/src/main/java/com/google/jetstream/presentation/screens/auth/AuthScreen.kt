@@ -15,22 +15,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -43,20 +50,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.R
+import com.google.jetstream.data.auth.QrCodeGenerator
+import com.google.jetstream.data.auth.AuthCountries
 import com.google.jetstream.data.auth.AuthSignInMethod
 import com.google.jetstream.data.auth.AuthSignInStep
-import com.google.jetstream.data.auth.AuthValidation
-import com.google.jetstream.data.auth.QrCodeGenerator
-import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.common.Loading
 import com.google.jetstream.presentation.theme.BrewTitle
+import kotlinx.coroutines.delay
 
+private val AccentYellow = Color(0xFFFFC15E)
 private const val WatchHiddenGemsUrl =
     "https://createstir.b-cdn.net/stir-static/watch-hidden-gems.png"
 
@@ -86,8 +93,30 @@ fun AuthScreen(
         if (uiState.isSignedIn) onSignedIn()
     }
 
+    LaunchedEffect(uiState.method, uiState.step) {
+        if (uiState.method != AuthSignInMethod.Qr) {
+            delay(200)
+            if (uiState.step == AuthSignInStep.Input) {
+                runCatching { inputFormFocusRequester.requestFocus() }
+            } else {
+                keyboardController?.hide()
+                runCatching { otpFormContainerFocusRequester.requestFocus() }
+            }
+        } else {
+            delay(150)
+            runCatching { firstButtonFocusRequester.requestFocus() }
+        }
+    }
+
     if (uiState.isLoggingIn) {
-        Loading(modifier = Modifier.fillMaxSize())
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Loading(modifier = Modifier.size(50.dp))
+        }
         return
     }
 
@@ -95,6 +124,7 @@ fun AuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
+        contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
             model = ImageRequest.Builder(context)
@@ -108,8 +138,10 @@ fun AuthScreen(
 
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .width(680.dp)
+                .wrapContentHeight()
                 .background(
+                    Brush.verticalGradient(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Black.copy(alpha = 0.65f),
@@ -229,31 +261,258 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            uiState.errorMessage?.let { error ->
-                Text(
-                    text = error,
-                    color = Color(0xFFFF6B6B),
-                    fontFamily = BrewTitle,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .fillMaxWidth(0.7f),
-                )
+                            uiState.errorMessage?.let { error ->
+                                Text(
+                                    text = error,
+                                    color = Color(0xFFFF6B6B),
+                                    fontFamily = BrewTitle,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                AuthPrimaryButton(
+                                    label = "Send Code",
+                                    onClick = { viewModel.sendOtp() },
+                                    enabled = if (isEmail) uiState.email.isNotBlank() else uiState.phoneDigits.isNotBlank()
+                                )
+
+                                AuthSecondaryButton(
+                                    label = "Back to QR",
+                                    onClick = { viewModel.selectMethod(AuthSignInMethod.Qr) }
+                                )
+                            }
+                        }
+                    } else {
+                        // OTP Step
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            BrewAuthBrandRow()
+
+                            Text(
+                                text = "Enter Verification Code",
+                                color = Color.White,
+                                fontFamily = BrewTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                            )
+
+                            Text(
+                                text = "Sent to ${uiState.otpSentDisplay ?: "your device"}",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontFamily = BrewTitle,
+                                fontSize = 13.sp,
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            val otpLength = if (uiState.otpIssueChannel == AuthSignInMethod.Email) 6 else 4
+                            var isOtpKeyboardActive by remember { mutableStateOf(false) }
+
+                            Surface(
+                                onClick = {
+                                    isOtpKeyboardActive = true
+                                    runCatching { otpFormFocusRequester.requestFocus() }
+                                    keyboardController?.show()
+                                },
+                                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                colors = ClickableSurfaceDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                    focusedContainerColor = Color.White.copy(alpha = 0.05f),
+                                    contentColor = Color.White,
+                                    focusedContentColor = Color.White,
+                                ),
+                                modifier = Modifier
+                                    .wrapContentSize()
+                                    .focusRequester(otpFormContainerFocusRequester)
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(6.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        for (i in 0 until otpLength) {
+                                            val char = uiState.otp.getOrNull(i)?.toString() ?: ""
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(width = 40.dp, height = 50.dp)
+                                                    .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                                                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = char,
+                                                    color = Color.White,
+                                                    fontFamily = BrewTitle,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 22.sp,
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    BasicTextField(
+                                        value = uiState.otp,
+                                        onValueChange = { viewModel.updateOtp(it) },
+                                        readOnly = !isOtpKeyboardActive,
+                                        textStyle = androidx.compose.ui.text.TextStyle(color = Color.Transparent),
+                                        cursorBrush = SolidColor(Color.Transparent),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        modifier = Modifier
+                                            .size(width = (48 * otpLength).dp, height = 50.dp)
+                                            .focusRequester(otpFormFocusRequester)
+                                            .onKeyEvent { event ->
+                                                if (event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                                                    if (event.nativeKeyEvent.action == android.view.KeyEvent.ACTION_UP) {
+                                                        isOtpKeyboardActive = false
+                                                        keyboardController?.hide()
+                                                        runCatching { otpFormContainerFocusRequester.requestFocus() }
+                                                    }
+                                                    true
+                                                } else {
+                                                    false
+                                                }
+                                            }
+                                    )
+                                }
+                            }
+
+                            uiState.errorMessage?.let { error ->
+                                Text(
+                                    text = error,
+                                    color = Color(0xFFFF6B6B),
+                                    fontFamily = BrewTitle,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (uiState.resendCountdown > 0) {
+                                    Text(
+                                        text = "Resend in ${uiState.resendCountdown}s",
+                                        color = Color.White.copy(alpha = 0.4f),
+                                        fontFamily = BrewTitle,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.align(Alignment.CenterVertically)
+                                    )
+                                } else {
+                                    AuthSecondaryButton(
+                                        label = "Resend Code",
+                                        onClick = { viewModel.resendOtp() }
+                                    )
+                                }
+
+                                AuthSecondaryButton(
+                                    label = "Back to Input",
+                                    onClick = { viewModel.resetOtpStep() }
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {}
             }
         }
+    }
+}
 
-        Text(
-            text = "Need help signing in?\nContact support@brew.tv",
-            color = Color.White.copy(alpha = 0.45f),
-            fontFamily = BrewTitle,
-            fontSize = 13.sp,
-            textAlign = TextAlign.End,
-            lineHeight = 18.sp,
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun TVTextInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    keyboardType: KeyboardType,
+    containerFocusRequester: FocusRequester,
+    modifier: Modifier = Modifier,
+) {
+    val focusRequester = remember { FocusRequester() }
+    var isKeyboardActive by remember { mutableStateOf(false) }
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+
+    Surface(
+        onClick = {
+            isKeyboardActive = true
+            runCatching { focusRequester.requestFocus() }
+            keyboardController?.show()
+        },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.White.copy(alpha = 0.08f),
+            focusedContainerColor = Color.White.copy(alpha = 0.15f),
+            contentColor = Color.White,
+            focusedContentColor = Color.White,
+        ),
+        modifier = modifier
+            .height(48.dp)
+            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+            .focusRequester(containerFocusRequester)
+    ) {
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(40.dp),
-        )
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                readOnly = !isKeyboardActive,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = Color.White,
+                    fontFamily = BrewTitle,
+                    fontSize = 15.sp
+                ),
+                cursorBrush = SolidColor(AccentYellow),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                decorationBox = { innerTextField ->
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = placeholder,
+                                color = Color.White.copy(alpha = 0.35f),
+                                fontFamily = BrewTitle,
+                                fontSize = 15.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .onKeyEvent { event ->
+                        if (event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                            if (event.nativeKeyEvent.action == android.view.KeyEvent.ACTION_UP) {
+                                isKeyboardActive = false
+                                keyboardController?.hide()
+                                runCatching { containerFocusRequester.requestFocus() }
+                            }
+                            true
+                        } else {
+                            false
+                        }
+                    }
+            )
+        }
     }
 }
 
@@ -263,6 +522,7 @@ private fun BrewAuthBrandRow(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Image(
@@ -281,11 +541,7 @@ private fun BrewAuthBrandRow(modifier: Modifier = Modifier) {
         )
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(BrewImageUrl.forWatchHiddenGems(WatchHiddenGemsUrl))
-                .size(
-                    BrewImageUrl.WATCH_HIDDEN_GEMS_WIDTH,
-                    BrewImageUrl.WATCH_HIDDEN_GEMS_HEIGHT,
-                )
+                .data(WatchHiddenGemsUrl)
                 .crossfade(false)
                 .build(),
             contentDescription = "Watch hidden gems",
@@ -389,7 +645,7 @@ private fun QrOnboardingContent(
     onRefreshQr: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(56.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.Top,
@@ -400,9 +656,9 @@ private fun QrOnboardingContent(
         ) {
             OnboardingStepHeader(
                 step = 1,
-                text = "Use your phone or tablet's camera and point to this code, or go to brew.tv/tv2",
+                text = "Point your camera to this code, or go to brew.tv/tv2",
             )
-            Box(
+            Row(
                 modifier = Modifier
                     .padding(top = 16.dp)
                     .background(Color.White, RoundedCornerShape(22.dp))
@@ -454,7 +710,7 @@ private fun QrOnboardingContent(
         ) {
             OnboardingStepHeader(
                 step = 2,
-                text = "Confirm this code on your phone or tablet",
+                text = "Confirm this code on your device",
             )
             Row(
                 modifier = Modifier.padding(top = 24.dp),
@@ -490,8 +746,8 @@ private fun OnboardingStepHeader(step: Int, text: String) {
     Row(verticalAlignment = Alignment.Top) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp)),
+                .size(24.dp)
+                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -499,17 +755,17 @@ private fun OnboardingStepHeader(step: Int, text: String) {
                 color = Color.White,
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                fontSize = 11.sp,
             )
         }
         Text(
             text = text,
             color = Color.White.copy(alpha = 0.9f),
             fontFamily = BrewTitle,
-            fontSize = 18.sp,
-            lineHeight = 24.sp,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
             modifier = Modifier
-                .padding(start = 14.dp)
+                .padding(start = 8.dp)
                 .fillMaxWidth(),
         )
     }
@@ -775,7 +1031,7 @@ private fun AuthPrimaryButton(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = AccentYellow,
             focusedContainerColor = Color.White,
@@ -785,10 +1041,10 @@ private fun AuthPrimaryButton(
         modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.5f },
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
     }
 }
@@ -804,7 +1060,7 @@ private fun AuthSecondaryButton(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.White.copy(alpha = 0.1f),
             focusedContainerColor = Color.White.copy(alpha = 0.22f),
@@ -814,10 +1070,14 @@ private fun AuthSecondaryButton(
         modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.45f },
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            Text(text = label, fontFamily = BrewTitle, fontWeight = FontWeight.Medium, fontSize = 12.sp)
         }
     }
+}
+
+object AuthScreenRoute {
+    const val MethodBundleKey = "method"
 }

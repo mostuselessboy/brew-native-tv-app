@@ -1,0 +1,88 @@
+EXECUTING: /opt/homebrew/share/android-commandlinetools/platform-tools/adb -s emulator-5554 emu avd id
+CURRENT_WORKING_DIRECTORY: /Users/hamzarizvi/Desktop/native tv app
+START_TIME: 2026-08-01 12:26:41.140
+START_TIME-NANOS: 2026-08-01 12:26:41.140781000
+ENVIRONMENT:
+PATH=/Users/hamzarizvi/.gemini/antigravity-ide/bin:/Users/hamzarizvi/.antigravity-ide/antigravity-ide/bin:/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home/bin:/opt/homebrew/share/android-commandlinetools/platform-tools:/opt/homebrew/share/android-commandlinetools/emulator:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/hamzarizvi/.nvm/versions/node/v24.18.0/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin
+ANTIGRAVITY_EDITOR_APP_ROOT=/Applications/Antigravity IDE.app/Contents/Resources/app
+ANTIGRAVITY_LS_ADDRESS=localhost:63642
+ZDOTDIR=
+ANTIGRAVITY_CSRF_TOKEN=9b979cd6-f0c3-46d2-9963-913aaa6d49cf
+JAVA_MAIN_CLASS_86805=
+VSCODE_PYTHON_AUTOACTIVATE_GUARD=
+VSCODE_GIT_IPC_HANDLE=
+VSCODE_PID=78323
+ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+FPATH=/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions
+VSCODE_INJECTION=
+COLORTERM=
+VSCODE_PROFILE_INITIALIZED=
+JAVA_MAIN_CLASS_96844=
+LOGNAME=hamzarizvi
+JAVA_MAIN_CLASS_59935=
+VSCODE_GIT_ASKPASS_NODE=
+TERM_PROGRAM_VERSION=
+PWD=/Users/hamzarizvi/Desktop/native tv app
+VSCODE_NLS_CONFIG={"userLocale":"en-us","osLocale":"en-us","resolvedLanguage":"en","defaultMessagesFile":"/Applications/Antigravity IDE.app/Contents/Resources/app/out/nls.messages.json","locale":"en-us","availableLanguages":{}}
+GIT_ASKPASS=
+INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:
+NVM_CD_FLAGS=-q
+SHELL=/bin/zsh
+JAVA_MAIN_CLASS_81044=
+JAVA_MAIN_CLASS_8344=com.google.testing.platform.launcher.Launcher
+JAVA_MAIN_CLASS_86859=
+HOMEBREW_CELLAR=/opt/homebrew/Cellar
+JAVA_MAIN_CLASS_81525=
+JAVA_MAIN_CLASS_24595=
+VSCODE_CODE_CACHE_PATH=/Users/hamzarizvi/Library/Application Support/Antigravity IDE/CachedData/e0b7a2bcf575cfba10528c4e7c10bd3ce2d7769a
+TMPDIR=/var/folders/fd/65tlvhmx1h926f8y3q1zxlj40000gn/T/
+XPC_FLAGS=0x0
+__CF_USER_TEXT_ENCODING=0x1F5:0x0:0x0
+JAVA_MAIN_CLASS_37612=
+JAVA_MAIN_CLASS_54776=
+SHLVL=0
+JAVA_MAIN_CLASS_84287=
+JAVA_MAIN_CLASS_36242=
+ANTIGRAVITY_SOURCE_METADATA={"tool":{"conversationId":"3382b6d7-2305-420f-8495-7114286553ce","stepIndex":314,"toolCall":{"id":"5zgjwyjq","name":"run_command","argumentsJson":"{\"CommandLine\":\"./gradlew generateBaselineProfile\",\"Cwd\":\"/Users/hamzarizvi/Desktop/native tv app\",\"WaitMsBeforeAsync\":10000,\"toolAction\":\"Regenerating baseline profiles\",\"toolSummary\":\"Command execution\"}","thinkingSignature":"EsoGCscGARFNMg9ByAsFbTDXU7MxAivY27wTh3b9mFiS5Fj9X6d96IYPHyW8B65Vdt7j8IUwQOLhZNRfQuI7AhUBAWGDP8T2gobxfodGOf4+L4rhY3oFo6WJhOByPiCX4TyJoTQ1rFRIf9wimMDFnt+RFkJy7dZlxCK9iD0Wi6fAajyCtxKstyEiZ26Nu97m/KysxvgjDU1emt5pBUjG/15eRnMw+x8Uw+xgT0qIIRCLcV92fB8jwKRraDCsitOf8jNyxyxhwxuMiTIMdMiZTw6x6hKG0toIve5gyVES39fl39M5+wmF6d1MK8cfGxq8V9muH/m6fgl4quOHkPZYmW3WhCELTS9fVh9tMmrJgG30BC0KnqUxiHaBYH4UM6FVWvR3kad+45gtSRqjXWuJW2mWKdhHuF5G8o5TKM8Wxmtc1armNfFuoujnFsVaS5asu62oOqDXrhygMNthCLrOfY4Yirlni1yCgVtp/dtmom1a7OhqxVQYglm1qdZ0zEvaAtN7TOgh+xR1OfMj00pAUjyjqJaMTT8rl4Ly250LwqLCr9ZDgaH2zvIZr2o1PtRAJJ41uER1nBw5FHtIi1Ginzf9r3i100Eo5g8aTTtKcE5B3jHym6l3SWcDPCFm7fAKo32OOnDKbJXTIfskQd5HxlYAafTtyx12ttigru998FfYNsoS3TFxDgV9y/G4xAZ9mZwQ2Zu4b8WhDJnmpSS9nXyUlSQ5QL0+V680r3Yb4XcEoOzKBJCZ2WhMjnGTemIyG8lDDbwnyib6mXcdi9yI0q9p+xs8LAKJSXg+MeXQAEITg/53lG/y2Ee5JetDmmmjy3Aw5pAOdATneJ5K0R+QEJhUOAMEw7wLBM//8rbwnMEEBKR4EuvkrYzp8NAB90EWdVkW6Vgq30Gyc/9k1FSJg2nvc1xQv7cwPYhKXXDGBDUEkN6FlWJNYgJEUlt9ignDU8YI++XZqecfwIpfvkgTNa1VeTteIonG1gfzcKkHiZb8PKqyyx9u2lxAHU8jzHt6qXVnhoK1YDqepZgXNJUgVyjwcNLtS9LDRdkYXl65tuqQm9o9DJp04Aqqh8yyaeFfBbYKxEALum4Lyqeb+8fIGqB7lARcWgloZW5bGtI=","originalName":"run_command"}}}
+MallocNanoZone=0
+JAVA_MAIN_CLASS_10974=
+JAVA_HOME=/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home
+ANTIGRAVITY_TRAJECTORY_ID=195c4758-6f13-473d-b8ef-d538333d2adf
+JAVA_MAIN_CLASS_46768=
+TERM=
+LANG=C.UTF-8
+HOMEBREW_PREFIX=/opt/homebrew
+COMMAND_MODE=unix2003
+JAVA_MAIN_CLASS_1768=org.gradle.wrapper.GradleWrapperMain
+VSCODE_GIT_ASKPASS_MAIN=
+NVM_INC=/Users/hamzarizvi/.nvm/versions/node/v24.18.0/include/node
+JAVA_MAIN_CLASS_92460=
+JAVA_MAIN_CLASS_54068=
+VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+JAVA_MAIN_CLASS_93552=
+HOMEBREW_REPOSITORY=/opt/homebrew
+XPC_SERVICE_NAME=application.com.google.antigravity-ide.3896959.3897728
+__CFBundleIdentifier=com.google.antigravity-ide
+VSCODE_CWD=/
+ANTIGRAVITY_CLI_ALIAS=
+NVM_DIR=/Users/hamzarizvi/.nvm
+TERM_PROGRAM=
+USER_ZDOTDIR=
+USER=hamzarizvi
+SSH_AUTH_SOCK=/var/run/com.apple.launchd.T7Gcz87zzl/Listeners
+OSLogRateLimit=64
+ANTIGRAVITY_AGENT=1
+NVM_BIN=/Users/hamzarizvi/.nvm/versions/node/v24.18.0/bin
+JAVA_MAIN_CLASS_52972=
+HOME=/Users/hamzarizvi
+VSCODE_IPC_HOOK=/Users/hamzarizvi/Library/Application Support/Antigravity IDE/1.10-main.sock
+*****************************************
+STDOUT/STDERR BELOW
+===================
+:benchmark:tvApi34NonMinifiedReleaseAndroidTest
+OK
+===================
+END_TIME: 2026-08-01 12:26:41.243
+END_TIME-NANOS: 2026-08-01 12:26:41.243885000
+DURATION: 103ms
+EXIT CODE: 0

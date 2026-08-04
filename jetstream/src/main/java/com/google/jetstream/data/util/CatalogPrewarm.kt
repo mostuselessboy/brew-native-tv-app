@@ -1,10 +1,6 @@
 package com.google.jetstream.data.util
 
 import android.content.Context
-import coil.imageLoader
-import coil.request.ImageRequest
-import com.google.jetstream.data.entities.HomeSection
-import com.google.jetstream.data.entities.HomeSectionType
 import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.data.repositories.MovieRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,13 +24,16 @@ class CatalogPrewarm @Inject constructor(
     private val movieRepository: MovieRepository,
     @ApplicationContext private val context: Context,
 ) {
-    /** Fetch the home catalog + hero images so the first tab paints quickly. */
+    /** Fetch home catalog + tiered image warmup for fast first paint. */
     suspend fun warmHome() = withContext(Dispatchers.IO) {
         runCatching { movieRepository.prefetchHomePage(BrewPages.HOME) }
-        movieRepository.peekHomeSections(BrewPages.HOME)?.let { prefetchImages(it) }
+        val sections = movieRepository.peekHomeSections(BrewPages.HOME)
+        if (sections != null) {
+            CatalogImagePrefetch.warmPage(context, BrewPages.HOME, sections)
+        }
     }
 
-    /** Fetch all catalog pages + enqueue hero/card images (background / rail prefetch). */
+    /** Fetch all catalog pages; images are tiered per page (critical then deferred). */
     suspend fun warmAll() = withContext(Dispatchers.IO) {
         coroutineScope {
             CatalogPages.map { page ->
@@ -42,35 +41,10 @@ class CatalogPrewarm @Inject constructor(
             }.awaitAll()
         }
         CatalogPages.forEach { page ->
-            movieRepository.peekHomeSections(page)?.let { prefetchImages(it) }
+            val sections = movieRepository.peekHomeSections(page)
+            if (sections != null) {
+                CatalogImagePrefetch.warmPage(context, page, sections)
+            }
         }
-    }
-
-    private fun prefetchImages(sections: List<HomeSection>) {
-        sections.firstOrNull { it.type == HomeSectionType.Showcase }?.movies
-            ?.take(4)
-            ?.forEach { movie ->
-                context.imageLoader.enqueue(
-                    ImageRequest.Builder(context)
-                        .data(BrewImageUrl.forShowcase(movie.posterUri))
-                        .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
-                        .build(),
-                )
-            }
-        sections
-            .asSequence()
-            .filter {
-                it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
-            }
-            .take(4)
-            .flatMap { it.movies.asSequence().take(8) }
-            .forEach { movie ->
-                context.imageLoader.enqueue(
-                    ImageRequest.Builder(context)
-                        .data(BrewImageUrl.forCard(movie.posterUri))
-                        .size(BrewImageUrl.CARD_WIDTH, BrewImageUrl.CARD_HEIGHT)
-                        .build(),
-                )
-            }
     }
 }

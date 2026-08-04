@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -32,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -90,29 +103,60 @@ fun AwardsFestivalsRow(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             items(grouped, key = { it.first }) { (name, detail, logo) ->
+                var isFocused by remember { mutableStateOf(false) }
+
+                val scaleAnimationSpec = if (isFocused) {
+                    spring<Float>(
+                        dampingRatio = 0.85f,
+                        stiffness = 180f
+                    )
+                } else {
+                    tween<Float>(durationMillis = 650, easing = LinearOutSlowInEasing)
+                }
+
+                val animatedScale by animateFloatAsState(
+                    targetValue = if (isFocused) 1.12f else 1.0f,
+                    animationSpec = scaleAnimationSpec,
+                    label = "AwardCardScale"
+                )
+
                 Surface(
                     onClick = {},
                     shape = ClickableSurfaceDefaults.shape(AwardCardShape),
-                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
+                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
                     border = ClickableSurfaceDefaults.border(
                         border = Border(
                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
                             shape = AwardCardShape,
                         ),
                         focusedBorder = Border(
-                            border = BorderStroke(2.dp, AccentGold.copy(alpha = 0.88f)),
+                            border = BorderStroke(1.5.dp, Color.White),
                             shape = AwardCardShape,
+                        ),
+                    ),
+                    glow = ClickableSurfaceDefaults.glow(
+                        focusedGlow = Glow(
+                            elevationColor = Color.White.copy(alpha = 0.50f),
+                            elevation = 20.dp,
                         ),
                     ),
                     colors = ClickableSurfaceDefaults.colors(
                         containerColor = Color.Transparent,
                         focusedContainerColor = Color.Transparent,
                     ),
-                    modifier = Modifier.width(AwardCardWidth),
+                    modifier = Modifier
+                        .width(AwardCardWidth)
+                        .height(176.dp)
+                        .onFocusChanged { isFocused = it.isFocused }
+                        .graphicsLayer {
+                            scaleX = animatedScale
+                            scaleY = animatedScale
+                        }
+                        .zIndex(if (isFocused) 10f else 1f),
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(

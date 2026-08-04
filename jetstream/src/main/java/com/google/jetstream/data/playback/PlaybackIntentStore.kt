@@ -26,5 +26,8 @@ data class PlaybackIntent(
     val isTrailer: Boolean = false,
     val vodAssetId: Int? = null,
     val bunnyVideoId: String? = null,
+    val bunnyLibraryId: String? = null,
+    val bunnyCdnZone: String? = null,
+    val licenseServerUrl: String? = null,
     val isDrm: Boolean = false,
 )

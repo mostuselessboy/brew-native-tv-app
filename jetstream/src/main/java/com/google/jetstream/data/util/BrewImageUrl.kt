@@ -14,6 +14,10 @@ object BrewImageUrl {
     const val CARD_WIDTH = 330
     const val CARD_HEIGHT = 186
 
+    /** Library portrait shelves — ~150×225dp @ 2× density (Bookmarks, Titles you finished). */
+    const val PORTRAIT_CARD_WIDTH = 300
+    const val PORTRAIT_CARD_HEIGHT = 450
+
     /** Home showcase hero — ~380dp tall @ 1.5× density. */
     const val SHOWCASE_WIDTH = 1024
     const val SHOWCASE_HEIGHT = 576
@@ -22,14 +26,18 @@ object BrewImageUrl {
     const val DETAIL_WIDTH = 854
     const val DETAIL_HEIGHT = 480
 
+    /** Collection / hero backdrops — full-bleed, higher quality. */
+    const val COLLECTION_HERO_WIDTH = 1280
+    const val COLLECTION_HERO_HEIGHT = 720
+
     const val CAST_WIDTH = 200
     const val CAST_HEIGHT = 267
 
     /** Cast avatar on detail — 120dp @ 2× density, square crop. */
     const val CAST_AVATAR_PX = 240
 
-    const val CRITIC_LOGO_WIDTH = 180
-    const val CRITIC_LOGO_HEIGHT = 90
+    const val CRITIC_LOGO_WIDTH = 360
+    const val CRITIC_LOGO_HEIGHT = 180
 
     /** Watch hidden gems wordmark — splash + header lockup. */
     const val WATCH_HIDDEN_GEMS_WIDTH = 160
@@ -45,9 +53,15 @@ object BrewImageUrl {
 
     fun forCard(url: String): String = withDimensions(url, CARD_WIDTH, CARD_HEIGHT)
 
+    fun forPortraitCard(url: String): String =
+        withDimensions(url, PORTRAIT_CARD_WIDTH, PORTRAIT_CARD_HEIGHT, quality = "90")
+
     fun forShowcase(url: String): String = withDimensions(url, SHOWCASE_WIDTH, SHOWCASE_HEIGHT)
 
     fun forDetail(url: String): String = withDimensions(url, DETAIL_WIDTH, DETAIL_HEIGHT)
+
+    fun forCollectionHero(url: String): String =
+        withDimensions(url, COLLECTION_HERO_WIDTH, COLLECTION_HERO_HEIGHT, quality = "90")
 
     fun forCast(url: String): String = withDimensions(url, CAST_WIDTH, CAST_HEIGHT)
 

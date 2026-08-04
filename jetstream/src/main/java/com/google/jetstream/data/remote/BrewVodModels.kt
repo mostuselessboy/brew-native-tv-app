@@ -45,6 +45,21 @@ data class BrewStartPlaybackRequest(
 )
 
 @Serializable
+data class BrewUpdateVideoSettingsRequest(
+    @SerialName("user_id") val userId: Int,
+    @SerialName("vod_asset_id") val vodAssetId: Int,
+    @SerialName("video_settings") val videoSettings: BrewVideoSettingsPayload,
+)
+
+@Serializable
+data class BrewVideoSettingsPayload(
+    @SerialName("initialTime") val initialTime: Double,
+    @SerialName("volume") val volume: Double = 1.0,
+    @SerialName("watch_time_delta") val watchTimeDelta: Double? = null,
+    @SerialName("percentage_watched") val percentageWatched: Double? = null,
+)
+
+@Serializable
 data class BrewVodAssetData(
     @SerialName("bunny_video_id") val bunnyVideoId: String = "",
     @SerialName("bunny_cdn_zone") val bunnyCdnZone: String = "",
@@ -64,6 +79,12 @@ data class BrewVodAssetData(
 data class BrewVodAssetProgress(
     @SerialName("current_time") val currentTime: Double = 0.0,
     val duration: Double = 0.0,
+)
+
+@Serializable
+data class BrewSubscriptionPlansResponse(
+    val plans: List<BrewSubscriptionPlanDto> = emptyList(),
+    @SerialName("user_country") val userCountry: String? = null,
 )
 
 @Serializable
@@ -91,4 +112,26 @@ data class BrewEndscreenCardData(
     @SerialName("trailer_url") val trailerUrl: String? = null,
     @SerialName("movie_asset_id") val movieAssetId: Int? = null,
     @SerialName("is_free_tier") val isFreeTier: Boolean? = null,
+)
+
+@Serializable
+data class BrewShowcaseAccessResponse(
+    @SerialName("has_active_subscription") val hasActiveSubscription: Boolean = false,
+    @SerialName("campaign_ids") val campaignIds: List<Int> = emptyList(),
+    @SerialName("reminder_set_ids") val reminderSetIds: List<Int> = emptyList(),
+)
+
+@Serializable
+data class BrewJoinWaitlistRequest(
+    @SerialName("user_id") val userId: Int,
+    @SerialName("campaign_version_id") val campaignVersionId: Int,
+)
+
+@Serializable
+data class BrewJoinWaitlistResponse(
+    @SerialName("id") val id: Int? = null,
+    @SerialName("user_id") val userId: Int? = null,
+    @SerialName("campaign_id") val campaignId: Int? = null,
+    @SerialName("campaign_version_id") val campaignVersionId: Int? = null,
+    @SerialName("created_at") val createdAt: String? = null,
 )

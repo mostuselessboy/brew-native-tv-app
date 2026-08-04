@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +31,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.jetstream.data.util.resolveUserAvatarDisplayUrl
 import com.google.jetstream.data.entities.LibraryItem
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.remote.BrewPages
@@ -38,6 +41,7 @@ import com.google.jetstream.presentation.common.PrimeTabReveal
 import com.google.jetstream.presentation.screens.favourites.FavouritesScreen
 import com.google.jetstream.presentation.screens.home.HomeScreen
 import com.google.jetstream.presentation.screens.profile.ProfileScreen
+import com.google.jetstream.presentation.screens.profile.AccountsSection
 import com.google.jetstream.presentation.screens.search.SearchScreen
 import com.google.jetstream.presentation.utils.Padding
 
@@ -77,25 +81,42 @@ fun DashboardScreen(
     onBackPressed: () -> Unit,
 ) {
     val dashboardViewModel: DashboardViewModel = hiltViewModel()
+    val currentUser by dashboardViewModel.currentUser.collectAsStateWithLifecycle()
+    val accountAvatarUrl = resolveUserAvatarDisplayUrl(currentUser, 80)
     var tabRoute by rememberSaveable { mutableStateOf(Screens.Home()) }
     var tabSlideDirection by remember { mutableIntStateOf(1) }
     val tabTarget = remember(tabRoute, tabSlideDirection) {
         TabNavTarget(route = tabRoute, slideDirection = tabSlideDirection)
     }
-    val homeShowcaseFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
-    val homeFirstTrayFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
+    val catalogFocusHandles = remember {
+        CatalogTabRoutes.associateWith { CatalogTabFocusHandles() }
+    }
     val sidebarFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val profileContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val libraryContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val searchContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     var didStartupFocus by rememberSaveable { mutableStateOf(false) }
 
+    var showSplash by rememberSaveable { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        val minSplashMs = 500L
+        val maxSplashMs = 2500L
+        val start = System.currentTimeMillis()
+        kotlinx.coroutines.delay(minSplashMs)
+        while (System.currentTimeMillis() - start < maxSplashMs) {
+            if (dashboardViewModel.isHomeCatalogCached()) break
+            kotlinx.coroutines.delay(50)
+        }
+        showSplash = false
+    }
+
     val contentFocusRequester = when (tabRoute) {
         Screens.Home(),
         Screens.BrewPlus(),
         Screens.Shorts(),
         Screens.Store(),
-        -> homeShowcaseFocusRequester
+        -> catalogFocusHandles[tabRoute]?.showcase
+        Screens.Account() -> profileContentFocusRequester
         Screens.Profile() -> profileContentFocusRequester
         Screens.Favourites() -> libraryContentFocusRequester
         Screens.Search() -> searchContentFocusRequester
@@ -104,20 +125,39 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
         if (!didStartupFocus) {
-            runCatching { homeShowcaseFocusRequester.requestFocus() }
+            catalogFocusHandles[Screens.Home()]?.showcase?.let { requester ->
+                runCatching { requester.requestFocus() }
+            }
             didStartupFocus = true
         }
     }
 
     LaunchedEffect(isComingBackFromDifferentScreen) {
         if (!isComingBackFromDifferentScreen) return@LaunchedEffect
-        kotlinx.coroutines.delay(120)
-        when (dashboardViewModel.focusRestoreTarget) {
-            CatalogFocusRestoreTarget.ShowcasePrimary ->
-                runCatching { homeShowcaseFocusRequester.requestFocus() }
-            CatalogFocusRestoreTarget.FirstTray ->
-                runCatching { homeFirstTrayFocusRequester.requestFocus() }
+        // Wait for movie-detail pop transition before restoring catalog focus.
+        kotlinx.coroutines.delay(380)
+        val route = tabRoute
+        val memory = dashboardViewModel.consumeDetailReturnRestore(route)
+        if (memory != null && isCatalogDestination(route)) {
+            val handles = catalogFocusHandles[route]
+            if (handles != null) {
+                when (memory.focusTarget) {
+                    CatalogFocusRestoreTarget.ShowcasePrimary ->
+                        runCatching { handles.showcase.requestFocus() }
+                    CatalogFocusRestoreTarget.FirstTray -> {
+                        if (memory.movieId == null) {
+                            runCatching { handles.firstTray.requestFocus() }
+                        }
+                        // When movieId is set, MoviesRow restores the card once via targetItem.
+                    }
+                }
+            }
+            if (memory.focusTarget == CatalogFocusRestoreTarget.FirstTray && memory.movieId != null) {
+                kotlinx.coroutines.delay(450)
+                dashboardViewModel.clearFocusedMovie(route)
+            }
         }
+        dashboardViewModel.endDetailReturnRestore()
         resetIsComingBackFromDifferentScreen()
     }
 
@@ -132,50 +172,53 @@ fun DashboardScreen(
 
     fun navigateToTab(screen: Screens) {
         val route = screen()
+        dashboardViewModel.cancelPendingRailNavigation()
         if (tabRoute != route) {
             tabSlideDirection = tabNavTargetFor(route, tabRoute).slideDirection
             tabRoute = route
+            dashboardViewModel.onRailTabNavigated(screen)
         }
     }
 
-    BackPressHandledArea(onBackPressed = onBackPressed) {
-        DashboardNavigationDrawer(
-            selectedRoute = tabRoute,
-            onNavigateTo = ::navigateToTab,
-            onRailFocus = { screen, selected ->
-                dashboardViewModel.onRailItemFocused(screen, selected, ::navigateToTab)
-            },
-            onRailBlur = dashboardViewModel::onRailItemUnfocused,
-            contentFocusRequester = contentFocusRequester,
-            sidebarFocusRequester = sidebarFocusRequester,
-            modifier = Modifier.fillMaxSize().background(Color.Black),
-        ) {
-            Body(
-                tabTarget = tabTarget,
-                openMovieDetailsScreen = openMovieDetailsScreen,
-                openCollectionScreen = openCollectionScreen,
-                onPlayMovie = dashboardViewModel::playMovie,
-                onPlayLibraryItem = { item ->
-                    dashboardViewModel.playLibraryItem(item, openMovieDetailsScreen)
+    Box(modifier = Modifier.fillMaxSize()) {
+        BackPressHandledArea(onBackPressed = onBackPressed) {
+            DashboardNavigationDrawer(
+                selectedRoute = tabRoute,
+                onNavigateTo = ::navigateToTab,
+                accountAvatarUrl = accountAvatarUrl,
+                onRailFocus = { screen, selected ->
+                    dashboardViewModel.onRailItemFocused(screen, selected, ::navigateToTab)
                 },
-                openSignInPhone = openSignInPhone,
-                openSignInEmail = openSignInEmail,
-                onBrowseHome = { navigateToTab(Screens.Home) },
-                onBrowseStore = { navigateToTab(Screens.Store) },
-                homeShowcaseFocusRequester = homeShowcaseFocusRequester,
-                homeFirstTrayFocusRequester = homeFirstTrayFocusRequester,
+                onRailBlur = dashboardViewModel::onRailItemUnfocused,
+                contentFocusRequester = contentFocusRequester,
                 sidebarFocusRequester = sidebarFocusRequester,
-                profileContentFocusRequester = profileContentFocusRequester,
-                libraryContentFocusRequester = libraryContentFocusRequester,
-                searchContentFocusRequester = searchContentFocusRequester,
-                activeTabRoute = tabTarget.route,
-                onOpenMovieFromTray = {
-                    dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.FirstTray)
-                },
-                onOpenMovieFromShowcase = {
-                    dashboardViewModel.rememberFocusTarget(CatalogFocusRestoreTarget.ShowcasePrimary)
-                },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().background(Color.Black),
+            ) {
+                Body(
+                    tabTarget = tabTarget,
+                    dashboardViewModel = dashboardViewModel,
+                    catalogFocusHandles = catalogFocusHandles,
+                    openMovieDetailsScreen = openMovieDetailsScreen,
+                    openCollectionScreen = openCollectionScreen,
+                    onPlayMovie = dashboardViewModel::playMovie,
+                    onPlayLibraryItem = { item ->
+                        dashboardViewModel.playLibraryItem(item, openMovieDetailsScreen)
+                    },
+                    openSignInPhone = openSignInPhone,
+                    openSignInEmail = openSignInEmail,
+                    onBrowseHome = { navigateToTab(Screens.Home) },
+                    onBrowseStore = { navigateToTab(Screens.Store) },
+                    sidebarFocusRequester = sidebarFocusRequester,
+                    profileContentFocusRequester = profileContentFocusRequester,
+                    libraryContentFocusRequester = libraryContentFocusRequester,
+                    searchContentFocusRequester = searchContentFocusRequester,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        if (showSplash) {
+            com.google.jetstream.presentation.screens.splash.BrewSplashScreen(
+                modifier = Modifier.fillMaxSize().zIndex(100f)
             )
         }
     }
@@ -208,6 +251,11 @@ private val CatalogTabRoutes = listOf(
     Screens.Store(),
 )
 
+private class CatalogTabFocusHandles {
+    val showcase = FocusRequester()
+    val firstTray = FocusRequester()
+}
+
 private fun catalogPageForRoute(route: String): String? = when (route) {
     Screens.Home() -> BrewPages.HOME
     Screens.BrewPlus() -> BrewPages.BREW_PLUS
@@ -217,6 +265,7 @@ private fun catalogPageForRoute(route: String): String? = when (route) {
 }
 
 private val NonCatalogTabRoutes = listOf(
+    Screens.Account(),
     Screens.Profile(),
     Screens.Favourites(),
     Screens.Search(),
@@ -225,6 +274,8 @@ private val NonCatalogTabRoutes = listOf(
 @Composable
 private fun Body(
     tabTarget: TabNavTarget,
+    dashboardViewModel: DashboardViewModel,
+    catalogFocusHandles: Map<String, CatalogTabFocusHandles>,
     openMovieDetailsScreen: (movieId: String) -> Unit,
     openCollectionScreen: (sectionId: String) -> Unit,
     onPlayMovie: (Movie) -> Unit,
@@ -233,15 +284,10 @@ private fun Body(
     openSignInEmail: () -> Unit,
     onBrowseHome: () -> Unit,
     onBrowseStore: () -> Unit,
-    homeShowcaseFocusRequester: FocusRequester,
-    homeFirstTrayFocusRequester: FocusRequester,
     sidebarFocusRequester: FocusRequester,
     profileContentFocusRequester: FocusRequester,
     libraryContentFocusRequester: FocusRequester,
     searchContentFocusRequester: FocusRequester,
-    activeTabRoute: String,
-    onOpenMovieFromTray: () -> Unit,
-    onOpenMovieFromShowcase: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val route = tabTarget.route
@@ -257,6 +303,8 @@ private fun Body(
             if (catalogRoute !in visitedRoutes) return@forEach
             val page = catalogPageForRoute(catalogRoute) ?: return@forEach
             val visible = route == catalogRoute
+            val tabMemory = dashboardViewModel.catalogMemory(catalogRoute)
+            val focusHandles = catalogFocusHandles[catalogRoute] ?: return@forEach
             androidx.compose.runtime.key(catalogRoute) {
                 PrimeTabReveal(
                     active = visible,
@@ -264,19 +312,38 @@ private fun Body(
                 ) {
                     HomeScreen(
                         page = page,
-                        onMovieClick = {
-                            onOpenMovieFromTray()
-                            openMovieDetailsScreen(it.id)
+                        onTrayMovieOpen = {
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = true)
                         },
+                        onMovieClick = { movie ->
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = true)
+                            openMovieDetailsScreen(movie.id)
+                        },
+                        onMoreInfoClick = { movie ->
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = false)
+                            openMovieDetailsScreen(movie.id)
+                        },
+                        onSignInRequired = openSignInPhone,
                         onViewMoreClick = openCollectionScreen,
-                        onShowcaseOpenMovie = onOpenMovieFromShowcase,
+                        onShowcaseOpenMovie = {
+                            dashboardViewModel.onOpeningMovieDetail(catalogRoute, fromTray = false)
+                        },
                         goToVideoPlayer = onPlayMovie,
                         onScroll = { },
                         isTopBarVisible = true,
-                        showcaseFocusRequester = homeShowcaseFocusRequester,
-                        firstRowFocusRequester = homeFirstTrayFocusRequester,
+                        showcaseFocusRequester = focusHandles.showcase,
+                        firstRowFocusRequester = focusHandles.firstTray,
                         sidebarFocusRequester = sidebarFocusRequester,
+                        showcaseSlideIndex = tabMemory.showcaseSlideIndex,
+                        onShowcaseSlideChange = { index ->
+                            dashboardViewModel.rememberShowcaseSlide(catalogRoute, index)
+                        },
                         isTabVisible = visible,
+                        onMovieFocused = { sectionId, movieId ->
+                            dashboardViewModel.saveFocusedItem(catalogRoute, sectionId, movieId)
+                        },
+                        lastFocusedSectionId = tabMemory.sectionId,
+                        lastFocusedMovieId = tabMemory.movieId,
                     )
                 }
             }
@@ -297,19 +364,20 @@ private fun Body(
                             .focusProperties { canFocus = visible },
                     ) {
                         NonCatalogTab(
-                        route = nonCatalogRoute,
-                        isTabVisible = visible,
-                        openMovieDetailsScreen = openMovieDetailsScreen,
-                        onPlayLibraryItem = onPlayLibraryItem,
-                        openSignInPhone = openSignInPhone,
-                        openSignInEmail = openSignInEmail,
-                        onBrowseHome = onBrowseHome,
-                        onBrowseStore = onBrowseStore,
-                        sidebarFocusRequester = sidebarFocusRequester,
-                        profileContentFocusRequester = profileContentFocusRequester,
-                        libraryContentFocusRequester = libraryContentFocusRequester,
-                        searchContentFocusRequester = searchContentFocusRequester,
-                    )
+                            route = nonCatalogRoute,
+                            isTabVisible = visible,
+                            openMovieDetailsScreen = openMovieDetailsScreen,
+                            onPlayLibraryItem = onPlayLibraryItem,
+                            openSignInPhone = openSignInPhone,
+                            openSignInEmail = openSignInEmail,
+                            onBrowseHome = onBrowseHome,
+                            onBrowseStore = onBrowseStore,
+                            sidebarFocusRequester = sidebarFocusRequester,
+                            profileContentFocusRequester = profileContentFocusRequester,
+                            libraryContentFocusRequester = libraryContentFocusRequester,
+                            searchContentFocusRequester = searchContentFocusRequester,
+                            dashboardViewModel = dashboardViewModel,
+                        )
                     }
                 }
             }
@@ -331,8 +399,23 @@ private fun NonCatalogTab(
     profileContentFocusRequester: FocusRequester,
     libraryContentFocusRequester: FocusRequester,
     searchContentFocusRequester: FocusRequester,
+    dashboardViewModel: DashboardViewModel,
 ) {
     when (route) {
+        Screens.Account() -> {
+            val childPadding = rememberChildPadding()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = childPadding.top)
+            ) {
+                AccountsSection(
+                    onSignInPhone = openSignInPhone,
+                    onSignInEmail = openSignInEmail,
+                    panelFocusRequester = profileContentFocusRequester,
+                )
+            }
+        }
         Screens.Profile() -> ProfileScreen(
             openSignInPhone = openSignInPhone,
             openSignInEmail = openSignInEmail,
@@ -353,7 +436,9 @@ private fun NonCatalogTab(
             isTabVisible = isTabVisible,
         )
         Screens.Search() -> SearchScreen(
-            onMovieClick = { openMovieDetailsScreen(it.id) },
+            onMovieClick = { selectedMovie ->
+                openMovieDetailsScreen(selectedMovie.id)
+            },
             onScroll = { },
             sidebarFocusRequester = sidebarFocusRequester,
             contentFocusRequester = searchContentFocusRequester,

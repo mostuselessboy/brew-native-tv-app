@@ -29,7 +29,6 @@ enum class ProfileScreens(
     val icon: ImageVector,
     private val title: String? = null,
 ) {
-    Accounts(Icons.Default.Person),
     About(Icons.Default.Info),
     Subtitles(Icons.Default.Subtitles),
     Language(Icons.Default.Translate),

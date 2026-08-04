@@ -6,8 +6,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,21 +17,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import com.google.jetstream.R
 
-/** Secondary hero actions — icon-only circles, no hover labels. */
+/** Secondary hero actions — icon-only circles in one focus traversal row. */
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun MovieDetailSecondaryActions(
@@ -43,135 +42,93 @@ fun MovieDetailSecondaryActions(
     onShareClick: () -> Unit = {},
     onBookmarkClick: () -> Unit = {},
     isBookmarked: Boolean = false,
-    firstFocusRequester: FocusRequester? = null,
-    leftFocusRequester: FocusRequester? = null,
-    downFocusRequester: FocusRequester? = null,
-    onFirstButtonFocused: () -> Unit = {},
     modifier: Modifier = Modifier,
+    firstItemFocusRequester: FocusRequester? = null,
 ) {
+    var assignedInitialFocus by remember { mutableStateOf(false) }
+    fun initialFocusModifier(): Modifier {
+        if (!assignedInitialFocus && firstItemFocusRequester != null) {
+            assignedInitialFocus = true
+            return Modifier.focusRequester(firstItemFocusRequester)
+        }
+        return Modifier
+    }
+
     Row(
-        modifier = modifier
-            .focusGroup()
-            .graphicsLayer { clip = false },
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        var isFirst = true
         if (showTrailer) {
             SecondaryActionButton(
                 onClick = onTrailerClick,
-                modifier = firstItemModifier(
-                    isFirst = isFirst,
-                    firstFocusRequester = firstFocusRequester,
-                    leftFocusRequester = leftFocusRequester,
-                    downFocusRequester = downFocusRequester,
-                    onFirstButtonFocused = onFirstButtonFocused,
-                ),
+                contentDescription = "Trailer",
+                modifier = initialFocusModifier(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_mdi_clapperboard),
-                    contentDescription = "Trailer",
+                    contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
-            isFirst = false
         }
         if (showSubtitles) {
             SecondaryActionButton(
                 onClick = onSubtitlesClick,
-                modifier = firstItemModifier(
-                    isFirst = isFirst,
-                    firstFocusRequester = firstFocusRequester,
-                    leftFocusRequester = leftFocusRequester,
-                    downFocusRequester = downFocusRequester,
-                    onFirstButtonFocused = onFirstButtonFocused,
-                ),
+                contentDescription = "Subtitles",
+                modifier = initialFocusModifier(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_mdi_subtitles),
-                    contentDescription = "Subtitles",
+                    contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
-            isFirst = false
         }
         SecondaryActionButton(
             onClick = onBookmarkClick,
-            modifier = firstItemModifier(
-                isFirst = isFirst,
-                firstFocusRequester = firstFocusRequester,
-                leftFocusRequester = leftFocusRequester,
-                downFocusRequester = downFocusRequester,
-                onFirstButtonFocused = onFirstButtonFocused,
-            ),
+            contentDescription = if (isBookmarked) "Saved" else "Save",
+            modifier = initialFocusModifier(),
         ) {
             Icon(
                 painter = painterResource(
-                    if (isBookmarked) R.drawable.ic_fa_bookmark else R.drawable.ic_lucide_bookmark,
+                    if (isBookmarked) R.drawable.ic_lucide_bookmark_filled else R.drawable.ic_lucide_bookmark,
                 ),
-                contentDescription = if (isBookmarked) "Saved" else "Save",
-                tint = if (isBookmarked) MovieDetailTokens.AccentYellow else Color.White,
-                modifier = Modifier.size(20.dp),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp),
             )
         }
-        isFirst = false
         if (showShare) {
             SecondaryActionButton(
                 onClick = onShareClick,
-                modifier = Modifier,
+                contentDescription = "Share",
+                modifier = initialFocusModifier(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_fa_share),
-                    contentDescription = "Share",
+                    contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
     }
 }
 
-private fun firstItemModifier(
-    isFirst: Boolean,
-    firstFocusRequester: FocusRequester?,
-    leftFocusRequester: FocusRequester?,
-    downFocusRequester: FocusRequester?,
-    onFirstButtonFocused: () -> Unit,
-): Modifier {
-    if (!isFirst) return Modifier
-    return Modifier
-        .then(if (firstFocusRequester != null) Modifier.focusRequester(firstFocusRequester) else Modifier)
-        .onFocusChanged { state ->
-            if (state.isFocused) onFirstButtonFocused()
-        }
-        .then(
-            if (leftFocusRequester != null) {
-                Modifier.focusProperties { left = leftFocusRequester }
-            } else {
-                Modifier
-            },
-        )
-        .then(
-            if (downFocusRequester != null) {
-                Modifier.focusProperties { down = downFocusRequester }
-            } else {
-                Modifier
-            },
-        )
-}
-
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun SecondaryActionButton(
     onClick: () -> Unit,
+    contentDescription: String,
     modifier: Modifier = Modifier,
     icon: @Composable () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.1f else 1f,
+        targetValue = if (focused) 1.12f else 1f,
         animationSpec = spring(dampingRatio = 0.65f, stiffness = 320f),
         label = "secondaryScale",
     )
@@ -181,19 +138,20 @@ private fun SecondaryActionButton(
         onClick = onClick,
         modifier = modifier
             .size(buttonSize)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                clip = false
-            }
             .onFocusChanged { focused = it.isFocused },
         shape = ClickableSurfaceDefaults.shape(CircleShape),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = scale),
         border = ClickableSurfaceDefaults.border(
             border = Border(BorderStroke(1.dp, MovieDetailTokens.SecondaryActionBorder)),
             focusedBorder = Border(
-                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.85f)),
+                border = BorderStroke(1.5.dp, Color.White),
                 shape = CircleShape,
+            ),
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color.White.copy(alpha = 0.22f),
+                elevation = 12.dp,
             ),
         ),
         colors = ClickableSurfaceDefaults.colors(
@@ -203,7 +161,7 @@ private fun SecondaryActionButton(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(buttonSize),
+            modifier = Modifier.fillMaxSize(),
         ) {
             icon()
         }

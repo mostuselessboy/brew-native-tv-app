@@ -21,6 +21,17 @@ class CollectionScreenViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<CollectionScreenUiState>(CollectionScreenUiState.Loading)
     val uiState: StateFlow<CollectionScreenUiState> = _uiState.asStateFlow()
 
+    /** Movie card to refocus after returning from movie detail. */
+    var restoreMovieId: String? = null
+
+    fun rememberFocusedMovie(movieId: String) {
+        restoreMovieId = movieId
+    }
+
+    fun clearRestoreTarget() {
+        restoreMovieId = null
+    }
+
     init {
         val sectionId = savedStateHandle.get<String>(CollectionScreen.SectionIdBundleKey)
         if (sectionId.isNullOrBlank()) {

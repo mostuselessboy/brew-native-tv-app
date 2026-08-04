@@ -16,6 +16,16 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -37,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Glow
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -50,11 +61,10 @@ import com.google.jetstream.presentation.theme.BrewDisplay
 import com.google.jetstream.presentation.theme.BrewTitle
 
 private val CardShape = RoundedCornerShape(14.dp)
-private val CardWidth = 200.dp
-private val CardHeight = 168.dp
-private val CardGradientTop = Color(0xFF1C1C1E)
-private val CardGradientBottom = Color(0xFF0A0A0A)
-private val AccentLine = Color(0xFFFFC15E)
+private val CardWidth = 196.dp
+private val CardHeight = 132.dp
+private val CardBgColor = Color(0xFF0C0C0C)
+private const val CriticCardFocusedScale = 1.05f
 
 /** Critic review cards — polished TV layout. */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -63,8 +73,7 @@ fun CriticReviewsRow(
     reviews: List<MovieCriticReview>,
     modifier: Modifier = Modifier,
     firstItemFocusRequester: FocusRequester? = null,
-    upFocusRequester: FocusRequester? = null,
-    onFirstItemFocused: () -> Unit = {},
+    onReviewClick: (MovieCriticReview) -> Unit = {},
 ) {
     if (reviews.isEmpty()) return
     val childPadding = rememberChildPadding()
@@ -72,7 +81,7 @@ fun CriticReviewsRow(
     Column(modifier = modifier.padding(top = 2.dp)) {
         MovieDetailSectionTitle(text = "Critics' Reviews")
         LazyRow(
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
             contentPadding = PaddingValues(
                 start = childPadding.start,
                 end = childPadding.end,
@@ -83,24 +92,20 @@ fun CriticReviewsRow(
                 val isFirst = review.id == reviews.first().id
                 CriticReviewCard(
                     review = review,
-                    modifier = Modifier.then(
-                        if (isFirst && firstItemFocusRequester != null) {
-                            Modifier
-                                .focusRequester(firstItemFocusRequester)
-                                .onFocusChanged { state ->
-                                    if (state.isFocused) onFirstItemFocused()
-                                }
-                                .then(
-                                    if (upFocusRequester != null) {
-                                        Modifier.focusProperties { up = upFocusRequester }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-                        } else {
-                            Modifier
-                        },
-                    ),
+                    onClick = {
+                        val link = review.link?.takeIf { it.isNotBlank() }
+                        if (link != null) {
+                            onReviewClick(review)
+                        }
+                    },
+                    modifier = Modifier
+                        .then(
+                            if (isFirst && firstItemFocusRequester != null) {
+                                Modifier.focusRequester(firstItemFocusRequester)
+                            } else {
+                                Modifier
+                            }
+                        ),
                 )
             }
         }
@@ -110,21 +115,45 @@ fun CriticReviewsRow(
 @Composable
 private fun CriticReviewCard(
     review: MovieCriticReview,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scaleAnimationSpec = if (isFocused) {
+        spring<Float>(
+            dampingRatio = 0.85f,
+            stiffness = 180f
+        )
+    } else {
+        tween<Float>(durationMillis = 650, easing = LinearOutSlowInEasing)
+    }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isFocused) CriticCardFocusedScale else 1.0f,
+        animationSpec = scaleAnimationSpec,
+        label = "CriticCardScale"
+    )
+
     Surface(
-        onClick = {},
+        onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(CardShape),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         border = ClickableSurfaceDefaults.border(
             border = Border(
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
                 shape = CardShape,
             ),
             focusedBorder = Border(
-                border = BorderStroke(2.dp, AccentLine.copy(alpha = 0.9f)),
+                border = BorderStroke(1.5.dp, Color.White),
                 shape = CardShape,
+            ),
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color.White.copy(alpha = 0.30f),
+                elevation = 20.dp,
             ),
         ),
         colors = ClickableSurfaceDefaults.colors(
@@ -133,31 +162,31 @@ private fun CriticReviewCard(
         ),
         modifier = modifier
             .width(CardWidth)
-            .height(CardHeight),
+            .height(CardHeight)
+            .onFocusChanged { isFocused = it.isFocused }
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+                clip = false
+            }
+            .zIndex(if (isFocused) 10f else 1f),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(CardHeight)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(CardGradientTop, CardGradientBottom),
-                    ),
-                ),
+                .background(CardBgColor),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(CardHeight)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White.copy(alpha = 0.06f))
-                        .padding(vertical = 6.dp, horizontal = 10.dp)
-                        .height(28.dp),
+                        .height(26.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (!review.orgLogoUrl.isNullOrBlank()) {
@@ -173,28 +202,31 @@ private fun CriticReviewCard(
                             contentDescription = review.orgName,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .fillMaxWidth(0.88f)
                                 .height(22.dp),
                         )
                     }
                 }
 
-                Text(
-                    text = "\"${review.quote}\"",
-                    color = Color.White.copy(alpha = 0.92f),
-                    fontFamily = BrewDisplay,
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 13.sp,
-                    lineHeight = 17.sp,
-                    textAlign = TextAlign.Center,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = 10.dp, bottom = 8.dp),
-                )
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "\"${review.quote}\"",
+                        color = Color.White.copy(alpha = 0.92f),
+                        fontFamily = BrewDisplay,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
                 Box(
                     modifier = Modifier
@@ -204,7 +236,7 @@ private fun CriticReviewCard(
                             Brush.horizontalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    AccentLine.copy(alpha = 0.45f),
+                                    Color.White.copy(alpha = 0.15f),
                                     Color.Transparent,
                                 ),
                             ),
@@ -216,19 +248,20 @@ private fun CriticReviewCard(
                     color = Color.White.copy(alpha = 0.75f),
                     fontFamily = BrewTitle,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
+                    fontSize = 7.sp,
                     letterSpacing = 1.2.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = 4.dp),
+                    textAlign = TextAlign.Center,
                 )
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
+                        .padding(top = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -236,7 +269,7 @@ private fun CriticReviewCard(
                         Text(
                             text = review.dateLabel,
                             color = Color.White.copy(alpha = 0.45f),
-                            fontSize = 9.sp,
+                            fontSize = 7.sp,
                             fontWeight = FontWeight.Medium,
                         )
                     } else {
@@ -250,15 +283,15 @@ private fun CriticReviewCard(
                         ) {
                             Text(
                                 text = "Read article",
-                                color = AccentLine.copy(alpha = 0.85f),
+                                color = Color.White.copy(alpha = 0.55f),
                                 fontFamily = BrewTitle,
-                                fontSize = 9.sp,
+                                fontSize = 7.sp,
                                 fontWeight = FontWeight.Medium,
                             )
                             Icon(
-                                painter = painterResource(R.drawable.ic_lucide_external_link),
+                                painter = painterResource(R.drawable.ic_lucide_qr_code),
                                 contentDescription = null,
-                                tint = AccentLine.copy(alpha = 0.85f),
+                                tint = Color.White.copy(alpha = 0.55f),
                                 modifier = Modifier.size(10.dp),
                             )
                         }

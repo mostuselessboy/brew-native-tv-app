@@ -1,9 +1,12 @@
 package com.google.jetstream.data.util
 
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.MovieSubscriptionPlan
 import com.google.jetstream.data.remote.BrewCheckPurchaseResponse
 import com.google.jetstream.data.remote.BrewPurchaseCtaDto
 import com.google.jetstream.data.remote.BrewPurchaseCtaSlotDto
+import com.google.jetstream.data.remote.BrewMappers.toMovieSubscriptionPlan
+import com.google.jetstream.data.util.SubscriptionPlanMerge
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
@@ -29,15 +32,28 @@ object EffectivePurchaseCta {
         purchase: BrewCheckPurchaseResponse?,
     ): List<DetailPurchaseCtaSlot> {
         val effective = resolve(movie, purchase) ?: return movie.purchaseCtaSlots
-        val plans = purchase?.subscriptionPlans ?: emptyList()
+        val plans = resolveSubscriptionPlans(movie, purchase)
         return DetailPurchaseCta.mapFromApi(
             purchaseCta = effective,
             rentPriceFormatted = movie.rentPriceFormatted,
             buyPriceFormatted = movie.buyPriceFormatted,
             rentOriginalPriceFormatted = movie.rentOriginalPriceFormatted,
+            buyOriginalPriceFormatted = movie.buyOriginalPriceFormatted,
             subscriptionPlans = plans,
             comingSoonHint = movie.comingSoonHint,
         ).ifEmpty { movie.purchaseCtaSlots }
+    }
+
+    private fun resolveSubscriptionPlans(
+        movie: MovieDetails,
+        purchase: BrewCheckPurchaseResponse?,
+    ): List<MovieSubscriptionPlan> {
+        val fromPurchase = purchase?.subscriptionPlans.orEmpty()
+            .map { it.toMovieSubscriptionPlan() }
+        return SubscriptionPlanMerge.merge(
+            movie.subscriptionPlans,
+            fromPurchase,
+        )
     }
 
     private fun purchaseGrantsPlayback(purchase: BrewCheckPurchaseResponse): Boolean =

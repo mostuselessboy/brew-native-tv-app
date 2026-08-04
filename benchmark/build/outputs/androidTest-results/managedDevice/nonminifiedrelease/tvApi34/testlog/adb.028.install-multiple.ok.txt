@@ -1,0 +1,17 @@
+EXECUTING: /opt/homebrew/share/android-commandlinetools/platform-tools/adb -H localhost -P 5037 -s emulator-5554 install-multiple --bypass-low-target-sdk-block -t --user 0 -r -d /Users/hamzarizvi/Desktop/native tv app/benchmark/build/outputs/apk/nonMinifiedRelease/benchmark-nonMinifiedRelease.apk
+CURRENT_WORKING_DIRECTORY: /Users/hamzarizvi/Desktop/native tv app
+START_TIME: 2026-08-01 12:27:18.190
+START_TIME-NANOS: 2026-08-01 12:27:18.190398000
+ENVIRONMENT:
+ANDROID_SDK_HOME=/opt/homebrew/share/android-commandlinetools
+ANDROID_ADB=/opt/homebrew/share/android-commandlinetools/platform-tools/adb
+*****************************************
+STDOUT/STDERR BELOW
+===================
+Success
+
+===================
+END_TIME: 2026-08-01 12:27:26.612
+END_TIME-NANOS: 2026-08-01 12:27:26.612425000
+DURATION: 8422ms
+EXIT CODE: 0

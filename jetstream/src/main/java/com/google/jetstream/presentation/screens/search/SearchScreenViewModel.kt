@@ -34,24 +34,80 @@ class SearchScreenViewModel @Inject constructor(
 
     private val internalSearchState = MutableSharedFlow<SearchState>()
 
+    init {
+        viewModelScope.launch { loadSuggestions() }
+    }
+
     fun query(queryString: String) {
         viewModelScope.launch { postQuery(queryString) }
     }
 
-    private suspend fun postQuery(queryString: String) {
+    private suspend fun loadSuggestions() {
         internalSearchState.emit(SearchState.Searching)
-        val result = movieRepository.searchMovies(query = queryString)
-        internalSearchState.emit(SearchState.Done(result))
+        runCatching {
+            val dice = movieRepository.getDiceSuggestions()
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = dice.movies,
+                    sectionTitle = dice.title,
+                    sectionSubheading = dice.subheading,
+                    isSuggestions = true,
+                ),
+            )
+        }.onFailure {
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = emptyList(),
+                    sectionTitle = "Discover",
+                    isSuggestions = true,
+                ),
+            )
+        }
+    }
+
+    private suspend fun postQuery(queryString: String) {
+        if (queryString.isBlank()) {
+            loadSuggestions()
+            return
+        }
+        internalSearchState.emit(SearchState.Searching)
+        runCatching {
+            val result = movieRepository.searchMovies(query = queryString)
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = result,
+                    sectionTitle = "Results",
+                    searchQuery = queryString.trim(),
+                    isSuggestions = false,
+                ),
+            )
+        }.onFailure {
+            internalSearchState.emit(
+                SearchState.Done(
+                    movieList = emptyList(),
+                    sectionTitle = "Results",
+                    searchQuery = queryString.trim(),
+                    isSuggestions = false,
+                ),
+            )
+        }
     }
 
     val searchState = internalSearchState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = SearchState.Done(emptyList())
+        initialValue = SearchState.Loading,
     )
 }
 
 sealed interface SearchState {
+    data object Loading : SearchState
     data object Searching : SearchState
-    data class Done(val movieList: MovieList) : SearchState
+    data class Done(
+        val movieList: MovieList,
+        val sectionTitle: String? = null,
+        val sectionSubheading: String? = null,
+        val searchQuery: String? = null,
+        val isSuggestions: Boolean = false,
+    ) : SearchState
 }

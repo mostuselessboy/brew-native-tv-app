@@ -3,6 +3,7 @@ package com.google.jetstream.presentation.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -20,12 +21,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.compose.PlayerSurface
+import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -46,6 +54,9 @@ import com.google.jetstream.presentation.utils.Padding
 
 /** Home + movie-detail showcase height — first tray peeks below. */
 val ShowcaseHeight = 380.dp
+
+/** Poster height vs hero frame — keeps 16:9, sits upper-right. */
+internal const val ShowcaseBackdropHeightFraction = 0.90f
 
 /** Shared typography — home showcase and movie detail hero. */
 object ShowcaseHeroStyles {
@@ -122,40 +133,115 @@ fun ShowcaseHeroFrame(
     }
 }
 
-/** Right-half poster + left scrim gradients. */
+/** Right-half poster + left scrim gradients. Optional teaser video replaces poster after delay. */
+@OptIn(UnstableApi::class)
 @Composable
 fun ShowcaseHeroBackdrop(
     posterUri: String,
     contentDescription: String,
     modifier: Modifier = Modifier,
+    teaserPlayer: androidx.media3.exoplayer.ExoPlayer? = null,
+    showTeaserVideo: Boolean = false,
+    posterAlpha: Float = 1f,
+    backdropHeightFraction: Float = ShowcaseBackdropHeightFraction,
 ) {
     val contentBg = Color.Black
+    val context = LocalContext.current
+    val imageRequest = remember(posterUri) {
+        ImageRequest.Builder(context)
+            .data(BrewImageUrl.forShowcase(posterUri))
+            .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
+            .crossfade(false)
+            .build()
+    }
+    val verticalBrush = remember {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0f to Color.Black.copy(alpha = 0.35f),
+                0.42f to Color.Transparent,
+                0.52f to Color.Black.copy(alpha = 0.25f),
+                0.65f to Color.Black.copy(alpha = 0.55f),
+                0.78f to Color.Black.copy(alpha = 0.82f),
+                0.9f to Color.Black.copy(alpha = 0.95f),
+                1f to Color.Black,
+            ),
+        )
+    }
+    val horizontalBrush1 = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                0.08f to contentBg,
+                0.15f to contentBg.copy(alpha = 0.98f),
+                0.26f to contentBg.copy(alpha = 0.80f),
+                0.36f to contentBg.copy(alpha = 0.50f),
+                0.46f to contentBg.copy(alpha = 0.20f),
+                0.54f to contentBg.copy(alpha = 0.05f),
+                0.62f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+    val horizontalBrush2 = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                0.15f to contentBg.copy(alpha = 0.95f),
+                0.30f to contentBg.copy(alpha = 0.65f),
+                0.45f to contentBg.copy(alpha = 0.30f),
+                0.58f to contentBg.copy(alpha = 0.08f),
+                0.68f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+    val imageLeftFadeBrush = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                0.05f to contentBg.copy(alpha = 0.98f),
+                0.11f to contentBg.copy(alpha = 0.85f),
+                0.19f to contentBg.copy(alpha = 0.65f),
+                0.28f to contentBg.copy(alpha = 0.40f),
+                0.38f to contentBg.copy(alpha = 0.15f),
+                0.46f to contentBg.copy(alpha = 0.05f),
+                0.54f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+
     Box(modifier = modifier.background(contentBg)) {
-        if (posterUri.isNotBlank()) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(BrewImageUrl.forShowcase(posterUri))
-                    .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
-                    .crossfade(false)
-                    .build(),
-                contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxHeight()
-                    .fillMaxWidth(0.82f)
+        val mediaModifier = Modifier
+            .align(Alignment.TopEnd)
+            .fillMaxHeight(backdropHeightFraction)
+            .aspectRatio(16f / 9f, matchHeightConstraintsFirst = true)
+
+        if (showTeaserVideo && teaserPlayer != null) {
+            PlayerSurface(
+                player = teaserPlayer,
+                surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
+                modifier = mediaModifier
+                    .graphicsLayer { clip = true }
                     .drawWithContent {
                         drawContent()
-                        drawRect(
-                            Brush.verticalGradient(
-                                colorStops = arrayOf(
-                                    0f to Color.Black.copy(alpha = 0.35f),
-                                    0.5f to Color.Transparent,
-                                    0.78f to Color.Black.copy(alpha = 0.45f),
-                                    1f to Color.Black,
-                                ),
-                            ),
-                        )
+                        drawRect(verticalBrush)
+                        drawRect(imageLeftFadeBrush)
+                    },
+            )
+        }
+
+        if (posterUri.isNotBlank() && posterAlpha > 0.01f) {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = mediaModifier
+                    .alpha(posterAlpha)
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(verticalBrush)
+                        drawRect(imageLeftFadeBrush)
                     },
             )
         }
@@ -165,19 +251,7 @@ fun ShowcaseHeroBackdrop(
                 .fillMaxSize()
                 .drawWithContent {
                     drawContent()
-                    drawRect(
-                        Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0f to contentBg,
-                                0.18f to contentBg.copy(alpha = 0.98f),
-                                0.32f to contentBg.copy(alpha = 0.88f),
-                                0.46f to contentBg.copy(alpha = 0.55f),
-                                0.56f to contentBg.copy(alpha = 0.22f),
-                                0.64f to Color.Transparent,
-                                1f to Color.Transparent,
-                            ),
-                        ),
-                    )
+                    drawRect(horizontalBrush1)
                 },
         )
 
@@ -185,15 +259,136 @@ fun ShowcaseHeroBackdrop(
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .fillMaxHeight()
-                .fillMaxWidth(0.12f)
-                .background(
-                    Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0f to contentBg,
-                            1f to Color.Transparent,
-                        ),
-                    ),
-                ),
+                .fillMaxWidth(0.30f)
+                .background(horizontalBrush2),
+        )
+    }
+}
+
+/** Skeleton hero backdrop — same layout/sizing as [ShowcaseHeroBackdrop] on movie detail. */
+@Composable
+fun ShowcaseHeroShimmerBackdrop(
+    modifier: Modifier = Modifier,
+    backdropHeightFraction: Float = 0.92f,
+    posterUri: String? = null,
+    posterFill: Brush = Brush.linearGradient(
+        listOf(Color(0xFF141414), Color(0xFF1E1E1E), Color(0xFF141414)),
+    ),
+) {
+    val contentBg = Color.Black
+    val context = LocalContext.current
+    val imageRequest = remember(posterUri) {
+        posterUri?.takeIf { it.isNotBlank() }?.let { uri ->
+            ImageRequest.Builder(context)
+                .data(BrewImageUrl.forShowcase(uri))
+                .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
+                .crossfade(false)
+                .build()
+        }
+    }
+    val verticalBrush = remember {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0f to Color.Black.copy(alpha = 0.35f),
+                0.42f to Color.Transparent,
+                0.52f to Color.Black.copy(alpha = 0.25f),
+                0.65f to Color.Black.copy(alpha = 0.55f),
+                0.78f to Color.Black.copy(alpha = 0.82f),
+                0.9f to Color.Black.copy(alpha = 0.95f),
+                1f to Color.Black,
+            ),
+        )
+    }
+    val horizontalBrush1 = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                0.10f to contentBg,
+                0.20f to contentBg.copy(alpha = 0.98f),
+                0.34f to contentBg.copy(alpha = 0.82f),
+                0.48f to contentBg.copy(alpha = 0.52f),
+                0.60f to contentBg.copy(alpha = 0.22f),
+                0.72f to contentBg.copy(alpha = 0.06f),
+                0.82f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+    val horizontalBrush2 = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                0.22f to contentBg.copy(alpha = 0.96f),
+                0.40f to contentBg.copy(alpha = 0.68f),
+                0.56f to contentBg.copy(alpha = 0.32f),
+                0.70f to contentBg.copy(alpha = 0.10f),
+                0.82f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+    val imageLeftFadeBrush = remember(contentBg) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to contentBg,
+                0.06f to contentBg.copy(alpha = 0.98f),
+                0.14f to contentBg.copy(alpha = 0.88f),
+                0.24f to contentBg.copy(alpha = 0.68f),
+                0.36f to contentBg.copy(alpha = 0.42f),
+                0.48f to contentBg.copy(alpha = 0.18f),
+                0.58f to contentBg.copy(alpha = 0.06f),
+                0.68f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+        )
+    }
+
+    Box(modifier = modifier.background(contentBg)) {
+        val mediaModifier = Modifier
+            .align(Alignment.TopEnd)
+            .fillMaxHeight(backdropHeightFraction)
+            .aspectRatio(16f / 9f, matchHeightConstraintsFirst = true)
+
+        Box(
+            modifier = mediaModifier
+                .then(
+                    if (imageRequest != null) {
+                        Modifier
+                    } else {
+                        Modifier.background(posterFill)
+                    },
+                )
+                .drawWithContent {
+                    drawContent()
+                    drawRect(verticalBrush)
+                    drawRect(imageLeftFadeBrush)
+                },
+        ) {
+            if (imageRequest != null) {
+                AsyncImage(
+                    model = imageRequest,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawWithContent {
+                    drawContent()
+                    drawRect(horizontalBrush1)
+                },
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+                .fillMaxWidth(0.38f)
+                .background(horizontalBrush2),
         )
     }
 }
@@ -252,10 +447,9 @@ fun BoxScope.ShowcaseHeroBrewPlusBadge(
     Row(
         modifier = modifier
             .align(Alignment.BottomEnd)
-            .padding(end = padding.end, bottom = 8.dp)
-            .height(12.dp),
+            .padding(end = padding.end, bottom = 32.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Text(
             text = stringResource(
@@ -270,7 +464,8 @@ fun BoxScope.ShowcaseHeroBrewPlusBadge(
             fontWeight = FontWeight.Medium,
             fontSize = 10.sp,
             letterSpacing = (-0.45).sp,
-            lineHeight = 11.sp,
+            lineHeight = 10.sp,
+            modifier = Modifier.alignByBaseline(),
         )
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -280,8 +475,10 @@ fun BoxScope.ShowcaseHeroBrewPlusBadge(
             contentDescription = "Brew Plus",
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .height(9.dp)
-                .width(34.dp),
+                .alignByBaseline()
+                .offset(y = (-1).dp)
+                .height(10.dp)
+                .width(38.dp),
         )
     }
 }

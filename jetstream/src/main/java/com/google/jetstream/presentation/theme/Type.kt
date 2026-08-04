@@ -30,7 +30,7 @@ val BrewTitle = FontFamily(
     Font(R.font.brew_title, weight = FontWeight.Medium),
 )
 
-/** Cinematic / fancy display face — Instrument Serif. */
+/** Cinematic / fancy display face — Instrument Serif. Use with [FontStyle.Italic] for editorial lines. */
 val BrewDisplay = FontFamily(
     Font(R.font.instruments_serif_regular, weight = FontWeight.Normal),
 )

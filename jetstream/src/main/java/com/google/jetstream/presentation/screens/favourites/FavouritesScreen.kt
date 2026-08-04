@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -45,6 +46,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,6 +65,7 @@ import com.google.jetstream.data.entities.LibraryShelf
 import com.google.jetstream.data.entities.LibraryShelfId
 import com.google.jetstream.data.entities.Movie
 import com.google.jetstream.data.util.BrewImageUrl
+import com.google.jetstream.data.util.LibraryClickAction
 import com.google.jetstream.presentation.common.BrewLandscapeMovieCard
 import com.google.jetstream.presentation.common.ItemDirection
 import com.google.jetstream.presentation.common.Loading
@@ -71,10 +74,13 @@ import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.screens.movies.MovieDetailTokens
 import com.google.jetstream.presentation.theme.BrewTitle
 
-private val LibraryBackground = Color(0xFF0A0A0A)
+private val LibraryBackground = Color.Black
 private val LibraryPortraitWidth = 150.dp
+private val LibraryPortraitArtHeight = 225.dp
 private val LibraryPortraitRadius = 8.dp
-private val LibraryShelfSpacing = 32.dp
+private val LibraryViewMoreWidth = 104.dp
+private val LibraryShelfSpacing = 28.dp
+private val LibraryShelfTitleSize = 14.sp
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -96,44 +102,52 @@ fun FavouritesScreen(
     val firstContentFocus = contentFocusRequester ?: localContentFocus
     onScroll(true)
 
+    LaunchedEffect(isTabVisible) {
+        if (isTabVisible) {
+            viewModel.refreshIfPending()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(LibraryBackground),
     ) {
-        when (val state = uiState) {
-            MyLibraryUiState.Loading -> Loading(modifier = Modifier.fillMaxSize())
-            MyLibraryUiState.Guest -> LibraryGuestState(
-                onSignInClick = onSignInClick,
-                focusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
-            is MyLibraryUiState.Error -> LibraryErrorState(
-                message = state.message,
-                onRetry = viewModel::refresh,
-                focusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
-            is MyLibraryUiState.Empty -> LibraryEmptyState(
-                userName = state.userName,
-                avatarUrl = state.avatarUrl,
-                onBrowse = onBrowseHome,
-                focusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
-            is MyLibraryUiState.Ready -> MyLibraryContent(
-                userName = state.userName,
-                avatarUrl = state.avatarUrl,
-                shelves = state.page.shelves,
-                loadingShelfId = state.loadingShelfId,
-                onMovieClick = onMovieClick,
-                onLibraryItemClick = onLibraryItemClick,
-                onLoadMore = viewModel::loadMoreShelf,
-                onBrowseHome = onBrowseHome,
-                onBrowseStore = onBrowseStore,
-                firstContentFocusRequester = firstContentFocus,
-                sidebarFocusRequester = sidebarFocusRequester,
-            )
+        if (isTabVisible) {
+            when (val state = uiState) {
+                MyLibraryUiState.Loading -> Loading(modifier = Modifier.fillMaxSize())
+                MyLibraryUiState.Guest -> LibraryGuestState(
+                    onSignInClick = onSignInClick,
+                    focusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+                is MyLibraryUiState.Error -> LibraryErrorState(
+                    message = state.message,
+                    onRetry = viewModel::refresh,
+                    focusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+                is MyLibraryUiState.Empty -> LibraryEmptyState(
+                    userName = state.userName,
+                    avatarUrl = state.avatarUrl,
+                    onBrowse = onBrowseHome,
+                    focusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+                is MyLibraryUiState.Ready -> MyLibraryContent(
+                    userName = state.userName,
+                    avatarUrl = state.avatarUrl,
+                    shelves = state.page.shelves,
+                    loadingShelfId = state.loadingShelfId,
+                    onMovieClick = onMovieClick,
+                    onLibraryItemClick = onLibraryItemClick,
+                    onLoadMore = viewModel::loadMoreShelf,
+                    onBrowseHome = onBrowseHome,
+                    onBrowseStore = onBrowseStore,
+                    firstContentFocusRequester = firstContentFocus,
+                    sidebarFocusRequester = sidebarFocusRequester,
+                )
+            }
         }
     }
 }
@@ -168,7 +182,7 @@ private fun MyLibraryContent(
         modifier = Modifier.fillMaxSize(),
     ) {
         item(key = "header") {
-            LibraryPersonalizedHeader(userName = userName, avatarUrl = avatarUrl)
+            LibraryPersonalizedHeader(userName = userName)
         }
 
         itemsIndexed(shelves, key = { _, shelf -> shelf.id.name }) { index, shelf ->
@@ -188,8 +202,7 @@ private fun MyLibraryContent(
 }
 
 @Composable
-private fun LibraryPersonalizedHeader(userName: String?, avatarUrl: String?) {
-    val context = LocalContext.current
+private fun LibraryPersonalizedHeader(userName: String?) {
     val title = when {
         !userName.isNullOrBlank() -> "$userName's library"
         else -> "My library"
@@ -200,78 +213,25 @@ private fun LibraryPersonalizedHeader(userName: String?, avatarUrl: String?) {
         "Everything you have watched or unlocked"
     }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0x47FFC15E),
-                                Color(0x1AFFFFFF),
-                                Color(0x08FFFFFF),
-                            ),
-                        ),
-                    ),
-            )
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .border(
-                        width = 1.dp,
-                        color = Color.White.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                    .background(Color(0xFF141414)),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (!avatarUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(avatarUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Profile photo",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.55f),
-                        modifier = Modifier.size(26.dp),
-                    )
-                }
-            }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = Color.White,
-                fontFamily = BrewTitle,
-                fontWeight = FontWeight.Bold,
-                fontSize = 26.sp,
-                lineHeight = 30.sp,
-                letterSpacing = (-0.8).sp,
-                maxLines = 2,
-            )
-            Text(
-                text = subtitle,
-                color = Color.White.copy(alpha = 0.52f),
-                fontSize = 14.sp,
-                lineHeight = 19.sp,
-                modifier = Modifier.padding(top = 5.dp),
-                maxLines = 2,
-            )
-        }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            color = Color.White,
+            fontFamily = BrewTitle,
+            fontWeight = FontWeight.Bold,
+            fontSize = 26.sp,
+            lineHeight = 30.sp,
+            letterSpacing = (-0.8).sp,
+            maxLines = 2,
+        )
+        Text(
+            text = subtitle,
+            color = Color.White.copy(alpha = 0.52f),
+            fontSize = 14.sp,
+            lineHeight = 19.sp,
+            modifier = Modifier.padding(top = 5.dp),
+            maxLines = 2,
+        )
     }
 }
 
@@ -300,15 +260,15 @@ private fun LibraryShelfRow(
                     color = Color.White,
                     fontFamily = BrewTitle,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                    letterSpacing = (-0.55).sp,
+                    fontSize = LibraryShelfTitleSize,
+                    letterSpacing = (-0.35).sp,
                 )
                 if (shelf.id == LibraryShelfId.ContinueWatching) {
                     Text(
                         text = "Pick up where you left off",
                         color = Color.White.copy(alpha = 0.52f),
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 4.dp),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 3.dp),
                     )
                 }
             }
@@ -343,7 +303,11 @@ private fun LibraryShelfRow(
                 showItemTitle = true,
                 onMovieSelected = { movie ->
                     shelf.items.firstOrNull { it.movie.id == movie.id }
-                        ?.let(onLibraryItemClick)
+                        ?.let { item ->
+                            if (item.clickAction != LibraryClickAction.Nothing) {
+                                onLibraryItemClick(item)
+                            }
+                        }
                         ?: onMovieClick(movie.id)
                 },
                 onViewMoreClick = if (shelf.hasMore) onLoadMore else null,
@@ -361,7 +325,12 @@ private fun LibraryShelfRow(
                 itemsIndexed(shelf.items, key = { _, item -> "${shelf.id}-${item.movieId}" }) { index, item ->
                     LibraryItemCard(
                         item = item,
-                        onClick = { onLibraryItemClick(item) },
+                        shelfId = shelf.id,
+                        onClick = {
+                            if (item.clickAction != LibraryClickAction.Nothing) {
+                                onLibraryItemClick(item)
+                            }
+                        },
                         modifier = Modifier.then(
                             if (index == 0 && firstItemFocusRequester != null) {
                                 Modifier
@@ -384,9 +353,7 @@ private fun LibraryShelfRow(
                         LibraryViewMoreCard(
                             loading = loadingMore,
                             onClick = onLoadMore,
-                            portrait = true,
-                            focusRequester = null,
-                            leftFocusRequester = null,
+                            height = LibraryPortraitArtHeight,
                         )
                     }
                 }
@@ -444,20 +411,14 @@ private fun LibraryShelfEmptyPlaceholder(
 
     Surface(
         onClick = copy.onPress,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(18.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color.White.copy(alpha = 0.02f),
-            focusedContainerColor = Color.White.copy(alpha = 0.06f),
+            containerColor = Color.White.copy(alpha = 0.06f),
+            focusedContainerColor = Color.White.copy(alpha = 0.12f),
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .border(
-                width = 1.5.dp,
-                color = Color.White.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(18.dp),
-            )
             .then(
                 if (focusRequester != null) {
                     Modifier
@@ -477,47 +438,30 @@ private fun LibraryShelfEmptyPlaceholder(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.Start,
         ) {
-            if (copy.showStoreIcon) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_fa_shopping_bag),
-                    contentDescription = null,
-                    tint = MovieDetailTokens.AccentYellow,
-                    modifier = Modifier
-                        .padding(bottom = 10.dp)
-                        .width(22.dp)
-                        .height(25.dp),
-                )
-            }
             Text(
                 text = copy.title,
                 color = Color.White.copy(alpha = 0.88f),
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
+                fontSize = 15.sp,
             )
             Text(
                 text = copy.hint,
                 color = Color.White.copy(alpha = 0.48f),
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 6.dp),
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                modifier = Modifier.padding(top = 4.dp),
             )
             Text(
                 text = copy.ctaLabel,
-                color = Color.Black,
+                color = Color.White,
                 fontFamily = BrewTitle,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 12.dp),
             )
         }
     }
@@ -535,11 +479,17 @@ private data class ShelfEmptyCopy(
 @Composable
 private fun LibraryItemCard(
     item: LibraryItem,
+    shelfId: LibraryShelfId,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (item.layout) {
-        LibraryCardLayout.Portrait -> LibraryPortraitCard(item = item, onClick = onClick, modifier = modifier)
+        LibraryCardLayout.Portrait -> LibraryPortraitCard(
+            item = item,
+            shelfId = shelfId,
+            onClick = onClick,
+            modifier = modifier,
+        )
         LibraryCardLayout.Landscape -> LibraryLandscapeCard(item = item, onClick = onClick, modifier = modifier)
     }
 }
@@ -548,57 +498,130 @@ private fun LibraryItemCard(
 @Composable
 private fun LibraryPortraitCard(
     item: LibraryItem,
+    shelfId: LibraryShelfId,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    Surface(
-        onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(LibraryPortraitRadius)),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
-        colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color(0xFF141414),
-            focusedContainerColor = Color(0xFF1E1E1E),
-        ),
-        modifier = modifier
-            .width(LibraryPortraitWidth)
-            .aspectRatio(2f / 3f),
+    val showBookmarkBadge = shelfId == LibraryShelfId.Bookmarks
+    val unavailable = item.clickAction == LibraryClickAction.Nothing
+    val cardGradient = remember {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0.45f to Color.Transparent,
+                0.78f to Color.Black.copy(alpha = 0.55f),
+                1f to Color.Black.copy(alpha = 0.92f),
+            ),
+        )
+    }
+
+    Column(
+        modifier = modifier.width(LibraryPortraitWidth),
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(BrewImageUrl.forCard(item.movie.posterUri))
-                    .crossfade(false)
-                    .build(),
-                contentDescription = item.movie.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0f to Color.Transparent,
-                                0.55f to Color.Black.copy(alpha = 0.55f),
-                                1f to Color.Black.copy(alpha = 0.88f),
-                            ),
-                        ),
+        Surface(
+            onClick = if (unavailable) ({}) else onClick,
+            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(LibraryPortraitRadius)),
+            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+            colors = ClickableSurfaceDefaults.colors(
+                containerColor = Color(0xFF1A1A1A),
+                focusedContainerColor = Color(0xFF242424),
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(LibraryPortraitArtHeight),
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(BrewImageUrl.forPortraitCard(item.movie.posterUri))
+                        .size(
+                            BrewImageUrl.PORTRAIT_CARD_WIDTH,
+                            BrewImageUrl.PORTRAIT_CARD_HEIGHT,
+                        )
+                        .crossfade(false)
+                        .build(),
+                    contentDescription = item.movie.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (unavailable) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.45f)),
                     )
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
-            ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Unavailable",
+                            color = Color.White,
+                            fontFamily = BrewTitle,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.Black.copy(alpha = 0.72f))
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(cardGradient),
+                )
+                if (showBookmarkBadge && !unavailable) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.58f))
+                            .border(1.dp, Color.White.copy(alpha = 0.16f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lucide_bookmark_filled),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp),
+                        )
+                    }
+                }
                 Text(
                     text = item.movie.name,
                     color = Color.White,
                     fontFamily = BrewTitle,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    lineHeight = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    lineHeight = 16.sp,
+                    textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 10.dp, vertical = 12.dp)
+                        .fillMaxWidth(),
                 )
+                if (item.progressPercent > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .background(Color.White.copy(alpha = 0.14f)),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(item.progressPercent / 100f)
+                                .height(4.dp)
+                                .background(MovieDetailTokens.AccentYellow),
+                        )
+                    }
+                }
             }
         }
     }
@@ -610,30 +633,12 @@ private fun LibraryLandscapeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        BrewLandscapeMovieCard(
-            movie = item.movie,
-            onClick = onClick,
-            showTitle = true,
-        )
-        if (item.progressPercent > 0) {
-            Box(
-                modifier = Modifier
-                    .padding(top = 6.dp)
-                    .width(com.google.jetstream.presentation.common.BrewLandscapeCardWidth)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.12f)),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(item.progressPercent / 100f)
-                        .height(4.dp)
-                        .background(MovieDetailTokens.AccentYellow),
-                )
-            }
-        }
-    }
+    BrewLandscapeMovieCard(
+        movie = item.movie.copy(watchProgressPercent = item.progressPercent),
+        onClick = onClick,
+        showTitle = true,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -641,49 +646,64 @@ private fun LibraryLandscapeCard(
 private fun LibraryViewMoreCard(
     loading: Boolean,
     onClick: () -> Unit,
-    portrait: Boolean,
-    focusRequester: FocusRequester? = null,
-    leftFocusRequester: FocusRequester? = null,
+    height: Dp,
+    modifier: Modifier = Modifier,
 ) {
-    val width = if (portrait) LibraryPortraitWidth else com.google.jetstream.presentation.common.BrewLandscapeCardWidth
-    val aspect = if (portrait) 2f / 3f else 16f / 9f
-
     Surface(
-        onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
+        onClick = if (loading) ({}) else onClick,
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(LibraryPortraitRadius)),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color(0xFF141414),
-            focusedContainerColor = Color(0xFF1E1E1E),
+            containerColor = Color.White.copy(alpha = 0.08f),
+            focusedContainerColor = Color.White.copy(alpha = 0.14f),
+            contentColor = Color.White,
+            focusedContentColor = Color.White,
         ),
-        modifier = Modifier
-            .width(width)
-            .aspectRatio(aspect)
-            .then(
-                if (focusRequester != null) {
-                    Modifier
-                        .focusRequester(focusRequester)
-                        .then(
-                            if (leftFocusRequester != null) {
-                                Modifier.focusProperties { left = leftFocusRequester }
-                            } else {
-                                Modifier
-                            },
-                        )
-                } else {
-                    Modifier
-                },
-            ),
+        modifier = modifier
+            .width(LibraryViewMoreWidth)
+            .height(height),
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = if (loading) "Loading…" else "View more",
-                color = if (loading) MovieDetailTokens.AccentYellow else Color.White,
-                fontFamily = BrewTitle,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-            )
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            if (loading) {
+                Text(
+                    text = "Loading…",
+                    color = MovieDetailTokens.AccentYellow,
+                    fontFamily = BrewTitle,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.06f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_lucide_arrow_right),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Text(
+                    text = "View more",
+                    color = Color.White.copy(alpha = 0.88f),
+                    fontFamily = BrewTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .padding(horizontal = 8.dp),
+                )
+            }
         }
     }
 }
@@ -705,7 +725,7 @@ private fun LibraryGuestState(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_lucide_bookmark),
+                    painter = painterResource(R.drawable.ic_lucide_library),
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.size(28.dp),
@@ -737,7 +757,7 @@ private fun LibraryEmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        LibraryPersonalizedHeader(userName = userName, avatarUrl = avatarUrl)
+        LibraryPersonalizedHeader(userName = userName)
         Spacer(modifier = Modifier.height(32.dp))
         Text(
             text = "Mastered the art of owning zero movies",

@@ -14,6 +14,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Glow
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -69,6 +81,15 @@ fun BrewLandscapeMovieCard(
             .crossfade(false)
             .build()
     }
+    val cardGradient = remember {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0.42f to Color.Transparent,
+                0.7f to Color.Black.copy(alpha = 0.42f),
+                1f to Color.Black.copy(alpha = 0.96f),
+            ),
+        )
+    }
 
     val shape = when (style) {
         BrewMovieCardStyle.Tray -> BrewTrayCardShape
@@ -82,14 +103,36 @@ fun BrewLandscapeMovieCard(
         BrewMovieCardStyle.Tray -> 17.sp
         BrewMovieCardStyle.Detail -> 15.sp
     }
-    val focusedScale = when (style) {
-        BrewMovieCardStyle.Tray -> 1.06f
-        BrewMovieCardStyle.Detail -> 1.04f
-    }
     val containerColor = when (style) {
         BrewMovieCardStyle.Tray -> Color.Black
         BrewMovieCardStyle.Detail -> Color.White.copy(alpha = 0.06f)
     }
+
+    var isFocused by remember { mutableStateOf(false) }
+
+    val targetScale = if (isFocused) {
+        when (style) {
+            BrewMovieCardStyle.Tray -> 1.10f
+            BrewMovieCardStyle.Detail -> 1.08f
+        }
+    } else {
+        1.0f
+    }
+
+    val scaleAnimationSpec = if (isFocused) {
+        spring<Float>(
+            dampingRatio = 0.85f,
+            stiffness = 180f
+        )
+    } else {
+        tween<Float>(durationMillis = 650, easing = LinearOutSlowInEasing)
+    }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = targetScale,
+        animationSpec = scaleAnimationSpec,
+        label = "MovieCardScale"
+    )
 
     val widthModifier = when {
         fillAvailableWidth -> Modifier.fillMaxWidth()
@@ -98,8 +141,15 @@ fun BrewLandscapeMovieCard(
         else -> Modifier.width(BrewLandscapeCardWidth)
     }
 
+    val heightModifier = when {
+        fillAvailableWidth -> Modifier.aspectRatio(16f / 9f)
+        cardWidth != null -> Modifier.height(cardWidth * 9f / 16f)
+        style == BrewMovieCardStyle.Detail -> Modifier.height(158.dp)
+        else -> Modifier.height(124.dp)
+    }
+
     val focusedBorder = Border(
-        border = BorderStroke(2.dp, Color.White.copy(alpha = 0.9f)),
+        border = BorderStroke(1.5.dp, Color.White),
         shape = shape,
     )
     val surfaceBorder = when (style) {
@@ -119,15 +169,29 @@ fun BrewLandscapeMovieCard(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(shape),
         border = surfaceBorder,
-        scale = ClickableSurfaceDefaults.scale(focusedScale = focusedScale),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color.White.copy(alpha = 0.30f),
+                elevation = 20.dp,
+            ),
+        ),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = containerColor,
             focusedContainerColor = containerColor,
         ),
         modifier = modifier
             .then(widthModifier)
-            .aspectRatio(16f / 9f)
-            .onFocusChanged { if (it.isFocused) onFocused() },
+            .then(heightModifier)
+            .onFocusChanged { 
+                isFocused = it.isFocused
+                if (it.isFocused) onFocused() 
+            }
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
+            .zIndex(if (isFocused) 10f else 1f),
     ) {
         Box(
             modifier = Modifier
@@ -144,15 +208,7 @@ fun BrewLandscapeMovieCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.42f to Color.Transparent,
-                                0.7f to Color.Black.copy(alpha = 0.42f),
-                                1f to Color.Black.copy(alpha = 0.96f),
-                            ),
-                        ),
-                    ),
+                    .background(cardGradient),
             )
 
             MovieBadgeChrome(movie = movie, compact = true)

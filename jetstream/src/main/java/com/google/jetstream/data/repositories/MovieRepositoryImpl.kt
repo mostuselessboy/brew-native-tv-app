@@ -16,6 +16,8 @@
 
 package com.google.jetstream.data.repositories
 
+import android.net.Uri
+import com.google.jetstream.data.entities.DiceSuggestions
 import com.google.jetstream.data.entities.CollectionSectionDetails
 import com.google.jetstream.data.entities.HomeSection
 import com.google.jetstream.data.entities.HomeSectionType
@@ -24,25 +26,23 @@ import com.google.jetstream.data.entities.MovieCategory
 import com.google.jetstream.data.entities.MovieCategoryDetails
 import com.google.jetstream.data.entities.MovieCategoryList
 import com.google.jetstream.data.entities.MovieDetails
+import com.google.jetstream.data.entities.PlaybackSubtitle
+import com.google.jetstream.data.util.PlaybackSubtitleMapper
 import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.entities.ThumbnailType
-import com.google.jetstream.data.remote.BrewAlsoWatchedMovieDto
-import com.google.jetstream.data.remote.BrewMappers.toReviewSummary
-import com.google.jetstream.data.remote.BrewMappers.toUserReview
 import com.google.jetstream.data.remote.BrewApiService
+import com.google.jetstream.data.remote.BrewVodApiService
 import com.google.jetstream.data.remote.BrewContentDataDto
 import com.google.jetstream.data.remote.BrewHomeSectionDto
 import com.google.jetstream.data.remote.BrewMappers.toCollectionSectionDetails
 import com.google.jetstream.data.remote.BrewMappers.toHomeSection
+import com.google.jetstream.data.remote.BrewMappers.genresToCategories
 import com.google.jetstream.data.remote.BrewMappers.toMovie
 import com.google.jetstream.data.remote.BrewMappers.toMovieDetails
-import com.google.jetstream.data.remote.BrewMappers.genresToCategories
+import com.google.jetstream.data.remote.BrewMappers.toReviewSummary
+import com.google.jetstream.data.remote.BrewMappers.toUserReview
 import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.data.remote.BrewCampaignData
-import com.google.jetstream.data.util.BrewArtworkUrls
-import com.google.jetstream.data.util.CardCommerce
-import com.google.jetstream.data.util.DailyRotatingArtwork
-import com.google.jetstream.data.util.VodTagBadge
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +53,7 @@ import kotlinx.coroutines.sync.withLock
 @Singleton
 class MovieRepositoryImpl @Inject constructor(
     private val brewApiService: BrewApiService,
+    private val brewVodApiService: BrewVodApiService,
 ) : MovieRepository {
 
     private val mutex = Mutex()
@@ -100,43 +101,6 @@ class MovieRepositoryImpl @Inject constructor(
         CatalogPages.forEach { page ->
             runCatching { homeSections(page) }
         }
-    }
-
-    private fun BrewAlsoWatchedMovieDto.toAlsoWatchedMovie(): Movie? {
-        val id = cvName?.takeIf { it.isNotBlank() } ?: return null
-        val name = projectTitle?.takeIf { it.isNotBlank() } ?: return null
-        val backgroundArt = BrewArtworkUrls.asUrl(appearance?.get("background_art"))
-        val horizontalThumbnails = BrewArtworkUrls.horizontalAlternatesFromAppearance(appearance)
-        val posterFallback = projectPoster?.takeIf { it.isNotBlank() }
-            ?: BrewArtworkUrls.asUrl(appearance?.get("poster"))
-        val landscape = DailyRotatingArtwork.pickDailyLandscape(
-            backgroundArtUrl = backgroundArt,
-            horizontalThumbnails = horizontalThumbnails,
-            fallback = posterFallback ?: BrewArtworkUrls.landscapeFromAppearance(appearance),
-        ).takeIf { it.isNotBlank() }
-            ?: posterFallback?.takeIf { it.isNotBlank() }
-            ?: return null
-        val chrome = CardCommerce.resolve(
-            monetizationModel = monetizationModel,
-            pricingData = null,
-            isSvod = isSvod,
-            isTvod = isTvod,
-            availableForBuy = availableForBuy,
-            availableForRent = availableForRent,
-            isStoreContent = isStoreContent,
-        )
-        return Movie(
-            id = id,
-            videoUri = "",
-            subtitleUri = null,
-            posterUri = landscape,
-            name = name,
-            description = shortDescription.orEmpty(),
-            vodTagLabel = VodTagBadge.movieCardLabel(vodTag),
-            isFestivalTag = VodTagBadge.isFestivalStyle(vodTag),
-            showStore = chrome.showStore,
-            showBrewPlus = chrome.showPlus,
-        )
     }
 
     private suspend fun homeSections(page: String = BrewPages.HOME): List<BrewHomeSectionDto> {
@@ -198,6 +162,29 @@ class MovieRepositoryImpl @Inject constructor(
 
     override fun peekHomeSections(page: String): List<HomeSection>? =
         cachedMappedSectionsByPage[page]
+
+    override fun clearHomeCache() {
+        cachedSectionsByPage.clear()
+        cachedMappedSectionsByPage.clear()
+    }
+
+    override fun peekMovieFromCatalog(movieId: String): Movie? {
+        val trimmed = movieId.trim()
+        if (trimmed.isBlank()) return null
+        val decoded = Uri.decode(trimmed)
+        val resolvedSlug = resolveSlug(decoded)
+        return cachedMappedSectionsByPage.values
+            .asSequence()
+            .flatten()
+            .flatMap { section -> section.movies }
+            .firstOrNull { movie ->
+                movie.id == trimmed ||
+                    movie.id == decoded ||
+                    movie.id == resolvedSlug ||
+                    movie.id.equals(trimmed, ignoreCase = true) ||
+                    movie.id.equals(decoded, ignoreCase = true)
+            }
+    }
 
     private fun resolveSlug(movieId: String): String {
         val trimmed = movieId.trim()
@@ -312,7 +299,7 @@ class MovieRepositoryImpl @Inject constructor(
                 country = BrewPages.DEFAULT_COUNTRY,
             ).data?.relatedMovies.orEmpty()
         }.getOrDefault(emptyList())
-            .mapNotNull { it.toAlsoWatchedMovie() }
+            .mapNotNull { it.toMovie() }
             .filter { it.id != slug }
             .distinctBy { it.id }
             .take(12)
@@ -323,7 +310,7 @@ class MovieRepositoryImpl @Inject constructor(
             runCatching {
                 brewApiService.getRelatedMovies(campaignVersionId = campaignVersionId)
                     .data?.relatedMovies.orEmpty()
-                    .mapNotNull { it.toAlsoWatchedMovie() }
+                    .mapNotNull { it.toMovie() }
                     .filter { it.id != slug && it.id !in alsoWatchedIds }
                     .distinctBy { it.id }
                     .take(12)
@@ -359,10 +346,32 @@ class MovieRepositoryImpl @Inject constructor(
 
     override suspend fun searchMovies(query: String): MovieList {
         if (query.isBlank()) return emptyList()
-        return allMovies().filter {
-            it.name.contains(query, ignoreCase = true) ||
-                it.description.contains(query, ignoreCase = true)
-        }
+        warmHomeCache()
+        val q = query.trim()
+        return allMovies(ThumbnailType.Long).filter { movie ->
+            movie.name.contains(q, ignoreCase = true) ||
+                movie.description.contains(q, ignoreCase = true) ||
+                movie.country?.contains(q, ignoreCase = true) == true ||
+                movie.year?.contains(q, ignoreCase = true) == true ||
+                movie.genres.any { it.contains(q, ignoreCase = true) }
+        }.distinctBy { it.id }
+    }
+
+    override suspend fun getDiceSuggestions(): DiceSuggestions {
+        val section = runCatching {
+            brewApiService.getDiceData(
+                country = BrewPages.DEFAULT_COUNTRY,
+                lang = "en",
+            ).firstOrNull()
+        }.getOrNull()
+        val movies = section?.content
+            ?.mapNotNull { it.contentData?.toMovie(ThumbnailType.Long) }
+            .orEmpty()
+        return DiceSuggestions(
+            title = section?.name?.takeIf { it.isNotBlank() } ?: "Discover",
+            subheading = section?.subheading?.takeIf { it.isNotBlank() },
+            movies = movies,
+        )
     }
 
     override fun getMoviesWithLongThumbnail(): Flow<MovieList> = flow {
@@ -408,4 +417,30 @@ class MovieRepositoryImpl @Inject constructor(
         return section.toCollectionSectionDetails()
             ?: throw IllegalStateException("Collection section empty: $sectionId")
     }
+
+    override suspend fun getCastMember(id: String): com.google.jetstream.data.remote.BrewCastMemberDetailDto? {
+        return runCatching { brewApiService.getCastMember(id).data }.getOrNull()
+    }
+
+    override suspend fun getShowcaseAccess(userId: Int): com.google.jetstream.data.remote.BrewShowcaseAccessResponse? {
+        return runCatching { brewVodApiService.getShowcaseAccess(userId).data }.getOrNull()
+    }
+
+    override suspend fun joinWaitlist(
+        userId: Int,
+        campaignVersionId: Int,
+    ): Result<com.google.jetstream.data.remote.BrewJoinWaitlistResponse> = runCatching {
+        val response = brewVodApiService.joinWaitlist(
+            com.google.jetstream.data.remote.BrewJoinWaitlistRequest(userId, campaignVersionId)
+        )
+        response.data ?: throw IllegalStateException(response.message ?: "Could not join waitlist")
+    }
+
+    override suspend fun getCampaignSubtitles(movieSlug: String): List<PlaybackSubtitle> =
+        runCatching {
+            val response = brewApiService.getCampaignSubtitles(movieSlug)
+            if (!response.success) return emptyList()
+            PlaybackSubtitleMapper.fromCampaignRows(response.data?.subtitles.orEmpty())
+        }.getOrDefault(emptyList())
 }
+

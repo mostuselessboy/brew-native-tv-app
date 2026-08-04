@@ -5,4 +5,5 @@ data class PlaybackSubtitle(
     val language: String,
     val label: String,
     val url: String,
+    val isDefault: Boolean = false,
 )

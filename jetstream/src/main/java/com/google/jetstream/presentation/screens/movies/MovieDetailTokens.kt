@@ -18,45 +18,45 @@ internal object MovieDetailTokens {
     /** `CTA_WIDE_BORDER_RADIUS` — mobile uses 12; TV half-rows use 10 to avoid pill shape. */
     val CtaWideRadius = 8.dp
     val CtaHalfRowRadius = 8.dp
-    val CtaIconBoxRadius = 12.dp
+    val CtaIconBoxRadius = 6.dp
 
-    val CtaFixedWidth = 216.dp
-    val CtaHalfRowFixedWidth = 216.dp
+    val CtaFixedWidth = 224.dp
+    val CtaHalfRowFixedWidth = 224.dp
 
-    val CtaMinHeight = 38.dp
-    val CtaHalfRowMinHeight = 36.dp
-    val CtaSubscribeMinHeight = 38.dp
-    val CtaHalfRowSubscribeMinHeight = 36.dp
+    val CtaMinHeight = 40.dp
+    val CtaHalfRowMinHeight = 38.dp
+    val CtaSubscribeMinHeight = 40.dp
+    val CtaHalfRowSubscribeMinHeight = 38.dp
 
-    val CtaPadH = 9.dp
-    val CtaPadTop = 6.dp
-    val CtaPadBottom = 2.dp
-    val CtaHalfRowPadTop = 8.dp
-    val CtaHalfRowPadBottom = 3.dp
+    val CtaPadH = 10.dp
+    val CtaPadTop = 11.dp
+    val CtaPadBottom = 11.dp
+    val CtaHalfRowPadTop = 10.dp
+    val CtaHalfRowPadBottom = 10.dp
 
     val CtaIconBox = 26.dp
     val CtaHalfRowIconBox = 30.dp
 
-    val CtaTitleSize = 12.sp
-    val CtaTitleLine = 15.sp
+    val CtaTitleSize = 14.sp
+    val CtaTitleLine = 16.sp
     val CtaHalfRowTitleSize = 13.sp
-    val CtaHalfRowTitleLine = 16.sp
+    val CtaHalfRowTitleLine = 15.sp
 
-    val CtaSublabelSize = 10.sp
-    val CtaSublabelLine = 13.sp
-    val CtaHalfRowSublabelSize = 9.sp
-    val CtaHalfRowSublabelLine = 12.sp
+    val CtaSublabelSize = 8.sp
+    val CtaSublabelLine = 10.sp
+    val CtaHalfRowSublabelSize = 8.sp
+    val CtaHalfRowSublabelLine = 10.sp
 
-    val CtaPriceSize = 16.sp
-    val CtaHalfRowPriceSize = 14.sp
-    val CtaPriceColumnWidth = 88.dp
-    val CtaHalfRowPriceColumnWidth = 76.dp
+    val CtaPriceSize = 12.sp
+    val CtaHalfRowPriceSize = 11.sp
+    val CtaPriceColumnWidth = 68.dp
+    val CtaHalfRowPriceColumnWidth = 70.dp
 
     /** Stacked subscribe wordmark — sized to fit CTA row without dominating. */
     val BrewPlusLogoWidth = 52.dp
     val BrewPlusLogoCompactWidth = 44.dp
 
-    val SecondaryActionSize = 36.dp
+    val SecondaryActionSize = 32.dp
     val SecondaryActionBorder = Color.White.copy(alpha = 0.22f)
 
     val CtaFocusBorderGray = Color(0xFF9CA3AF)
@@ -69,9 +69,12 @@ internal object MovieDetailTokens {
     const val BackdropParallaxFactor = 0.48f
     const val BackdropScale = 1.08f
     val TaglineSize = 16.sp
-    val SynopsisSize = 11.sp
+    val SynopsisSize = 10.sp
     val MetaSize = 12.sp
-    val SectionTitleSize = 24.sp
+    val DetailShowcaseHeight = 480.dp
+    val DetailBackdropHeight = 520.dp
+    val SectionTitleSize = 17.sp
+    val SectionTitleColor = Color.White
 
     val YellowTextPrimary = Color.Black
     val YellowTextSecondary = Color(0xB3000000)

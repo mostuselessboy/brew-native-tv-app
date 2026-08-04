@@ -19,16 +19,14 @@ package com.google.jetstream.presentation.screens.home
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.imageLoader
-import coil.request.ImageRequest
 import com.google.jetstream.data.entities.HomeSection
-import com.google.jetstream.data.entities.HomeSectionType
 import com.google.jetstream.data.entities.Movie
+import com.google.jetstream.data.playback.PlaybackProgressNotifier
 import com.google.jetstream.data.remote.BrewPages
 import com.google.jetstream.data.repositories.LibraryRepository
 import com.google.jetstream.data.auth.AuthSessionStore
 import com.google.jetstream.data.repositories.MovieRepository
-import com.google.jetstream.data.util.BrewImageUrl
+import com.google.jetstream.data.util.CatalogImagePrefetch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -39,6 +37,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -58,14 +57,51 @@ class HomeScreeViewModel @Inject constructor(
     private val movieRepository: MovieRepository,
     private val libraryRepository: LibraryRepository,
     private val authSessionStore: AuthSessionStore,
+    private val playbackProgressNotifier: PlaybackProgressNotifier,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
+    private var lastSeenUserId: Int? = authSessionStore.currentUserId()
     private val page = MutableStateFlow<String?>(null)
+    private val refreshToken = MutableStateFlow(0)
+
+    init {
+        viewModelScope.launch {
+            playbackProgressNotifier.events.collect {
+                refreshContinueWatching()
+            }
+        }
+        viewModelScope.launch {
+            authSessionStore.currentUser.collect { user ->
+                val newUserId = user?.id
+                if (newUserId == lastSeenUserId) return@collect
+                lastSeenUserId = newUserId
+                // Home sections were only ever cached by page key, not by
+                // user, so a profile switch would keep serving the previous
+                // user's rows (Continue Watching, personalized recs, etc.)
+                // until process death. Force a real refetch here.
+                movieRepository.clearHomeCache()
+                refreshToken.value += 1
+                refreshContinueWatching()
+                refreshShowcaseAccess()
+            }
+        }
+    }
+
     private val _continueWatchingState =
         MutableStateFlow<ContinueWatchingTrayState>(ContinueWatchingTrayState.Hidden)
     val continueWatchingState: StateFlow<ContinueWatchingTrayState> =
         _continueWatchingState.asStateFlow()
+
+    private val _showcaseAccess = MutableStateFlow<com.google.jetstream.data.remote.BrewShowcaseAccessResponse?>(null)
+    val showcaseAccess: StateFlow<com.google.jetstream.data.remote.BrewShowcaseAccessResponse?> = _showcaseAccess.asStateFlow()
+
+    private val _optimisticReminderIds = MutableStateFlow<Set<Int>>(emptySet())
+    val optimisticReminderIds: StateFlow<Set<Int>> = _optimisticReminderIds.asStateFlow()
+
+    private val _reminderFeedback = MutableStateFlow<com.google.jetstream.presentation.common.BrewFeedbackMessage?>(null)
+    val reminderFeedback: StateFlow<com.google.jetstream.presentation.common.BrewFeedbackMessage?> =
+        _reminderFeedback.asStateFlow()
 
     fun peekInitialState(pageKey: String): HomeScreenUiState {
         val cached = movieRepository.peekHomeSections(pageKey)
@@ -73,8 +109,31 @@ class HomeScreeViewModel @Inject constructor(
     }
 
     fun setPage(pageKey: String) {
+        if (page.value == pageKey) return
         page.value = pageKey
-        if (pageKey == BrewPages.HOME) {
+        refreshContinueWatching()
+        refreshShowcaseAccess()
+    }
+
+    private fun refreshShowcaseAccess() {
+        val userId = authSessionStore.currentUserId()
+        if (userId == null || userId <= 0) {
+            _showcaseAccess.value = null
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                movieRepository.getShowcaseAccess(userId)
+            }.onSuccess { access ->
+                _showcaseAccess.value = access
+            }.onFailure {
+                _showcaseAccess.value = null
+            }
+        }
+    }
+
+    fun refreshContinueWatchingIfPending() {
+        if (playbackProgressNotifier.consumePendingRefresh()) {
             refreshContinueWatching()
         }
     }
@@ -101,7 +160,7 @@ class HomeScreeViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<HomeScreenUiState> = page
+    val uiState: StateFlow<HomeScreenUiState> = combine(page, refreshToken) { pageKey, _ -> pageKey }
         .filterNotNull()
         .flatMapLatest { pageKey ->
             flow {
@@ -121,7 +180,10 @@ class HomeScreeViewModel @Inject constructor(
         }
         .onEach { state ->
             if (state is HomeScreenUiState.Ready) {
-                prefetchImages(state.sections)
+                val pageKey = page.value ?: return@onEach
+                viewModelScope.launch(Dispatchers.IO) {
+                    CatalogImagePrefetch.warmPage(context, pageKey, state.sections)
+                }
             }
         }
         .catch { emit(HomeScreenUiState.Error) }
@@ -131,33 +193,47 @@ class HomeScreeViewModel @Inject constructor(
             initialValue = HomeScreenUiState.Loading,
         )
 
-    private fun prefetchImages(sections: List<HomeSection>) {
+    fun dismissReminderFeedback() {
+        _reminderFeedback.value = null
+    }
+
+    fun isReminderSet(movie: Movie): Boolean {
+        val campaignId = movie.campaignId ?: return false
+        if (campaignId in _optimisticReminderIds.value) return true
+        return _showcaseAccess.value?.reminderSetIds?.contains(campaignId) == true
+    }
+
+    fun toggleReminder(movie: Movie, onSignInRequired: () -> Unit = {}) {
+        val campaignId = movie.campaignId ?: return
+        if (isReminderSet(movie)) {
+            _reminderFeedback.value = com.google.jetstream.presentation.common.BrewFeedbackMessage(
+                title = "You're on the list",
+                message = "We'll let you know when this title is live.",
+            )
+            return
+        }
+        val userId = authSessionStore.currentUserId()
+        if (userId == null || userId <= 0) {
+            onSignInRequired()
+            return
+        }
+        val campaignVersionId = movie.campaignVersionId ?: return
+        _optimisticReminderIds.value = _optimisticReminderIds.value + campaignId
         viewModelScope.launch(Dispatchers.IO) {
-            sections.firstOrNull { it.type == HomeSectionType.Showcase }?.movies
-                ?.take(4)
-                ?.forEach { movie ->
-                    context.imageLoader.enqueue(
-                        ImageRequest.Builder(context)
-                            .data(BrewImageUrl.forShowcase(movie.posterUri))
-                            .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
-                            .build()
-                    )
-                }
-            sections
-                .asSequence()
-                .filter {
-                    it.type == HomeSectionType.Row || it.type == HomeSectionType.Immersive
-                }
-                .take(4)
-                .flatMap { it.movies.asSequence().take(8) }
-                .forEach { movie ->
-                    context.imageLoader.enqueue(
-                        ImageRequest.Builder(context)
-                            .data(BrewImageUrl.forCard(movie.posterUri))
-                            .size(BrewImageUrl.CARD_WIDTH, BrewImageUrl.CARD_HEIGHT)
-                            .build()
-                    )
-                }
+            val result = movieRepository.joinWaitlist(userId, campaignVersionId)
+            result.onSuccess {
+                refreshShowcaseAccess()
+                _reminderFeedback.value = com.google.jetstream.presentation.common.BrewFeedbackMessage(
+                    title = "You're on the list",
+                    message = "We'll let you know when this title is live.",
+                )
+            }.onFailure {
+                _optimisticReminderIds.value = _optimisticReminderIds.value - campaignId
+                _reminderFeedback.value = com.google.jetstream.presentation.common.BrewFeedbackMessage(
+                    title = "Could not save your reminder",
+                    message = "Please try again.",
+                )
+            }
         }
     }
 }

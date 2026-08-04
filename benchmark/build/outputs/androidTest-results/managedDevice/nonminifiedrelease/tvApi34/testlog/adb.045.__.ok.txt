@@ -1,0 +1,16 @@
+EXECUTING: /opt/homebrew/share/android-commandlinetools/platform-tools/adb -H localhost -P 5037 -s emulator-5554 shell [[ -d "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output" ]]
+CURRENT_WORKING_DIRECTORY: /Users/hamzarizvi/Desktop/native tv app
+START_TIME: 2026-08-01 12:42:29.662
+START_TIME-NANOS: 2026-08-01 12:42:29.662405000
+ENVIRONMENT:
+ANDROID_SDK_HOME=/opt/homebrew/share/android-commandlinetools
+ANDROID_ADB=/opt/homebrew/share/android-commandlinetools/platform-tools/adb
+*****************************************
+STDOUT/STDERR BELOW
+===================
+
+===================
+END_TIME: 2026-08-01 12:42:29.723
+END_TIME-NANOS: 2026-08-01 12:42:29.723417000
+DURATION: 61ms
+EXIT CODE: 0

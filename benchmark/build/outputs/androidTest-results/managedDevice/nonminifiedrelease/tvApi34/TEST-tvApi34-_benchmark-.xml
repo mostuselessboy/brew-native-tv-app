@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.google.jetstream.benchmark.BaselineProfileGenerator" tests="3" failures="0" errors="0" skipped="2" time="900.612" timestamp="2026-08-01T07:12:35" hostname="localhost">
+  <properties>
+    <property name="device" value="tvApi34" />
+    <property name="flavor" value="" />
+    <property name="project" value=":benchmark" />
+  </properties>
+  <testcase name="startup" classname="com.google.jetstream.benchmark.BaselineProfileGenerator" time="894.855" />
+  <testcase name="startupNoCompilation" classname="com.google.jetstream.benchmark.StartupBenchmark" time="0.031">
+    <skipped />
+  </testcase>
+  <testcase name="startupBaselineProfile" classname="com.google.jetstream.benchmark.StartupBenchmark" time="0.002">
+    <skipped />
+  </testcase>
+</testsuite>

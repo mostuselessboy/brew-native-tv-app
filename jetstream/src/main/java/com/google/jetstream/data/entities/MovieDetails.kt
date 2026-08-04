@@ -71,12 +71,22 @@ data class MovieDetails(
     val rentPriceFormatted: String? = null,
     val buyPriceFormatted: String? = null,
     val rentOriginalPriceFormatted: String? = null,
+    val buyOriginalPriceFormatted: String? = null,
     val languageRows: List<MovieLanguageRow> = emptyList(),
     val hasTrailer: Boolean = false,
+    val trailerVodAssetId: Int? = null,
+    val trailerIsDrm: Boolean = false,
+    val trailerOriginalUrl: String? = null,
+    val trailerIsYoutube: Boolean = false,
+    val trailerIsPublic: Boolean = false,
+    val subscriptionPlans: List<MovieSubscriptionPlan> = emptyList(),
+    val ribbonLabel: String? = null,
     /** Enriched from get-campaign `purchase_cta.slots` when present. */
     val purchaseCtaSlots: List<DetailPurchaseCtaSlot> = emptyList(),
     /** Main VOD asset id for bookmark API. */
     val vodAssetId: Int? = null,
+    val bonusClips: List<MovieExtraItem> = emptyList(),
+    val episodeSeasons: List<MovieEpisodeSeason> = emptyList(),
     /** Slug for check-purchase / start-playback / vod asset APIs. */
     val cvName: String = "",
     val campaignVersionId: Int? = null,

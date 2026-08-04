@@ -69,6 +69,7 @@ fun ProfileScreen(
             )
         }
     }
+    }
 }
 
 @Preview(device = Devices.TV_1080p)

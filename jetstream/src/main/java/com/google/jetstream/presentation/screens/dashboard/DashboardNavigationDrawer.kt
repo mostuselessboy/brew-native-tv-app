@@ -1,9 +1,7 @@
 package com.google.jetstream.presentation.screens.dashboard
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
@@ -17,7 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,7 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -53,6 +53,10 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import com.google.jetstream.R
 import com.google.jetstream.presentation.screens.Screens
+import com.google.jetstream.presentation.theme.BrewTitle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Text
 
 private const val WatchHiddenGemsUrl =
     "https://createstir.b-cdn.net/stir-static/watch-hidden-gems.png"
@@ -70,6 +74,7 @@ private val RailItemShape = RoundedCornerShape(11.dp)
 private val IconSize = 15.dp
 private val StoreIconSize = 13.dp
 private val RailItemSize = 40.dp
+private const val RailFocusedScale = 1.12f
 
 private data class BrewRailEntry(
     val screen: Screens,
@@ -87,7 +92,7 @@ private val PrimaryRailEntries = listOf(
         compactIcon = true,
     ),
     BrewRailEntry(screen = Screens.Search, iconRes = R.drawable.ic_lucide_search),
-    BrewRailEntry(screen = Screens.Favourites, iconRes = R.drawable.ic_lucide_bookmark),
+    BrewRailEntry(screen = Screens.Favourites, iconRes = R.drawable.ic_lucide_library),
 )
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -95,6 +100,7 @@ private val PrimaryRailEntries = listOf(
 fun DashboardNavigationDrawer(
     selectedRoute: String?,
     onNavigateTo: (Screens) -> Unit,
+    accountAvatarUrl: String? = null,
     modifier: Modifier = Modifier,
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
@@ -131,21 +137,25 @@ fun DashboardNavigationDrawer(
                         .clip(RoundedCornerShape(4.dp)),
                     contentScale = ContentScale.Fit,
                 )
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(
-                            BrewImageUrl.forWatchHiddenGems(
-                                WatchHiddenGemsUrl,
-                            ),
-                        )
-                        .size(80, 64)
-                        .crossfade(false)
-                        .build(),
-                    contentDescription = "Watch hidden gems",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .height(RailWordmarkHeight)
-                        .width(RailWordmarkWidth),
+                val pageName = when (selectedRoute) {
+                    Screens.Home() -> "Home"
+                    Screens.BrewPlus() -> "Brew Plus"
+                    Screens.Shorts() -> "Shorts"
+                    Screens.Store() -> "Store"
+                    Screens.Search() -> "Search"
+                    Screens.Favourites() -> "My Library"
+                    Screens.Profile() -> "Settings"
+                    Screens.Account() -> "Account"
+                    else -> "Brew"
+                }
+                Text(
+                    text = pageName,
+                    color = Color.White,
+                    fontFamily = BrewTitle,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = 2.dp)
                 )
             }
 
@@ -178,10 +188,29 @@ fun DashboardNavigationDrawer(
             }
 
             BrewRailItem(
-                screen = Screens.Profile,
-                label = "Profile",
-                selected = selectedRoute == Screens.Profile(),
+                screen = Screens.Account,
+                label = "Account",
+                selected = selectedRoute == Screens.Account(),
                 iconRes = R.drawable.ic_lucide_profile,
+                avatarUrl = accountAvatarUrl,
+                onClick = { onNavigateTo(Screens.Account) },
+                onRailFocus = onRailFocus,
+                onRailBlur = onRailBlur,
+                contentFocusRequester = contentFocusRequester,
+                sidebarFocusRequester = if (selectedRoute == Screens.Account()) {
+                    sidebarFocusRequester
+                } else {
+                    null
+                },
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            BrewRailItem(
+                screen = Screens.Profile,
+                label = "Settings",
+                selected = selectedRoute == Screens.Profile(),
+                iconRes = R.drawable.ic_brew_settings,
                 onClick = { onNavigateTo(Screens.Profile) },
                 onRailFocus = onRailFocus,
                 onRailBlur = onRailBlur,
@@ -215,41 +244,30 @@ private fun BrewRailItem(
     onClick: () -> Unit,
     iconRes: Int,
     iconSize: Dp = IconSize,
+    avatarUrl: String? = null,
     onRailFocus: (Screens, Boolean) -> Unit = { _, _ -> },
     onRailBlur: (Screens) -> Unit = {},
     contentFocusRequester: FocusRequester? = null,
     sidebarFocusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (focused) 1.14f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.68f,
-            stiffness = 420f,
-        ),
-        label = "railScale",
+    val animatedScale by animateFloatAsState(
+        targetValue = if (focused) RailFocusedScale else 1f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 380f),
+        label = "railItemScale",
     )
-    val pillColor by animateColorAsState(
-        targetValue = when {
-            focused -> Color.White
-            selected -> RailSelectedPill
-            else -> Color.Transparent
-        },
-        animationSpec = tween(120),
-        label = "railPill",
-    )
-    val tint by animateColorAsState(
-        targetValue = when {
-            focused -> Color.Black
-            selected -> Color.White.copy(alpha = 0.92f)
-            else -> Color.White.copy(alpha = 0.5f)
-        },
-        animationSpec = tween(120),
-        label = "railTint",
-    )
+    val pillColor = when {
+        focused -> Color.White
+        selected -> RailSelectedPill
+        else -> Color.Transparent
+    }
+    val tint = when {
+        focused -> Color.Black
+        selected -> Color.White.copy(alpha = 0.92f)
+        else -> Color.White.copy(alpha = 0.5f)
+    }
 
-    Box(modifier = Modifier.scale(scale)) {
-        Surface(
+    Surface(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(RailItemShape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
@@ -263,6 +281,10 @@ private fun BrewRailItem(
         ),
         modifier = Modifier
             .size(RailItemSize)
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
             .onFocusChanged { state ->
                 focused = state.isFocused
                 if (state.isFocused) {
@@ -297,13 +319,26 @@ private fun BrewRailItem(
             ),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = label,
-                tint = tint,
-                modifier = Modifier.size(iconSize),
-            )
-        }
+            if (!avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(avatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = label,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(iconSize + 6.dp)
+                        .clip(CircleShape),
+                )
+            } else {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = label,
+                    tint = tint,
+                    modifier = Modifier.size(iconSize),
+                )
+            }
         }
     }
 }

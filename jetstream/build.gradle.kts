@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation("androidx.compose.material3:material3")
 
     // extra material icons
     implementation(libs.androidx.material.icons.extended)
@@ -127,4 +128,10 @@ dependencies {
 
     // For baseline profile generation
     baselineProfile(project(":benchmark"))
+}
+
+composeCompiler {
+    stabilityConfigurationFile.set(rootProject.file("jetstream/stability_config.conf"))
+    reportsDestination.set(layout.buildDirectory.dir("compose_compiler"))
+    metricsDestination.set(layout.buildDirectory.dir("compose_compiler"))
 }

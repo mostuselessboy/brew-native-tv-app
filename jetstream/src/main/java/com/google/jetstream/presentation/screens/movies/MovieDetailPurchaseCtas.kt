@@ -2,6 +2,12 @@ package com.google.jetstream.presentation.screens.movies
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -23,11 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusProperties
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -41,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -51,6 +58,7 @@ import com.google.jetstream.data.util.DetailCtaKind
 import com.google.jetstream.data.util.DetailPurchaseCta
 import com.google.jetstream.data.util.DetailPurchaseCtaSlot
 import com.google.jetstream.presentation.theme.BrewTitle
+import com.google.jetstream.presentation.utils.suppressBringIntoViewOnFocus
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -60,9 +68,18 @@ fun MovieDetailPurchaseCtaRow(
     onSecondaryAction: () -> Unit,
     modifier: Modifier = Modifier,
     primaryFocusRequester: FocusRequester? = null,
-    upFocusRequester: FocusRequester? = null,
+    reminderSet: Boolean = false,
 ) {
-    val slots = DetailPurchaseCta.primaryRowSlots(movie)
+    val slots = DetailPurchaseCta.primaryRowSlots(movie).map { slot ->
+        if (
+            reminderSet &&
+            (slot.kind == DetailCtaKind.ComingSoonNotify || slot.kind == DetailCtaKind.ComingSoon)
+        ) {
+            slot.copy(sublabel = "Reminder set")
+        } else {
+            slot
+        }
+    }
 
     if (slots.isEmpty()) {
         return
@@ -77,33 +94,28 @@ fun MovieDetailPurchaseCtaRow(
     ) {
         slots.forEachIndexed { index, slot ->
             val isPrimary = index == 0
-            val ctaModifier = Modifier
-                .width(MovieDetailTokens.CtaFixedWidth)
-                .then(
-                    if (isPrimary && primaryFocusRequester != null) {
-                        Modifier
-                            .focusRequester(primaryFocusRequester)
-                            .ctaFocusLinks { linkUp(upFocusRequester) }
-                    } else {
-                        Modifier
-                    },
-                )
-
             DetailPurchaseCtaButton(
                 slot = slot,
                 compact = false,
-                onClick = if (isPrimary) onPrimaryAction else onSecondaryAction,
-                modifier = ctaModifier,
+                onClick = if (slot.kind == DetailCtaKind.NotAvailable) {
+                    {}
+                } else if (isPrimary) {
+                    onPrimaryAction
+                } else {
+                    onSecondaryAction
+                },
+                modifier = Modifier
+                    .width(MovieDetailTokens.CtaFixedWidth)
+                    .then(
+                        if (isPrimary && primaryFocusRequester != null) {
+                            Modifier.focusRequester(primaryFocusRequester)
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
         }
     }
-}
-
-private fun Modifier.ctaFocusLinks(block: FocusProperties.() -> Unit): Modifier =
-    focusProperties(block)
-
-private fun FocusProperties.linkUp(requester: FocusRequester?) {
-    if (requester != null) up = requester
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -133,7 +145,7 @@ private fun DetailPurchaseCtaButton(
     val cornerRadius = if (compact) MovieDetailTokens.CtaHalfRowRadius else MovieDetailTokens.CtaWideRadius
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.05f else 1f,
+        targetValue = if (focused) 1.03f else 1f,
         animationSpec = spring(dampingRatio = 0.72f, stiffness = 380f),
         label = "ctaScale",
     )
@@ -142,6 +154,14 @@ private fun DetailPurchaseCtaButton(
         onClick = onClick,
         modifier = modifier
             .heightIn(min = minHeight)
+            .suppressBringIntoViewOnFocus()
+            .shadow(
+                elevation = if (focused) 8.dp else 4.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = Color.White.copy(alpha = 0.14f),
+                spotColor = Color.White.copy(alpha = 0.22f),
+                clip = false,
+            )
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -167,6 +187,16 @@ private fun DetailPurchaseCtaButton(
                 shape = RoundedCornerShape(cornerRadius),
             ),
         ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = if (onYellow) {
+                    MovieDetailTokens.AccentYellow.copy(alpha = 0.34f)
+                } else {
+                    Color.White.copy(alpha = 0.28f)
+                },
+                elevation = 18.dp,
+            ),
+        ),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = style.background,
             focusedContainerColor = style.background,
@@ -188,43 +218,19 @@ private fun DetailPurchaseCtaButton(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 8.dp),
+                        .padding(end = 2.dp),
                 ) {
-                    if (slot.showBrewPlusLogo) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
-                            Text(
-                                text = slot.title,
-                                color = style.text,
-                                fontFamily = BrewTitle,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = titleSize,
-                                lineHeight = titleLine,
-                                letterSpacing = (-0.72).sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            BrewPlusCtaLogo(
-                                onYellowBackground = onYellow,
-                                compact = compact,
-                                stacked = false,
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = slot.title,
-                            color = style.text,
-                            fontFamily = BrewTitle,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = titleSize,
-                            lineHeight = titleLine,
-                            letterSpacing = (-0.72).sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Text(
+                        text = if (slot.showBrewPlusLogo) "${slot.title} Brew+" else slot.title,
+                        color = style.text,
+                        fontFamily = BrewTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = titleSize,
+                        lineHeight = titleLine,
+                        letterSpacing = (-0.4).sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     slot.sublabel?.takeIf { it.isNotBlank() }?.let { sub ->
                         Text(
                             text = sub,
@@ -297,6 +303,7 @@ private fun shouldShowRightIcon(slot: DetailPurchaseCtaSlot): Boolean {
         DetailCtaKind.Rent,
         DetailCtaKind.Buy,
         DetailCtaKind.SupportFilmmaker -> true
+        DetailCtaKind.NotAvailable,
         DetailCtaKind.SubscribeYearly,
         DetailCtaKind.SubscribeQuarterly -> false
         else -> false
@@ -401,5 +408,70 @@ private fun PaidPriceColumn(
                 modifier = Modifier.padding(top = 1.dp),
             )
         }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun DetailPurchaseCtaSkeletonButton(
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.65f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmerAlpha"
+    )
+
+    Surface(
+        onClick = {},
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(8.dp)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color(0xFF2A2A2A).copy(alpha = alpha),
+            contentColor = Color.Transparent,
+            focusedContainerColor = Color(0xFF4A4A4A),
+            focusedContentColor = Color.Transparent,
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color(0xFFFF9A4D).copy(alpha = 0.2f),
+                elevation = 8.dp
+            )
+        ),
+        modifier = modifier
+            .height(MovieDetailTokens.CtaMinHeight)
+            .suppressBringIntoViewOnFocus()
+    ) {
+        Box(modifier = Modifier.fillMaxSize())
+    }
+}
+
+@Composable
+fun MovieDetailSkeletonCtaRow(
+    modifier: Modifier = Modifier,
+    primaryFocusRequester: FocusRequester? = null,
+) {
+    Column(
+        modifier = modifier
+            .width(MovieDetailTokens.CtaFixedWidth)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        DetailPurchaseCtaSkeletonButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (primaryFocusRequester != null) {
+                        Modifier.focusRequester(primaryFocusRequester)
+                    } else {
+                        Modifier
+                    }
+                )
+        )
     }
 }

@@ -91,7 +91,7 @@ class AuthViewModel @Inject constructor(
                 otp = "",
             )
         }
-        if (method == AuthSignInMethod.Qr && _uiState.value.qrCode.isNullOrBlank()) {
+        if (method == AuthSignInMethod.Qr) {
             generateQrCode()
         }
     }
@@ -158,9 +158,7 @@ class AuthViewModel @Inject constructor(
                     is AuthResult.Success -> {
                         val poll = result.data
                         _uiState.update { it.copy(qrPollFailures = 0) }
-                        if (poll.success && poll.verified &&
-                            (!poll.email.isNullOrBlank() || !poll.phone.isNullOrBlank())
-                        ) {
+                        if (poll.success && (poll.verified || authRepository.isAuthenticated)) {
                             completeQrLogin(poll.email, poll.phone)
                             return@launch
                         }
