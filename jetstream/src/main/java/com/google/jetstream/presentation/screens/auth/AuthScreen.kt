@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -59,6 +60,9 @@ import com.google.jetstream.presentation.theme.BrewTitle
 private const val WatchHiddenGemsUrl =
     "https://createstir.b-cdn.net/stir-static/watch-hidden-gems.png"
 
+private const val AuthBgImageUrl =
+    "https://createstir.b-cdn.net/assetlibrary/1842/Image_1784184667208_s20a.png?width=1920&height=1440&quality=100&sharpen=true&format=webp"
+
 private val SeparatorGray = Color(0xFF5C5C5C)
 private val AccentYellow = Color(0xFFFFC15E)
 
@@ -66,7 +70,7 @@ object AuthScreenRoute {
     const val MethodBundleKey = "authMethod"
 }
 
-/** Landscape onboarding-style sign in — QR primary, phone/email alternate. */
+/** Landscape onboarding-style sign in — Netflix-style tabs with QR primary & remote alternate. */
 @Composable
 fun AuthScreen(
     onSignedIn: () -> Unit,
@@ -74,6 +78,7 @@ fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     BackHandler(onBack = onBackPressed)
 
@@ -91,17 +96,26 @@ fun AuthScreen(
             .fillMaxSize()
             .background(Color.Black),
     ) {
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(AuthBgImageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF3D2410),
-                            Color(0xFF120A04),
-                            Color.Black,
+                            Color.Black.copy(alpha = 0.65f),
+                            Color.Black.copy(alpha = 0.85f),
+                            Color.Black.copy(alpha = 0.95f),
                         ),
-                        radius = 1400f,
                     ),
                 ),
         )
@@ -109,32 +123,35 @@ fun AuthScreen(
         BrewAuthBrandRow(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 48.dp, top = 36.dp),
+                .padding(start = 36.dp, top = 20.dp),
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 56.dp, vertical = 32.dp),
+                .padding(horizontal = 48.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(72.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Get Started",
+                text = "Choose how to sign in",
                 color = Color.White,
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Bold,
-                fontSize = 52.sp,
-                letterSpacing = (-1.2).sp,
+                fontSize = 30.sp,
+                letterSpacing = (-0.5).sp,
             )
 
-            Text(
-                text = "Cinema for intelligent folks.",
-                color = Color.White.copy(alpha = 0.65f),
-                fontFamily = BrewTitle,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(top = 6.dp, bottom = 36.dp),
+            AuthHeaderPillTabs(
+                selectedMethod = uiState.method,
+                onSelectQr = { viewModel.selectMethod(AuthSignInMethod.Qr) },
+                onSelectRemote = {
+                    if (uiState.method == AuthSignInMethod.Qr) {
+                        viewModel.selectMethod(AuthSignInMethod.Phone)
+                    }
+                },
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
             )
 
             when {
@@ -212,24 +229,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            if (uiState.method != AuthSignInMethod.Qr) {
-                AuthAlternateMethodsRow(
-                    onQr = { viewModel.selectMethod(AuthSignInMethod.Qr) },
-                    onPhone = {
-                        if (uiState.method != AuthSignInMethod.Phone) {
-                            viewModel.selectMethod(AuthSignInMethod.Phone)
-                        }
-                    },
-                    onEmail = {
-                        if (uiState.method != AuthSignInMethod.Email) {
-                            viewModel.selectMethod(AuthSignInMethod.Email)
-                        }
-                    },
-                    highlight = uiState.method,
-                    showQr = true,
-                )
-            }
-
             uiState.errorMessage?.let { error ->
                 Text(
                     text = error,
@@ -264,20 +263,20 @@ private fun BrewAuthBrandRow(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Image(
             painter = painterResource(R.drawable.brew_logo),
             contentDescription = "Brew",
             modifier = Modifier
-                .height(36.dp)
-                .width(56.dp),
+                .height(24.dp)
+                .width(38.dp),
             contentScale = ContentScale.Fit,
         )
         Box(
             modifier = Modifier
                 .width(1.dp)
-                .height(40.dp)
+                .height(24.dp)
                 .background(SeparatorGray),
         )
         AsyncImage(
@@ -292,8 +291,8 @@ private fun BrewAuthBrandRow(modifier: Modifier = Modifier) {
             contentDescription = "Watch hidden gems",
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .height(44.dp)
-                .width(88.dp),
+                .height(28.dp)
+                .width(56.dp),
         )
     }
 }
@@ -392,11 +391,11 @@ private fun QrOnboardingContent(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(64.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(56.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.Top,
     ) {
         Column(
-            modifier = Modifier.width(360.dp),
+            modifier = Modifier.width(420.dp),
             horizontalAlignment = Alignment.Start,
         ) {
             OnboardingStepHeader(
@@ -405,14 +404,14 @@ private fun QrOnboardingContent(
             )
             Box(
                 modifier = Modifier
-                    .padding(top = 20.dp)
-                    .background(Color.White, RoundedCornerShape(20.dp))
+                    .padding(top = 16.dp)
+                    .background(Color.White, RoundedCornerShape(22.dp))
                     .padding(14.dp)
                     .align(Alignment.CenterHorizontally),
                 contentAlignment = Alignment.Center,
             ) {
                 when {
-                    isLoading && qrUrl == null -> Loading(modifier = Modifier.size(200.dp))
+                    isLoading && qrUrl == null -> Loading(modifier = Modifier.size(240.dp))
                     qrExpired -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
@@ -429,11 +428,11 @@ private fun QrOnboardingContent(
                         }
                     }
                     qrUrl != null -> {
-                        val bitmap = remember(qrUrl) { QrCodeGenerator.createBitmap(qrUrl, 640) }
+                        val bitmap = remember(qrUrl) { QrCodeGenerator.createBitmap(qrUrl, 800) }
                         Image(
                             bitmap = bitmap.asImageBitmap(),
                             contentDescription = "QR sign in",
-                            modifier = Modifier.size(200.dp),
+                            modifier = Modifier.size(240.dp),
                         )
                     }
                 }
@@ -443,14 +442,14 @@ private fun QrOnboardingContent(
                     label = "Refresh QR",
                     onClick = onRefreshQr,
                     modifier = Modifier
-                        .padding(top = 12.dp)
+                        .padding(top = 10.dp)
                         .align(Alignment.CenterHorizontally),
                 )
             }
         }
 
         Column(
-            modifier = Modifier.width(320.dp),
+            modifier = Modifier.width(400.dp),
             horizontalAlignment = Alignment.Start,
         ) {
             OnboardingStepHeader(
@@ -458,17 +457,17 @@ private fun QrOnboardingContent(
                 text = "Confirm this code on your phone or tablet",
             )
             Row(
-                modifier = Modifier.padding(top = 28.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (isLoading || qrCode.isNullOrBlank()) {
-                    Loading(modifier = Modifier.size(48.dp))
+                    Loading(modifier = Modifier.size(56.dp))
                 } else {
                     qrCode.forEach { char ->
                         Box(
                             modifier = Modifier
-                                .size(width = 42.dp, height = 54.dp)
-                                .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                                .size(width = 50.dp, height = 64.dp)
+                                .background(Color.White.copy(alpha = 0.14f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -476,7 +475,7 @@ private fun QrOnboardingContent(
                                 color = Color.White,
                                 fontFamily = BrewTitle,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 26.sp,
+                                fontSize = 30.sp,
                             )
                         }
                     }
@@ -518,48 +517,73 @@ private fun OnboardingStepHeader(step: Int, text: String) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun AuthAlternateMethodsRow(
-    onPhone: () -> Unit = {},
-    onEmail: () -> Unit = {},
-    onQr: (() -> Unit)? = null,
-    highlight: AuthSignInMethod? = null,
-    showQr: Boolean = false,
+private fun AuthHeaderPillTabs(
+    selectedMethod: AuthSignInMethod,
+    onSelectQr: () -> Unit,
+    onSelectRemote: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (showQr) {
-            onQr?.let {
-                AuthChip(label = "QR Code", selected = highlight == AuthSignInMethod.Qr, onClick = it)
-            }
+    val isQrSelected = selectedMethod == AuthSignInMethod.Qr
+    Box(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(50.dp))
+            .padding(3.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AuthHeaderPillTab(
+                label = "Use QR code",
+                selected = isQrSelected,
+                onSelect = onSelectQr,
+            )
+            AuthHeaderPillTab(
+                label = "Use remote",
+                selected = !isQrSelected,
+                onSelect = onSelectRemote,
+            )
         }
-        AuthChip(label = "Phone", selected = highlight == AuthSignInMethod.Phone, onClick = onPhone)
-        AuthChip(label = "Email", selected = highlight == AuthSignInMethod.Email, onClick = onEmail)
     }
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun AuthChip(
+private fun AuthHeaderPillTab(
     label: String,
     selected: Boolean,
-    onClick: () -> Unit,
+    onSelect: () -> Unit,
 ) {
     Surface(
-        onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
+        onClick = onSelect,
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50.dp)),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) Color.White else Color.White.copy(alpha = 0.1f),
-            focusedContainerColor = Color.White,
-            contentColor = if (selected) Color.Black else Color.White,
-            focusedContentColor = Color.Black,
+            containerColor = if (selected) Color.White else Color.Transparent,
+            focusedContainerColor = if (selected) Color.White else Color.White.copy(alpha = 0.15f),
+            contentColor = if (selected) Color.Black else Color.White.copy(alpha = 0.75f),
+            focusedContentColor = if (selected) Color.Black else Color.White,
         ),
-        modifier = Modifier.height(40.dp),
+        modifier = Modifier
+            .height(32.dp)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused && !selected) {
+                    onSelect()
+                }
+            },
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 22.dp)) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        ) {
             Text(
                 text = label,
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
             )
         }
     }

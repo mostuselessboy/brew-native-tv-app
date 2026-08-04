@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -282,8 +283,12 @@ private fun Modifier.dPadEvents(
 )
 
 private fun MovieDetails.intoMediaItem(streamUrl: String): MediaItem {
-    return MediaItem.Builder()
+    val builder = MediaItem.Builder()
         .setUri(streamUrl)
+    if (streamUrl.contains(".m3u8", ignoreCase = true)) {
+        builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+    }
+    return builder
         .setSubtitleConfigurations(
             if (subtitleUri == null) {
                 emptyList()

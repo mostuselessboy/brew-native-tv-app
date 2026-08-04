@@ -1,7 +1,6 @@
 package com.google.jetstream.data.util
 
 import com.google.jetstream.data.remote.BrewVodAssetData
-import java.net.URLEncoder
 
 /** Builds signed Bunny HLS URLs — mirrors mobile `buildVodAssetHlsUrl`. */
 object VodPlaybackUrl {
@@ -15,7 +14,7 @@ object VodPlaybackUrl {
         return if (token.isBlank()) {
             base
         } else {
-            "$base?token=${URLEncoder.encode(token, Charsets.UTF_8.name())}"
+            "$base?token=$token"
         }
     }
 }
