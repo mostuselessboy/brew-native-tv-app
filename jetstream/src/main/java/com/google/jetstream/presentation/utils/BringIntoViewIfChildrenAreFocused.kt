@@ -72,7 +72,7 @@ fun Modifier.suppressBringIntoViewOnFocus(): Modifier = composed(
     factory = {
         val responder = object : BringIntoViewResponder {
             @ExperimentalFoundationApi
-            override fun calculateRectForParent(localRect: Rect): Rect = localRect
+            override fun calculateRectForParent(localRect: Rect): Rect = Rect.Zero
 
             @ExperimentalFoundationApi
             override suspend fun bringChildIntoView(localRect: () -> Rect?) {}

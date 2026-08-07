@@ -56,10 +56,10 @@ fun AccountsSectionDialogButton(
             .focusRequester(focusRequester),
         shape = ButtonDefaults.shape(shape = JetStreamButtonShape),
         colors = ButtonDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f),
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.surface,
-            focusedContentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
+            focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            focusedContentColor = MaterialTheme.colorScheme.surface
         ),
         scale = ButtonDefaults.scale(focusedScale = 1f),
         border = ButtonDefaults.border(

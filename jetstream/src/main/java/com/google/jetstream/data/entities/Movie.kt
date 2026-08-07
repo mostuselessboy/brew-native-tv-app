@@ -45,6 +45,8 @@ fun MoviesResponseItem.toMovie(thumbnailType: ThumbnailType = ThumbnailType.Stan
     val thumbnail = when (thumbnailType) {
         ThumbnailType.Standard -> image_2_3
         ThumbnailType.Long -> image_16_9
+        // Legacy MoviesResponseItem has no project_poster; fall back to portrait (2:3) for poster cards.
+        ThumbnailType.Poster -> image_2_3
     }
     return Movie(
         id = id,
@@ -58,5 +60,7 @@ fun MoviesResponseItem.toMovie(thumbnailType: ThumbnailType = ThumbnailType.Stan
 
 enum class ThumbnailType {
     Standard,
-    Long
+    Long,
+    /** Maps directly to `project_poster` — bypasses rotating landscape/vertical BG art. Use for search and dice suggestion cards. */
+    Poster,
 }

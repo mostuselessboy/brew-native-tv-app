@@ -3,17 +3,16 @@ package com.google.jetstream.presentation.screens.movies
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -114,20 +113,25 @@ private fun BrewRatingStar(
             modifier = Modifier.size(size),
         )
         if (fillAmount > 0) {
-            Box(
+            Icon(
+                imageVector = Icons.Filled.Star,
+                contentDescription = null,
+                tint = StarFilled,
                 modifier = Modifier
-                    .width(size * fillAmount.toFloat())
-                    .fillMaxHeight()
-                    .clip(androidx.compose.ui.graphics.RectangleShape),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = null,
-                    tint = StarFilled,
-                    modifier = Modifier.size(size),
-                )
-            }
+                    .size(size)
+                    .drawWithContent {
+                        val clipW = this.size.width * fillAmount.toFloat()
+                        val clipH = this.size.height
+                        clipRect(
+                            left = 0f,
+                            top = 0f,
+                            right = clipW,
+                            bottom = clipH,
+                        ) {
+                            this@drawWithContent.drawContent()
+                        }
+                    },
+            )
         }
     }
 }

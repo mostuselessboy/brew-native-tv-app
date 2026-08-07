@@ -235,16 +235,7 @@ fun DetailsShimmerSkeleton(
                     posterUri = posterUri,
                     posterFill = shimmer,
                 )
-                Image(
-                    painter = painterResource(R.drawable.brew_logo),
-                    contentDescription = "Brew",
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 28.dp, end = padding.end)
-                        .height(30.dp)
-                        .width(78.dp),
-                    contentScale = ContentScale.Fit,
-                )
+
                 Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)

@@ -16,25 +16,84 @@
 
 package com.google.jetstream.presentation.common
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
-import com.google.jetstream.R
+
+/**
+ * Universal high-performance animated spinner loader for Brew.
+ */
+@Composable
+fun BrewSpinner(
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    color: Color = Color(0xFFFFB800),
+    strokeWidth: Dp = 3.5.dp,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "spinnerRotation")
+    val angle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 850, easing = LinearEasing)
+        ),
+        label = "rotation"
+    )
+
+    Canvas(
+        modifier = modifier
+            .size(size)
+            .graphicsLayer { rotationZ = angle }
+    ) {
+        val strokePx = strokeWidth.toPx()
+
+        // Track ring
+        drawArc(
+            color = color.copy(alpha = 0.15f),
+            startAngle = 0f,
+            sweepAngle = 360f,
+            useCenter = false,
+            style = Stroke(width = strokePx)
+        )
+        // Active spinning arc
+        drawArc(
+            color = color,
+            startAngle = 0f,
+            sweepAngle = 270f,
+            useCenter = false,
+            style = Stroke(width = strokePx, cap = StrokeCap.Round)
+        )
+    }
+}
 
 @Composable
 fun Loading(
     modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.displayMedium
+    style: TextStyle = MaterialTheme.typography.displayMedium,
+    spinnerSize: Dp = 42.dp,
+    spinnerColor: Color = Color(0xFFFFB800),
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Text(
-            text = stringResource(id = R.string.message_loading),
-            style = style
+        BrewSpinner(
+            size = spinnerSize,
+            color = spinnerColor,
         )
     }
 }

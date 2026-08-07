@@ -269,6 +269,152 @@ fun BrewLandscapeMovieCard(
     }
 }
 
+val BrewVerticalCardWidth = 125.dp
+val BrewVerticalCardHeight = 188.dp
+private val BrewVerticalCardShape = RoundedCornerShape(10.dp)
+
+/**
+ * Brew.tv vertical poster card component — 2:3 vertical poster layout.
+ * Displays vertical poster artwork with focused scale, title, year overlay and TV focus glow.
+ */
+@Composable
+fun BrewVerticalMovieCard(
+    movie: Movie,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    cardWidth: Dp? = null,
+    fillWidth: Boolean = false,
+    showTitle: Boolean = true,
+    onFocused: () -> Unit = {},
+) {
+    val context = LocalContext.current
+    val posterUrl = movie.posterUri
+    val imageRequest = remember(movie.id, posterUrl) {
+        ImageRequest.Builder(context)
+            .data(BrewImageUrl.forPortraitCard(posterUrl))
+            .size(BrewImageUrl.PORTRAIT_CARD_WIDTH, BrewImageUrl.PORTRAIT_CARD_HEIGHT)
+            .crossfade(false)
+            .build()
+    }
+    val cardGradient = remember {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0.45f to Color.Transparent,
+                0.75f to Color.Black.copy(alpha = 0.55f),
+                1f to Color.Black.copy(alpha = 0.95f),
+            ),
+        )
+    }
+
+    var isFocused by remember { mutableStateOf(false) }
+
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.08f else 1.0f,
+        animationSpec = if (isFocused) {
+            spring(dampingRatio = 0.85f, stiffness = 180f)
+        } else {
+            tween(durationMillis = 350, easing = LinearOutSlowInEasing)
+        },
+        label = "VerticalMovieCardScale"
+    )
+
+    val focusedBorder = Border(
+        border = BorderStroke(1.5.dp, Color.White),
+        shape = BrewVerticalCardShape,
+    )
+
+    val sizeModifier = when {
+        fillWidth -> Modifier.fillMaxWidth().aspectRatio(2f / 3f)
+        cardWidth != null -> Modifier.width(cardWidth).height(cardWidth * (3f / 2f))
+        else -> Modifier.width(BrewVerticalCardWidth).height(BrewVerticalCardWidth * (3f / 2f))
+    }
+
+    Surface(
+        onClick = onClick,
+        shape = ClickableSurfaceDefaults.shape(BrewVerticalCardShape),
+        border = ClickableSurfaceDefaults.border(focusedBorder = focusedBorder),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = Color.White.copy(alpha = 0.35f),
+                elevation = 18.dp,
+            ),
+        ),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.Black,
+            focusedContainerColor = Color.Black,
+        ),
+        modifier = modifier
+            .then(sizeModifier)
+            .onFocusChanged {
+                isFocused = it.isFocused
+                if (it.isFocused) onFocused()
+            }
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
+            .zIndex(if (isFocused) 10f else 1f),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(BrewVerticalCardShape)
+                .background(Color.Black),
+        ) {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = movie.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(cardGradient),
+            )
+
+            MovieBadgeChrome(movie = movie, compact = true)
+
+            if (showTitle) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                ) {
+                    Text(
+                        text = movie.name,
+                        color = Color.White,
+                        fontFamily = BrewTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        lineHeight = 15.sp,
+                        letterSpacing = (-0.4).sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val meta = movieCardMetaLine(movie)
+                    if (meta.isNotBlank()) {
+                        Text(
+                            text = meta,
+                            color = Color.White.copy(alpha = 0.80f),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 10.sp,
+                                lineHeight = 11.sp,
+                                letterSpacing = (-0.3).sp,
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** Legacy wrapper kept for immersive/grid call sites. */
 @Composable
 fun MovieCard(

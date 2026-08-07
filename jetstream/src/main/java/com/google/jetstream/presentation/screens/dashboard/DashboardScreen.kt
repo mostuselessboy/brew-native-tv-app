@@ -91,7 +91,7 @@ fun DashboardScreen(
     val catalogFocusHandles = remember {
         CatalogTabRoutes.associateWith { CatalogTabFocusHandles() }
     }
-    val sidebarFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
+    val sidebarFocusRequester: FocusRequester? = null
     val profileContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val libraryContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val searchContentFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
@@ -182,18 +182,16 @@ fun DashboardScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         BackPressHandledArea(onBackPressed = onBackPressed) {
-            DashboardNavigationDrawer(
-                selectedRoute = tabRoute,
-                onNavigateTo = ::navigateToTab,
-                accountAvatarUrl = accountAvatarUrl,
-                onRailFocus = { screen, selected ->
-                    dashboardViewModel.onRailItemFocused(screen, selected, ::navigateToTab)
-                },
-                onRailBlur = dashboardViewModel::onRailItemUnfocused,
-                contentFocusRequester = contentFocusRequester,
-                sidebarFocusRequester = sidebarFocusRequester,
-                modifier = Modifier.fillMaxSize().background(Color.Black),
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black)
             ) {
+                val topBarTabs = TopBarTabs
+                val selectedTabIndex = when {
+                    tabRoute == Screens.Search() -> SEARCH_SCREEN_INDEX
+                    tabRoute == Screens.Profile() -> PROFILE_SCREEN_INDEX
+                    else -> topBarTabs.indexOfFirst { it() == tabRoute }.coerceAtLeast(0)
+                }
+
                 Body(
                     tabTarget = tabTarget,
                     dashboardViewModel = dashboardViewModel,
@@ -213,6 +211,14 @@ fun DashboardScreen(
                     libraryContentFocusRequester = libraryContentFocusRequester,
                     searchContentFocusRequester = searchContentFocusRequester,
                     modifier = Modifier.fillMaxSize(),
+                )
+
+                DashboardTopBar(
+                    selectedTabIndex = selectedTabIndex,
+                    contentFocusRequester = contentFocusRequester,
+                    avatarUrl = accountAvatarUrl,
+                    onScreenSelection = { navigateToTab(it) },
+                    modifier = Modifier.zIndex(10f)
                 )
             }
         }
@@ -284,7 +290,7 @@ private fun Body(
     openSignInEmail: () -> Unit,
     onBrowseHome: () -> Unit,
     onBrowseStore: () -> Unit,
-    sidebarFocusRequester: FocusRequester,
+    sidebarFocusRequester: FocusRequester?,
     profileContentFocusRequester: FocusRequester,
     libraryContentFocusRequester: FocusRequester,
     searchContentFocusRequester: FocusRequester,
@@ -395,7 +401,7 @@ private fun NonCatalogTab(
     openSignInEmail: () -> Unit,
     onBrowseHome: () -> Unit,
     onBrowseStore: () -> Unit,
-    sidebarFocusRequester: FocusRequester,
+    sidebarFocusRequester: FocusRequester?,
     profileContentFocusRequester: FocusRequester,
     libraryContentFocusRequester: FocusRequester,
     searchContentFocusRequester: FocusRequester,

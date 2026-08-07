@@ -16,7 +16,6 @@
 
 package com.google.jetstream.presentation.screens.dashboard
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -35,14 +34,13 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.compose.ui.zIndex
-import androidx.tv.material3.MaterialTheme
 
 @Composable
 fun DashboardTopBarItemIndicator(
     currentTabPosition: DpRect,
     modifier: Modifier = Modifier,
-    activeColor: Color = Color(0xFFE5E1E6),
-    inactiveColor: Color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+    activeColor: Color = Color.White,
+    inactiveColor: Color = Color.White,
     anyTabFocused: Boolean,
     shape: Shape
 ) {
@@ -51,11 +49,6 @@ fun DashboardTopBarItemIndicator(
     val leftOffset by animateDpAsState(targetValue = currentTabPosition.left, label = "leftOffset")
     val topOffset = currentTabPosition.top
 
-    val pillColor by animateColorAsState(
-        targetValue = if (anyTabFocused) activeColor else inactiveColor,
-        label = "pillColor"
-    )
-
     Box(
         modifier
             .fillMaxWidth()
@@ -63,7 +56,7 @@ fun DashboardTopBarItemIndicator(
             .offset(x = leftOffset, y = topOffset)
             .width(width)
             .height(height)
-            .background(color = pillColor, shape = shape)
+            .background(color = activeColor, shape = shape)
             .zIndex(-1f)
     )
 }

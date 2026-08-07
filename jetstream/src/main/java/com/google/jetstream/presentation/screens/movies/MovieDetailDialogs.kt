@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.focusable
 import com.google.jetstream.presentation.utils.handleDPadKeyEvents
 import kotlinx.coroutines.delay
@@ -610,13 +611,25 @@ fun MovieDetailCastDialog(
                             val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
 
                             LaunchedEffect(listState) {
+                                var lastFrameTime = 0L
                                 while (true) {
                                     try {
-                                        listState.scrollBy(0.8f)
+                                        listState.scroll {
+                                            while (true) {
+                                                val frameTime = androidx.compose.runtime.withFrameNanos { it }
+                                                if (lastFrameTime == 0L) {
+                                                    lastFrameTime = frameTime
+                                                } else {
+                                                    val deltaMs = (frameTime - lastFrameTime) / 1_000_000f
+                                                    lastFrameTime = frameTime
+                                                    scrollBy(deltaMs * 0.05f) // 0.05 px/ms matches ~0.8px per 16ms
+                                                }
+                                            }
+                                        }
                                     } catch (e: Exception) {
-                                        // ignore
+                                        lastFrameTime = 0L
+                                        kotlinx.coroutines.delay(10)
                                     }
-                                    delay(16)
                                 }
                             }
 
@@ -747,10 +760,17 @@ private fun formatDob(dobStr: String?): String {
 
 @Composable
 private fun LanguageTableRow(row: MovieLanguageRow) {
+    var isFocused by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 14.dp),
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+            .background(
+                if (isFocused) Color.White.copy(alpha = 0.08f) else Color.Transparent,
+                shape = RoundedCornerShape(4.dp),
+            )
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

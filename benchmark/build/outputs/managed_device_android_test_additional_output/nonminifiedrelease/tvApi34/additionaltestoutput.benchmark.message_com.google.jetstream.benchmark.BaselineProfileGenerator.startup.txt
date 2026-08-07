@@ -1,6 +1,0 @@
-BaselineProfileGenerator_startup
-Total run time Ns: 893303010675.
-Baseline profile [results](file://BaselineProfileGenerator_startup-baseline-prof-2026-08-01-07-12-27.txt)
-
-To copy the profile use:
-adb -e pull "/sdcard/Android/media/com.google.jetstream.benchmark/additional_test_output/BaselineProfileGenerator_startup-baseline-prof.txt" .

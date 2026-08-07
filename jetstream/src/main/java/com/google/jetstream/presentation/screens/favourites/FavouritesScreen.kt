@@ -175,7 +175,7 @@ private fun MyLibraryContent(
         contentPadding = PaddingValues(
             start = childPadding.start,
             end = childPadding.end,
-            top = childPadding.top + 12.dp,
+            top = childPadding.top + 80.dp,
             bottom = 80.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(LibraryShelfSpacing),

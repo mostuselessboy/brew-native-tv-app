@@ -247,7 +247,7 @@ class MovieDetailsScreenViewModel @Inject constructor(
             qrUrl = url,
             title = "Share this title",
             message = "Scan with your phone to open this movie on brew.tv.",
-            posterUri = details.posterUri,
+            posterUri = details.portraitPosterUri ?: details.posterUri,
             icon = BrewQrPopupIcon.Brew,
         )
     }

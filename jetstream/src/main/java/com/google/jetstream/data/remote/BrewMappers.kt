@@ -63,6 +63,11 @@ object BrewMappers {
                 verticalThumbnails = verticalThumbnails,
                 fallback = projectPoster ?: backgroundArtUrl,
             )
+            // Poster: use project_poster directly — the actual portrait movie poster art.
+            // Only fall back to vertical/landscape BG art when project_poster is absent.
+            ThumbnailType.Poster -> projectPoster?.takeIf { it.isNotBlank() }
+                ?: verticalBackgroundArtUrl?.takeIf { it.isNotBlank() }
+                ?: backgroundArtUrl.orEmpty()
         }.takeIf { it.isNotBlank() } ?: return null
 
         val heroBackdrop = if (thumbnailType == ThumbnailType.Long) {
@@ -241,6 +246,14 @@ object BrewMappers {
             horizontalThumbnails = horizontalThumbnails,
             fallback = fallback,
         ).ifBlank { backgroundArtUrl ?: fallback }
+
+        val portraitPoster = listOfNotNull(
+            project?.projectPoster,
+            verticalBackgroundArt,
+            BrewArtworkUrls.asUrl(appearance?.verticalBackgroundArt),
+            BrewArtworkUrls.firstUrl(appearance?.verticalThumbnails),
+        ).firstOrNull { it.isNotBlank() }?.takeIf { it.isNotBlank() } ?: fallback
+
         val videoUri = "" // Trailers use DRM HLS via trailer vod asset — not MP4 fallback.
         val trailerVodAssetId = trailer?.vodAssetId?.takeIf { it > 0 }
         val trailerIsDrm = trailer?.isDrm == true
@@ -447,6 +460,7 @@ object BrewMappers {
             videoUri = videoUri,
             subtitleUri = null,
             posterUri = poster,
+            portraitPosterUri = portraitPoster,
             name = title,
             description = synopsis,
             tagline = tagline,

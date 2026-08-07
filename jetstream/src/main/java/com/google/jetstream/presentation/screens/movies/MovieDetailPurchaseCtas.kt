@@ -94,26 +94,29 @@ fun MovieDetailPurchaseCtaRow(
     ) {
         slots.forEachIndexed { index, slot ->
             val isPrimary = index == 0
-            DetailPurchaseCtaButton(
-                slot = slot,
-                compact = false,
-                onClick = if (slot.kind == DetailCtaKind.NotAvailable) {
-                    {}
-                } else if (isPrimary) {
-                    onPrimaryAction
-                } else {
-                    onSecondaryAction
-                },
-                modifier = Modifier
-                    .width(MovieDetailTokens.CtaFixedWidth)
-                    .then(
-                        if (isPrimary && primaryFocusRequester != null) {
-                            Modifier.focusRequester(primaryFocusRequester)
-                        } else {
-                            Modifier
-                        },
-                    ),
-            )
+            if (slot.kind == DetailCtaKind.NotAvailable) {
+                MovieDetailUnavailableCard(
+                    slot = slot,
+                    onPickRandom = onSecondaryAction,
+                    primaryFocusRequester = if (isPrimary) primaryFocusRequester else null,
+                    modifier = Modifier.width(MovieDetailTokens.CtaFixedWidth),
+                )
+            } else {
+                DetailPurchaseCtaButton(
+                    slot = slot,
+                    compact = false,
+                    onClick = if (isPrimary) onPrimaryAction else onSecondaryAction,
+                    modifier = Modifier
+                        .width(MovieDetailTokens.CtaFixedWidth)
+                        .then(
+                            if (isPrimary && primaryFocusRequester != null) {
+                                Modifier.focusRequester(primaryFocusRequester)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                )
+            }
         }
     }
 }
@@ -216,9 +219,8 @@ private fun DetailPurchaseCtaButton(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 2.dp),
+                    modifier = Modifier.weight(1f).padding(end = 2.dp),
+                    horizontalAlignment = Alignment.Start,
                 ) {
                     Text(
                         text = if (slot.showBrewPlusLogo) "${slot.title} Brew+" else slot.title,
@@ -230,6 +232,7 @@ private fun DetailPurchaseCtaButton(
                         letterSpacing = (-0.4).sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Start,
                     )
                     slot.sublabel?.takeIf { it.isNotBlank() }?.let { sub ->
                         Text(
@@ -242,6 +245,7 @@ private fun DetailPurchaseCtaButton(
                             letterSpacing = (-0.2).sp,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Start,
                             modifier = Modifier.padding(top = 1.dp),
                         )
                     }
@@ -475,3 +479,82 @@ fun MovieDetailSkeletonCtaRow(
         )
     }
 }
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun MovieDetailUnavailableCard(
+    slot: DetailPurchaseCtaSlot,
+    onPickRandom: () -> Unit,
+    primaryFocusRequester: FocusRequester?,
+    modifier: Modifier = Modifier,
+) {
+    val message = slot.sublabel ?: "This film isn't available in your country, but many other great films are."
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF1E1E1E))
+            .padding(16.dp),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                text = message,
+                color = Color.White.copy(alpha = 0.9f),
+                fontFamily = BrewTitle,
+                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                letterSpacing = (-0.2).sp,
+            )
+
+            Surface(
+                onClick = onPickRandom,
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50.dp)),
+                scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    contentColor = Color.Black,
+                    focusedContentColor = Color.Black,
+                ),
+                border = ClickableSurfaceDefaults.border(
+                    border = Border(BorderStroke(1.dp, Color.Transparent), shape = RoundedCornerShape(50.dp)),
+                    focusedBorder = Border(BorderStroke(2.dp, Color.White), shape = RoundedCornerShape(50.dp)),
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .then(
+                        if (primaryFocusRequester != null) Modifier.focusRequester(primaryFocusRequester)
+                        else Modifier,
+                    ),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Pick one for me ",
+                        style = androidx.compose.ui.text.TextStyle(
+                            color = Color.Black,
+                            fontFamily = BrewTitle,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                        ),
+                    )
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(R.drawable.dice_brew),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    )
+                }
+            }
+        }
+    }
+}
+

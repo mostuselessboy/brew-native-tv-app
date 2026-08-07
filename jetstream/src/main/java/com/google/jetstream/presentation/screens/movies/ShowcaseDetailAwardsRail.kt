@@ -1,7 +1,8 @@
 package com.google.jetstream.presentation.screens.movies
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +35,8 @@ import com.google.jetstream.presentation.theme.BrewTitle
 private const val WreathUrl =
     "https://createstir.b-cdn.net/stir-marketplace/film-festivals/wreath.png"
 
-/** Endless looping marquee for all movie awards with subtle edge gradient overlays. */
+/** Endless looping basicMarquee for all movie awards with subtle edge gradient overlays. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ShowcaseDetailAwardsRail(
     awards: List<MovieAward>,
@@ -46,27 +44,19 @@ fun ShowcaseDetailAwardsRail(
 ) {
     if (awards.isEmpty()) return
 
-    // Repeat the awards list to ensure we have enough content to fill and scroll continuously
-    val repeatedAwards = remember(awards) {
-        List(15) { awards }.flatten()
+    val context = LocalContext.current
+    val wreathRequest = remember(context) {
+        ImageRequest.Builder(context)
+            .data(WreathUrl)
+            .size(56, 56)
+            .crossfade(false)
+            .build()
     }
 
-    val scrollState = rememberScrollState()
-
-    // Seamless left-to-right endless scroll loop
-    LaunchedEffect(scrollState.maxValue) {
-        if (scrollState.maxValue > 0) {
-            while (true) {
-                scrollState.scrollTo(scrollState.maxValue)
-                scrollState.animateScrollTo(
-                    value = 0,
-                    animationSpec = tween(
-                        durationMillis = repeatedAwards.size * 7000,
-                        easing = LinearEasing
-                    )
-                )
-            }
-        }
+    // Multiply list so basicMarquee has seamless continuous looping content
+    val marqueeAwards = remember(awards) {
+        if (awards.size < 6) awards + awards + awards + awards
+        else awards + awards
     }
 
     Box(
@@ -78,20 +68,21 @@ fun ShowcaseDetailAwardsRail(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scrollState, enabled = false),
+                .basicMarquee(
+                    iterations = Int.MAX_VALUE,
+                    velocity = 45.dp,
+                    initialDelayMillis = 0,
+                ),
             horizontalArrangement = Arrangement.spacedBy(28.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            repeatedAwards.forEach { award ->
+            marqueeAwards.forEach { award ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(WreathUrl)
-                            .size(60, 60)
-                            .build(),
+                        model = wreathRequest,
                         contentDescription = award.name,
                         contentScale = ContentScale.Fit,
                         colorFilter = ColorFilter.tint(Color.White),
@@ -117,7 +108,7 @@ fun ShowcaseDetailAwardsRail(
                                 lineHeight = 12.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 2.dp), // Space below the title of the award
+                                modifier = Modifier.padding(top = 2.dp),
                             )
                         }
                     }
@@ -125,7 +116,7 @@ fun ShowcaseDetailAwardsRail(
             }
         }
 
-        // Edge scrims — wide left fade blends marquee into black hero background
+        // Edge scrims — left/right fades
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)

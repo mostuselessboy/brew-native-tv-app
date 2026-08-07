@@ -32,6 +32,7 @@ data class MovieDetails(
     val videoUri: String,
     val subtitleUri: String?,
     val posterUri: String,
+    val portraitPosterUri: String? = null,
     val name: String,
     val description: String,
     val tagline: String = "",

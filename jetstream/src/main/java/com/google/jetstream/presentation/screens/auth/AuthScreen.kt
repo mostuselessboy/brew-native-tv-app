@@ -56,7 +56,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.jetstream.R
 import com.google.jetstream.data.auth.QrCodeGenerator
-import com.google.jetstream.data.auth.AuthCountries
+import androidx.tv.material3.MaterialTheme
+import com.google.jetstream.data.auth.AuthValidation
 import com.google.jetstream.data.auth.AuthSignInMethod
 import com.google.jetstream.data.auth.AuthSignInStep
 import com.google.jetstream.presentation.common.Loading
@@ -71,11 +72,6 @@ private const val AuthBgImageUrl =
     "https://createstir.b-cdn.net/assetlibrary/1842/Image_1784184667208_s20a.png?width=1920&height=1440&quality=100&sharpen=true&format=webp"
 
 private val SeparatorGray = Color(0xFF5C5C5C)
-private val AccentYellow = Color(0xFFFFC15E)
-
-object AuthScreenRoute {
-    const val MethodBundleKey = "authMethod"
-}
 
 /** Landscape onboarding-style sign in — Netflix-style tabs with QR primary & remote alternate. */
 @Composable
@@ -93,20 +89,7 @@ fun AuthScreen(
         if (uiState.isSignedIn) onSignedIn()
     }
 
-    LaunchedEffect(uiState.method, uiState.step) {
-        if (uiState.method != AuthSignInMethod.Qr) {
-            delay(200)
-            if (uiState.step == AuthSignInStep.Input) {
-                runCatching { inputFormFocusRequester.requestFocus() }
-            } else {
-                keyboardController?.hide()
-                runCatching { otpFormContainerFocusRequester.requestFocus() }
-            }
-        } else {
-            delay(150)
-            runCatching { firstButtonFocusRequester.requestFocus() }
-        }
-    }
+
 
     if (uiState.isLoggingIn) {
         Box(
@@ -126,14 +109,18 @@ fun AuthScreen(
             .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(AuthBgImageUrl)
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFFFB800).copy(alpha = 0.3f),
+                            Color(0xFF141414)
+                        ),
+                        radius = 1200f
+                    )
+                )
         )
 
         Box(
@@ -142,10 +129,9 @@ fun AuthScreen(
                 .wrapContentHeight()
                 .background(
                     Brush.verticalGradient(
-                    Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.65f),
-                            Color.Black.copy(alpha = 0.85f),
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.75f),
                             Color.Black.copy(alpha = 0.95f),
                         ),
                     ),
@@ -260,176 +246,6 @@ fun AuthScreen(
             }
 
             Spacer(modifier = Modifier.weight(1f))
-
-                            uiState.errorMessage?.let { error ->
-                                Text(
-                                    text = error,
-                                    color = Color(0xFFFF6B6B),
-                                    fontFamily = BrewTitle,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                AuthPrimaryButton(
-                                    label = "Send Code",
-                                    onClick = { viewModel.sendOtp() },
-                                    enabled = if (isEmail) uiState.email.isNotBlank() else uiState.phoneDigits.isNotBlank()
-                                )
-
-                                AuthSecondaryButton(
-                                    label = "Back to QR",
-                                    onClick = { viewModel.selectMethod(AuthSignInMethod.Qr) }
-                                )
-                            }
-                        }
-                    } else {
-                        // OTP Step
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.Start,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            BrewAuthBrandRow()
-
-                            Text(
-                                text = "Enter Verification Code",
-                                color = Color.White,
-                                fontFamily = BrewTitle,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp,
-                            )
-
-                            Text(
-                                text = "Sent to ${uiState.otpSentDisplay ?: "your device"}",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontFamily = BrewTitle,
-                                fontSize = 13.sp,
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            val otpLength = if (uiState.otpIssueChannel == AuthSignInMethod.Email) 6 else 4
-                            var isOtpKeyboardActive by remember { mutableStateOf(false) }
-
-                            Surface(
-                                onClick = {
-                                    isOtpKeyboardActive = true
-                                    runCatching { otpFormFocusRequester.requestFocus() }
-                                    keyboardController?.show()
-                                },
-                                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                                colors = ClickableSurfaceDefaults.colors(
-                                    containerColor = Color.Transparent,
-                                    focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                                    contentColor = Color.White,
-                                    focusedContentColor = Color.White,
-                                ),
-                                modifier = Modifier
-                                    .wrapContentSize()
-                                    .focusRequester(otpFormContainerFocusRequester)
-                            ) {
-                                Box(
-                                    modifier = Modifier.padding(6.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        for (i in 0 until otpLength) {
-                                            val char = uiState.otp.getOrNull(i)?.toString() ?: ""
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(width = 40.dp, height = 50.dp)
-                                                    .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-                                                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = char,
-                                                    color = Color.White,
-                                                    fontFamily = BrewTitle,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 22.sp,
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    BasicTextField(
-                                        value = uiState.otp,
-                                        onValueChange = { viewModel.updateOtp(it) },
-                                        readOnly = !isOtpKeyboardActive,
-                                        textStyle = androidx.compose.ui.text.TextStyle(color = Color.Transparent),
-                                        cursorBrush = SolidColor(Color.Transparent),
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier
-                                            .size(width = (48 * otpLength).dp, height = 50.dp)
-                                            .focusRequester(otpFormFocusRequester)
-                                            .onKeyEvent { event ->
-                                                if (event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_BACK) {
-                                                    if (event.nativeKeyEvent.action == android.view.KeyEvent.ACTION_UP) {
-                                                        isOtpKeyboardActive = false
-                                                        keyboardController?.hide()
-                                                        runCatching { otpFormContainerFocusRequester.requestFocus() }
-                                                    }
-                                                    true
-                                                } else {
-                                                    false
-                                                }
-                                            }
-                                    )
-                                }
-                            }
-
-                            uiState.errorMessage?.let { error ->
-                                Text(
-                                    text = error,
-                                    color = Color(0xFFFF6B6B),
-                                    fontFamily = BrewTitle,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                if (uiState.resendCountdown > 0) {
-                                    Text(
-                                        text = "Resend in ${uiState.resendCountdown}s",
-                                        color = Color.White.copy(alpha = 0.4f),
-                                        fontFamily = BrewTitle,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.align(Alignment.CenterVertically)
-                                    )
-                                } else {
-                                    AuthSecondaryButton(
-                                        label = "Resend Code",
-                                        onClick = { viewModel.resendOtp() }
-                                    )
-                                }
-
-                                AuthSecondaryButton(
-                                    label = "Back to Input",
-                                    onClick = { viewModel.resetOtpStep() }
-                                )
-                            }
-                        }
-                    }
-                }
-                else -> {}
-            }
         }
     }
 }
@@ -522,7 +338,6 @@ private fun BrewAuthBrandRow(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Image(
@@ -645,7 +460,7 @@ private fun QrOnboardingContent(
     onRefreshQr: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(56.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.Top,
@@ -658,7 +473,7 @@ private fun QrOnboardingContent(
                 step = 1,
                 text = "Point your camera to this code, or go to brew.tv/tv2",
             )
-            Row(
+            Box(
                 modifier = Modifier
                     .padding(top = 16.dp)
                     .background(Color.White, RoundedCornerShape(22.dp))

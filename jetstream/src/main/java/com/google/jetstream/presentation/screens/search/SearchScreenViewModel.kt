@@ -22,10 +22,17 @@ import com.google.jetstream.data.entities.MovieList
 import com.google.jetstream.data.repositories.MovieRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+private const val SEARCH_DEBOUNCE_MS = 450L
 
 @HiltViewModel
 class SearchScreenViewModel @Inject constructor(
@@ -34,18 +41,45 @@ class SearchScreenViewModel @Inject constructor(
 
     private val internalSearchState = MutableSharedFlow<SearchState>()
 
+    private val _selectedFilter = MutableStateFlow(SearchFilter.All)
+    val selectedFilter: StateFlow<SearchFilter> = _selectedFilter.asStateFlow()
+
+    private var debounceJob: Job? = null
+
     init {
         viewModelScope.launch { loadSuggestions() }
     }
 
+    /**
+     * Called on every keystroke. Blank query immediately reloads suggestions.
+     * Non-blank queries are debounced by 450ms to avoid firing on every keystroke.
+     */
     fun query(queryString: String) {
-        viewModelScope.launch { postQuery(queryString) }
+        debounceJob?.cancel()
+        _selectedFilter.value = SearchFilter.All
+        if (queryString.isBlank()) {
+            debounceJob = viewModelScope.launch { loadSuggestions() }
+            return
+        }
+        debounceJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MS)
+            postQuery(queryString)
+        }
+    }
+
+    /**
+     * Filter changes are instant — no network call.
+     * The UI derives the filtered list via remember(movieList, selectedFilter).
+     */
+    fun setFilter(filter: SearchFilter) {
+        _selectedFilter.value = filter
     }
 
     private suspend fun loadSuggestions() {
         internalSearchState.emit(SearchState.Searching)
         runCatching {
             val dice = movieRepository.getDiceSuggestions()
+            // Emit raw unfiltered list — UI applies the filter synchronously via remember()
             internalSearchState.emit(
                 SearchState.Done(
                     movieList = dice.movies,
@@ -56,23 +90,16 @@ class SearchScreenViewModel @Inject constructor(
             )
         }.onFailure {
             internalSearchState.emit(
-                SearchState.Done(
-                    movieList = emptyList(),
-                    sectionTitle = "Discover",
-                    isSuggestions = true,
-                ),
+                SearchState.Done(movieList = emptyList(), sectionTitle = "Discover", isSuggestions = true),
             )
         }
     }
 
     private suspend fun postQuery(queryString: String) {
-        if (queryString.isBlank()) {
-            loadSuggestions()
-            return
-        }
         internalSearchState.emit(SearchState.Searching)
         runCatching {
             val result = movieRepository.searchMovies(query = queryString)
+            // Emit raw unfiltered list — UI applies the filter synchronously via remember()
             internalSearchState.emit(
                 SearchState.Done(
                     movieList = result,

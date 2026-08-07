@@ -346,9 +346,19 @@ class MovieRepositoryImpl @Inject constructor(
 
     override suspend fun searchMovies(query: String): MovieList {
         if (query.isBlank()) return emptyList()
-        warmHomeCache()
         val q = query.trim()
-        return allMovies(ThumbnailType.Long).filter { movie ->
+        
+        // Warm caches for all catalog pages to ensure whole catalog search
+        CatalogPages.forEach { page ->
+            runCatching { homeSections(page) }
+        }
+
+        // Search across ALL pages in CatalogPages
+        val allMappedMovies = CatalogPages.flatMap { page ->
+            allMovies(ThumbnailType.Poster, page)
+        }
+
+        return allMappedMovies.filter { movie ->
             movie.name.contains(q, ignoreCase = true) ||
                 movie.description.contains(q, ignoreCase = true) ||
                 movie.country?.contains(q, ignoreCase = true) == true ||
@@ -364,8 +374,9 @@ class MovieRepositoryImpl @Inject constructor(
                 lang = "en",
             ).firstOrNull()
         }.getOrNull()
+        // Use ThumbnailType.Poster so suggestion cards show real project_poster art.
         val movies = section?.content
-            ?.mapNotNull { it.contentData?.toMovie(ThumbnailType.Long) }
+            ?.mapNotNull { it.contentData?.toMovie(ThumbnailType.Poster) }
             .orEmpty()
         return DiceSuggestions(
             title = section?.name?.takeIf { it.isNotBlank() } ?: "Discover",

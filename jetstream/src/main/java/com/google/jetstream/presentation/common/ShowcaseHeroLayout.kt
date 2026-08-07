@@ -56,7 +56,7 @@ import com.google.jetstream.presentation.utils.Padding
 val ShowcaseHeight = 380.dp
 
 /** Poster height vs hero frame — keeps 16:9, sits upper-right. */
-internal const val ShowcaseBackdropHeightFraction = 0.90f
+internal const val ShowcaseBackdropHeightFraction = 0.92f
 
 /** Shared typography — home showcase and movie detail hero. */
 object ShowcaseHeroStyles {
@@ -157,12 +157,10 @@ fun ShowcaseHeroBackdrop(
     val verticalBrush = remember {
         Brush.verticalGradient(
             colorStops = arrayOf(
-                0f to Color.Black.copy(alpha = 0.35f),
-                0.42f to Color.Transparent,
-                0.52f to Color.Black.copy(alpha = 0.25f),
-                0.65f to Color.Black.copy(alpha = 0.55f),
-                0.78f to Color.Black.copy(alpha = 0.82f),
-                0.9f to Color.Black.copy(alpha = 0.95f),
+                0f to Color.Transparent,
+                0.60f to Color.Transparent,
+                0.78f to Color.Black.copy(alpha = 0.40f),
+                0.90f to Color.Black.copy(alpha = 0.75f),
                 1f to Color.Black,
             ),
         )
@@ -171,13 +169,12 @@ fun ShowcaseHeroBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.08f to contentBg,
-                0.15f to contentBg.copy(alpha = 0.98f),
-                0.26f to contentBg.copy(alpha = 0.80f),
-                0.36f to contentBg.copy(alpha = 0.50f),
-                0.46f to contentBg.copy(alpha = 0.20f),
-                0.54f to contentBg.copy(alpha = 0.05f),
-                0.62f to Color.Transparent,
+                0.03f to contentBg,
+                0.07f to contentBg.copy(alpha = 0.82f),
+                0.12f to contentBg.copy(alpha = 0.50f),
+                0.18f to contentBg.copy(alpha = 0.22f),
+                0.24f to contentBg.copy(alpha = 0.05f),
+                0.30f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -186,11 +183,10 @@ fun ShowcaseHeroBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.15f to contentBg.copy(alpha = 0.95f),
-                0.30f to contentBg.copy(alpha = 0.65f),
-                0.45f to contentBg.copy(alpha = 0.30f),
-                0.58f to contentBg.copy(alpha = 0.08f),
-                0.68f to Color.Transparent,
+                0.06f to contentBg.copy(alpha = 0.75f),
+                0.14f to contentBg.copy(alpha = 0.42f),
+                0.22f to contentBg.copy(alpha = 0.15f),
+                0.30f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -199,13 +195,11 @@ fun ShowcaseHeroBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.05f to contentBg.copy(alpha = 0.98f),
-                0.11f to contentBg.copy(alpha = 0.85f),
-                0.19f to contentBg.copy(alpha = 0.65f),
-                0.28f to contentBg.copy(alpha = 0.40f),
-                0.38f to contentBg.copy(alpha = 0.15f),
-                0.46f to contentBg.copy(alpha = 0.05f),
-                0.54f to Color.Transparent,
+                0.03f to contentBg.copy(alpha = 0.80f),
+                0.08f to contentBg.copy(alpha = 0.50f),
+                0.14f to contentBg.copy(alpha = 0.25f),
+                0.22f to contentBg.copy(alpha = 0.06f),
+                0.30f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -213,9 +207,9 @@ fun ShowcaseHeroBackdrop(
 
     Box(modifier = modifier.background(contentBg)) {
         val mediaModifier = Modifier
-            .align(Alignment.TopEnd)
-            .fillMaxHeight(backdropHeightFraction)
-            .aspectRatio(16f / 9f, matchHeightConstraintsFirst = true)
+            .align(Alignment.CenterEnd)
+            .fillMaxHeight()
+            .fillMaxWidth(0.72f)
 
         if (showTeaserVideo && teaserPlayer != null) {
             PlayerSurface(
@@ -303,13 +297,13 @@ fun ShowcaseHeroShimmerBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.10f to contentBg,
-                0.20f to contentBg.copy(alpha = 0.98f),
-                0.34f to contentBg.copy(alpha = 0.82f),
-                0.48f to contentBg.copy(alpha = 0.52f),
-                0.60f to contentBg.copy(alpha = 0.22f),
-                0.72f to contentBg.copy(alpha = 0.06f),
-                0.82f to Color.Transparent,
+                0.03f to contentBg,
+                0.08f to contentBg.copy(alpha = 0.90f),
+                0.14f to contentBg.copy(alpha = 0.65f),
+                0.20f to contentBg.copy(alpha = 0.38f),
+                0.26f to contentBg.copy(alpha = 0.12f),
+                0.31f to contentBg.copy(alpha = 0.03f),
+                0.36f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -318,11 +312,11 @@ fun ShowcaseHeroShimmerBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.22f to contentBg.copy(alpha = 0.96f),
-                0.40f to contentBg.copy(alpha = 0.68f),
-                0.56f to contentBg.copy(alpha = 0.32f),
-                0.70f to contentBg.copy(alpha = 0.10f),
-                0.82f to Color.Transparent,
+                0.08f to contentBg.copy(alpha = 0.85f),
+                0.16f to contentBg.copy(alpha = 0.52f),
+                0.24f to contentBg.copy(alpha = 0.22f),
+                0.31f to contentBg.copy(alpha = 0.05f),
+                0.36f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -331,13 +325,12 @@ fun ShowcaseHeroShimmerBackdrop(
         Brush.horizontalGradient(
             colorStops = arrayOf(
                 0f to contentBg,
-                0.06f to contentBg.copy(alpha = 0.98f),
-                0.14f to contentBg.copy(alpha = 0.88f),
-                0.24f to contentBg.copy(alpha = 0.68f),
-                0.36f to contentBg.copy(alpha = 0.42f),
-                0.48f to contentBg.copy(alpha = 0.18f),
-                0.58f to contentBg.copy(alpha = 0.06f),
-                0.68f to Color.Transparent,
+                0.03f to contentBg.copy(alpha = 0.90f),
+                0.06f to contentBg.copy(alpha = 0.72f),
+                0.11f to contentBg.copy(alpha = 0.48f),
+                0.16f to contentBg.copy(alpha = 0.22f),
+                0.22f to contentBg.copy(alpha = 0.06f),
+                0.28f to Color.Transparent,
                 1f to Color.Transparent,
             ),
         )
@@ -447,7 +440,7 @@ fun BoxScope.ShowcaseHeroBrewPlusBadge(
     Row(
         modifier = modifier
             .align(Alignment.BottomEnd)
-            .padding(end = padding.end, bottom = 32.dp),
+            .padding(end = padding.end, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {

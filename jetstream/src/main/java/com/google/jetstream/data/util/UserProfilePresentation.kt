@@ -24,7 +24,8 @@ fun resolveUserAvatarUrl(user: BrewUser?): String {
 }
 
 /** Sized avatar for Coil — scales Brew CDN assets when possible. */
-fun resolveUserAvatarDisplayUrl(user: BrewUser?, displaySizePx: Int): String {
+fun resolveUserAvatarDisplayUrl(user: BrewUser?, displaySizePx: Int): String? {
+    if (user == null) return null
     val raw = resolveUserAvatarUrl(user)
     return BrewImageUrl.withDimensions(raw, displaySizePx, displaySizePx, quality = "100")
 }

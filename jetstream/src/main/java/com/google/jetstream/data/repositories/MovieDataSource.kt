@@ -58,6 +58,8 @@ class MovieDataSource @Inject constructor(
         when (thumbnailType) {
             ThumbnailType.Standard -> movieDataReader.read()
             ThumbnailType.Long -> movieWithLongThumbnailDataReader.read()
+            // Local JSON asset has no project_poster; treat Poster same as Long for legacy data.
+            ThumbnailType.Poster -> movieWithLongThumbnailDataReader.read()
         }
 
     suspend fun getFeaturedMovieList() =

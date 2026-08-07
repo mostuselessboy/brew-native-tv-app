@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.tv.material3.MaterialTheme
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.unit.dp
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.JetStreamTheme
 
@@ -40,26 +42,33 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(Color.Black),
     ) {
-        // Top orange wash gradient: rgba(255,123,0,0.19) fading down to transparent
+        // Login screen radial gradient wash: Amber radial gradient fading to dark charcoal
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.42f)
+                .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
+                    Brush.radialGradient(
                         colors = listOf(
-                            Color(0x30FF7B00), // rgba(255, 123, 0, 0.19)
-                            Color(0x0AFF7B00), // rgba(255, 123, 0, 0.04)
-                            Color.Transparent,
+                            Color(0xFFFFB800).copy(alpha = 0.3f),
+                            Color(0xFF141414)
                         ),
-                    ),
-                ),
+                        radius = 1200f
+                    )
+                )
         )
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = childPadding.start, vertical = childPadding.top),
+                .padding(
+                    start = childPadding.start,
+                    end = childPadding.end,
+                    top = childPadding.top + 80.dp,
+                    bottom = childPadding.bottom,
+                )
+                .focusProperties {
+                    up = com.google.jetstream.presentation.screens.dashboard.ProfileTopBarFocusRequester
+                },
         ) {
             AccountsSection(
                 onSignInPhone = openSignInPhone,
@@ -68,7 +77,6 @@ fun ProfileScreen(
                 sidebarFocusRequester = sidebarFocusRequester,
             )
         }
-    }
     }
 }
 

@@ -37,9 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -80,7 +78,6 @@ data class AccountsSectionData(
     val focusable: Boolean = true,
 )
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun AccountsSection(
@@ -154,12 +151,7 @@ fun AccountsSection(
                     label = "Sign In",
                     isPrimary = true,
                     onClick = onSignInPhone,
-                    modifier = Modifier
-                        .width(240.dp)
-                        .focusRequester(panelFocus)
-                        .focusProperties {
-                            if (sidebarFocusRequester != null) left = sidebarFocusRequester
-                        },
+                    modifier = Modifier.focusRequester(panelFocus),
                 )
             }
         }
@@ -220,7 +212,6 @@ fun AccountsSection(
                             modifier = Modifier
                                 .focusRequester(panelFocus)
                                 .focusProperties {
-                                    if (sidebarFocusRequester != null) left = sidebarFocusRequester
                                     right = rightPanelFocus
                                 },
                         )
@@ -231,7 +222,6 @@ fun AccountsSection(
                             subtitle = "View your rentals and purchases",
                             onClick = { },
                             modifier = Modifier.focusProperties {
-                                if (sidebarFocusRequester != null) left = sidebarFocusRequester
                                 right = rightPanelFocus
                             },
                         )
@@ -242,7 +232,6 @@ fun AccountsSection(
                             subtitle = "See what you're subscribed to",
                             onClick = { },
                             modifier = Modifier.focusProperties {
-                                if (sidebarFocusRequester != null) left = sidebarFocusRequester
                                 right = rightPanelFocus
                             },
                         )
@@ -253,7 +242,6 @@ fun AccountsSection(
                             subtitle = "Sign out of your account",
                             onClick = { viewModel.signOut() },
                             modifier = Modifier.focusProperties {
-                                if (sidebarFocusRequester != null) left = sidebarFocusRequester
                                 right = rightPanelFocus
                             },
                         )
@@ -288,7 +276,6 @@ fun AccountsSection(
                                 selectedCountry = if (selectedCountry == "India") "United States" else "India"
                             },
                             modifier = Modifier.focusProperties {
-                                if (sidebarFocusRequester != null) left = sidebarFocusRequester
                                 right = rightPanelFocus
                             },
                         )
@@ -301,7 +288,6 @@ fun AccountsSection(
                                 selectedLanguage = if (selectedLanguage == "English") "Hindi" else "English"
                             },
                             modifier = Modifier.focusProperties {
-                                if (sidebarFocusRequester != null) left = sidebarFocusRequester
                                 right = rightPanelFocus
                             },
                         )
@@ -312,7 +298,6 @@ fun AccountsSection(
                             subtitle = if (notificationsEnabled) "Enabled" else "Disabled",
                             onClick = { notificationsEnabled = !notificationsEnabled },
                             modifier = Modifier.focusProperties {
-                                if (sidebarFocusRequester != null) left = sidebarFocusRequester
                                 right = rightPanelFocus
                             },
                         )
@@ -494,27 +479,25 @@ private fun CenteredPillButton(
 ) {
     Surface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50.dp)),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f, pressedScale = 1f),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.04f),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (isPrimary) AccentYellow else Color.White.copy(alpha = 0.12f),
-            focusedContainerColor = Color.White,
-            contentColor = if (isPrimary) Color.Black else Color.White,
-            focusedContentColor = Color.Black,
+            containerColor = Color.White,
+            focusedContainerColor = Color.White.copy(alpha = 0.92f),
         ),
-        modifier = modifier
-            .height(46.dp),
+        modifier = modifier,
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize(),
         ) {
             Text(
                 text = label,
+                color = Color.Black,
                 fontFamily = BrewTitle,
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 12.dp),
             )
         }
     }

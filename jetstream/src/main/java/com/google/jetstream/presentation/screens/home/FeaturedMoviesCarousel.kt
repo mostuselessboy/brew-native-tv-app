@@ -74,11 +74,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Info
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonColors
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Icon
+import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
@@ -147,7 +151,7 @@ private val ShowcaseButtonShape = RoundedCornerShape(12.dp)
 private val ShowcaseButtonHeight = 40.dp
 private val ShowcaseButtonPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
 private val ShowcasePrimaryUnfocusedColor = Color(0xCC292628)
-private val ShowcaseSecondaryUnfocusedColor = Color(0xB3242220)
+private val ShowcaseSecondaryUnfocusedColor = Color(0xD0282828)
 private val ShowcaseSecondaryGlassColor = Color(0x1FFFFFFF)
 private const val ShowcaseButtonFocusedScale = 1.06f
 private const val HorizontalKeyGraceMs = 320L
@@ -445,12 +449,21 @@ private fun ShowcaseActionButtons(
             colors = showcaseSecondaryButtonColors(),
             fixedHeight = ShowcaseButtonHeight,
         ) {
-            Text(
-                text = stringResource(R.string.more_info),
-                style = ShowcaseCtaPrimaryStyle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = LocalContentColor.current
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.more_info),
+                    style = ShowcaseCtaPrimaryStyle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         }
         return
@@ -519,12 +532,21 @@ private fun ShowcaseActionButtons(
             colors = showcaseSecondaryButtonColors(),
             fixedHeight = ShowcaseButtonHeight,
         ) {
-            Text(
-                text = stringResource(R.string.more_info),
-                style = ShowcaseCtaPrimaryStyle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = LocalContentColor.current
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.more_info),
+                    style = ShowcaseCtaPrimaryStyle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -590,6 +612,7 @@ private fun ShowcaseFocusButton(
         colors = colors,
         content = {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
                 content = content,
@@ -627,21 +650,17 @@ private fun Modifier.showcaseSlideKeys(
     when (event.nativeKeyEvent.keyCode) {
         KeyEvent.KEYCODE_DPAD_LEFT,
         KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT -> {
-            if (activeIndex > 0) {
-                onIndexChange(activeIndex - 1)
+            if (itemCount > 1) {
+                onIndexChange(if (activeIndex > 0) activeIndex - 1 else itemCount - 1)
                 true
-            } else {
-                false
-            }
+            } else false
         }
         KeyEvent.KEYCODE_DPAD_RIGHT,
         KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT -> {
-            if (activeIndex < itemCount - 1) {
-                onIndexChange(activeIndex + 1)
+            if (itemCount > 1) {
+                onIndexChange(if (activeIndex < itemCount - 1) activeIndex + 1 else 0)
                 true
-            } else {
-                false
-            }
+            } else false
         }
         else -> false
     }

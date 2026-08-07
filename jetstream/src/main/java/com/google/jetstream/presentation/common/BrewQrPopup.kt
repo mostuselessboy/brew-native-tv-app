@@ -111,7 +111,7 @@ fun BrewQrPopup(
         ) {
             Box(
                 modifier = Modifier
-                    .width(if (isShareLayout) 400.dp else 340.dp)
+                    .width(340.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
@@ -150,7 +150,7 @@ fun BrewQrPopup(
                     )
 
                     if (isShareLayout) {
-                        ShareHeroWithOverlappingQr(
+                        SharePosterWithCenteredQr(
                             posterUri = state.posterUri!!,
                             qrUrl = state.qrUrl,
                             icon = state.icon,
@@ -180,54 +180,53 @@ fun BrewQrPopup(
     }
 }
 
-/** Wide landscape art with QR badge overlapping the top-right edge. */
+/** Vertical poster art with centered QR badge. */
 @Composable
-private fun ShareHeroWithOverlappingQr(
+private fun SharePosterWithCenteredQr(
     posterUri: String,
     qrUrl: String,
     icon: BrewQrPopupIcon,
 ) {
     val context = LocalContext.current
-    val artHeight = 188.dp
-    val qrSize = 132.dp
+    val artWidth = 150.dp
+    val artHeight = 225.dp
+    val qrSize = 110.dp
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 18.dp)
-            .height(artHeight + 28.dp),
+            .padding(top = 10.dp)
+            .width(artWidth)
+            .height(artHeight)
+            .shadow(12.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF1A1A1A)),
+        contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(BrewImageUrl.forShowcase(posterUri))
-                .size(BrewImageUrl.SHOWCASE_WIDTH, BrewImageUrl.SHOWCASE_HEIGHT)
+                .data(BrewImageUrl.forPortraitCard(posterUri))
+                .size(BrewImageUrl.PORTRAIT_CARD_WIDTH, BrewImageUrl.PORTRAIT_CARD_HEIGHT)
                 .crossfade(200)
                 .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(artHeight)
-                .clip(ArtShape)
-                .background(Color(0xFF1A1A1A)),
+            modifier = Modifier.fillMaxSize(),
         )
 
+        // Semi-transparent dark overlay to ensure QR is highly readable
         Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-4).dp, y = 0.dp)
-                .shadow(12.dp, RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .background(PopupSurface)
-                .padding(4.dp),
-        ) {
-            BrewQrCodeWithCenterIcon(
-                url = qrUrl,
-                icon = icon,
-                size = qrSize,
-            )
-        }
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.42f)),
+        )
+
+        // QR Code configured in the center
+        BrewQrCodeWithCenterIcon(
+            url = qrUrl,
+            icon = icon,
+            size = qrSize,
+            modifier = Modifier.shadow(8.dp, RoundedCornerShape(12.dp)),
+        )
     }
 }
 

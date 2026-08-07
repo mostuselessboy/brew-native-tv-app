@@ -60,6 +60,11 @@ import com.google.jetstream.data.util.BrewImageUrl
 import com.google.jetstream.presentation.screens.dashboard.rememberChildPadding
 import com.google.jetstream.presentation.theme.BrewTitle
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.shape.CircleShape
+import androidx.tv.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.layout.size
+import com.google.jetstream.R
 
 enum class ItemDirection(val aspectRatio: Float) {
     Vertical(2f / 3f),
@@ -93,8 +98,6 @@ fun MoviesRow(
     onMovieFocused: (Movie) -> Unit = {},
     lastFocusedMovieId: String? = null,
 ) {
-    val (lazyRow, defaultFirstItem) = remember { FocusRequester.createRefs() }
-    val firstItem = firstItemFocusRequester ?: defaultFirstItem
     val cardHeight = BrewLandscapeCardWidth * 9f / 16f
     var cardsReady by remember(movieList, deferCardMount) {
         mutableStateOf(!deferCardMount)
@@ -106,17 +109,20 @@ fun MoviesRow(
         }
     }
 
-    val targetItem = remember { FocusRequester() }
-    var restoredMovieId by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(cardsReady, lastFocusedMovieId) {
-        if (!cardsReady || lastFocusedMovieId == null) return@LaunchedEffect
-        if (restoredMovieId == lastFocusedMovieId) return@LaunchedEffect
-        delay(160)
-        runCatching { targetItem.requestFocus() }
-        restoredMovieId = lastFocusedMovieId
-    }
-
     val lazyListState = rememberLazyListState()
+
+    val targetIndex = remember(movieList, lastFocusedMovieId) {
+        movieList.indexOfFirst { it.id == lastFocusedMovieId }.takeIf { it >= 0 }
+    }
+    val targetFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(targetIndex, cardsReady) {
+        if (targetIndex != null && cardsReady) {
+            runCatching { lazyListState.scrollToItem(targetIndex) }
+            delay(50)
+            runCatching { targetFocusRequester.requestFocus() }
+        }
+    }
     val showLeftGradient by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 0
@@ -136,7 +142,7 @@ fun MoviesRow(
         }
     }
 
-    Column(modifier = modifier.focusGroup()) {
+    Column(modifier = modifier) {
         if (title != null) {
             Column(
                 modifier = Modifier.padding(
@@ -168,9 +174,6 @@ fun MoviesRow(
                 horizontalArrangement = Arrangement.spacedBy(
                     if (showIndexOverImage) 16.dp else 18.dp,
                 ),
-                modifier = Modifier
-                    .focusRequester(lazyRow)
-                    .focusRestorer { firstItem },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 itemsIndexed(
@@ -178,25 +181,16 @@ fun MoviesRow(
                     key = { _, movie -> movie.id },
                     contentType = { _, _ -> "movie_card" },
                 ) { index, movie ->
-                    val itemModifier = if (index == 0) {
-                        Modifier.focusRequester(firstItem)
-                    } else {
-                        Modifier
-                    }
-                    val focusModifier = itemModifier
-                        .then(
-                            if (movie.id == lastFocusedMovieId) {
-                                Modifier.focusRequester(targetItem)
-                            } else {
-                                Modifier
-                            }
-                        )
+                    val isTarget = index == targetIndex
+                    val req = if (isTarget) targetFocusRequester else if (index == 0 && firstItemFocusRequester != null) firstItemFocusRequester else null
+
+                    val focusModifier = Modifier
+                        .then(if (req != null) Modifier.focusRequester(req) else Modifier)
                         .focusProperties {
                             if (index == 0 && leftFocusRequester != null) {
                                 left = leftFocusRequester
                             }
                         }
-
                     if (!cardsReady) {
                         TrayCardPlaceholder(
                             posterUri = movie.posterUri,
@@ -208,26 +202,16 @@ fun MoviesRow(
                             movie = movie,
                             cardHeight = cardHeight,
                             showTitle = showItemTitle,
-                            onClick = {
-                                lazyRow.saveFocusedChild()
-                                onMovieSelected(movie)
-                            },
-                            onFocused = {
-                                onMovieFocused(movie)
-                            },
+                            onClick = { onMovieSelected(movie) },
+                            onFocused = { onMovieFocused(movie) },
                             modifier = focusModifier,
                         )
                     } else {
                         BrewLandscapeMovieCard(
                             movie = movie,
                             showTitle = showItemTitle,
-                            onClick = {
-                                lazyRow.saveFocusedChild()
-                                onMovieSelected(movie)
-                            },
-                            onFocused = {
-                                onMovieFocused(movie)
-                            },
+                            onClick = { onMovieSelected(movie) },
+                            onFocused = { onMovieFocused(movie) },
                             modifier = focusModifier,
                         )
                     }
@@ -237,10 +221,7 @@ fun MoviesRow(
                     item(key = "view_more") {
                         ViewMoreTrayCard(
                             previewMovies = movieList,
-                            onClick = {
-                                lazyRow.saveFocusedChild()
-                                onViewMoreClick()
-                            },
+                            onClick = onViewMoreClick,
                         )
                     }
                 }
@@ -422,11 +403,49 @@ private fun ViewMoreTrayCard(
                 }
             }
 
+            // Dark mask overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.52f)),
-                contentAlignment = Alignment.Center,
+                    .background(Color.Black.copy(alpha = 0.72f))
+            )
+
+            // Golden-yellow gradient wash
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFFFB800).copy(alpha = 0.18f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+
+            // Top-left circular dark badge with library icon
+            Box(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .size(28.dp)
+                    .background(Color(0xFF141414), CircleShape)
+                    .align(Alignment.TopStart),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_lucide_library),
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = Color.White
+                )
+            }
+
+            // Texts at bottom-left
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 12.dp, bottom = 12.dp, end = 48.dp)
             ) {
                 Text(
                     text = "View More",
@@ -435,7 +454,29 @@ private fun ViewMoreTrayCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     letterSpacing = (-0.3).sp,
-                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = "See all items",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 10.sp,
+                    letterSpacing = 0.sp,
+                )
+            }
+
+            // Bottom-right yellow action button
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(12.dp)
+                    .size(24.dp)
+                    .background(Color(0xFFFFB800), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_lucide_arrow_right),
+                    contentDescription = null,
+                    modifier = Modifier.size(10.dp),
+                    tint = Color.Black
                 )
             }
         }

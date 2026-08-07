@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -314,17 +315,10 @@ private fun Details(
                         modifier = Modifier.fillMaxSize(),
                         primaryFocusRequester = primaryCtaFocusRequester,
                         overlay = {
-                            MovieDetailBackButton(
-                                onBackPressed = {
-                                    when {
-                                        showLanguagesDialog -> showLanguagesDialog = false
-                                        showSynopsisDialog -> showSynopsisDialog = false
-                                        else -> onBackPressed()
-                                    }
-                                },
-                                downFocusRequester = primaryCtaFocusRequester,
-                                rightFocusRequester = primaryCtaFocusRequester,
-                                modifier = Modifier.align(Alignment.TopStart),
+                            com.google.jetstream.presentation.common.BrewBrandLogo(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(start = 36.dp, top = 24.dp)
                             )
                         },
                     )
@@ -402,40 +396,20 @@ private fun Details(
                 }
             }
 
-            if (relatedMovies.isNotEmpty()) {
-                item(key = "related_and_footer") {
-                    MovieDetailBottomSection(
-                        relatedMovies = relatedMovies,
-                        onMovieSelected = refreshScreenWithNewMovie,
-                    )
-                }
-            } else {
-                item(key = "detail_footer") {
-                    MovieDetailBottomSection()
-                }
+            item(key = "detail_footer") {
+                MovieDetailBottomSection()
             }
         }
     }
 }
 
 @Composable
-private fun MovieDetailBottomSection(
-    relatedMovies: MovieList = emptyList(),
-    onMovieSelected: (Movie) -> Unit = {},
-) {
+private fun MovieDetailBottomSection() {
     Box(modifier = Modifier.fillMaxWidth()) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-            if (relatedMovies.isNotEmpty()) {
-                DetailRelatedMoviesRow(
-                    title = "Related Movies",
-                    movieList = relatedMovies,
-                    onMovieSelected = onMovieSelected,
-                    modifier = Modifier.padding(bottom = 28.dp),
-                )
-            }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             MovieDetailPageFooter()
         }
         Box(
